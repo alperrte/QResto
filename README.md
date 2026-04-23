@@ -127,5 +127,5 @@ QResto servis yapısı aşağıdaki ana servislerden oluşur:
 
 ---
 
-
+![QResto Progress](assets/in-progress.png)
 
