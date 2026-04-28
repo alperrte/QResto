@@ -70,6 +70,9 @@ services:
   menu-service:
     build: ./backend/menu-service
     container_name: qresto-menu
+  qr-service:
+    build: ./backend/qr-service
+    container_name: qresto-qr-service
 
     env_file:
       - .env
@@ -82,6 +85,7 @@ services:
 
     environment:
       SERVER_PORT: ${SERVER_PORT_MENU}
+      SERVER_PORT: ${SERVER_PORT_QR}
 
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}
@@ -95,6 +99,11 @@ services:
       - "${SERVER_PORT_MENU}:${SERVER_PORT_MENU}"
 
     restart: unless-stopped
+
+      - "${SERVER_PORT_QR}:${SERVER_PORT_QR}"
+
+    restart: unless-stopped
+
 
 volumes:
   mssql_data:
