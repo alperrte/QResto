@@ -1,8 +1,8 @@
 version: "3.9"
 
 services:
-
   mssql:
+    platform: linux/amd64
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: ${MSSQL_CONTAINER}
     restart: always
@@ -14,18 +14,23 @@ services:
     volumes:
       - mssql_data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${DB_PASSWORD} -C -Q 'SELECT 1'"]
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P ${DB_PASSWORD} -C -Q 'SELECT 1'",
+        ]
       interval: 10s
       timeout: 5s
       retries: 20
       start_period: 30s
 
   database:
+    platform: linux/amd64
     image: mcr.microsoft.com/mssql/server:2022-latest
     depends_on:
       mssql:
         condition: service_healthy
-    entrypoint: ["/bin/bash","-lc"]
+    entrypoint: ["/bin/bash", "-lc"]
     command: >
       "/opt/mssql-tools18/bin/sqlcmd
       -S mssql
@@ -62,6 +67,9 @@ services:
       - "${SERVER_PORT_AUTH}:${SERVER_PORT_AUTH}"
     restart: unless-stopped
 
+  menu-service:
+    build: ./backend/menu-service
+    container_name: qresto-menu
   qr-service:
     build: ./backend/qr-service
     container_name: qresto-qr-service
@@ -76,6 +84,7 @@ services:
         condition: service_completed_successfully
 
     environment:
+      SERVER_PORT: ${SERVER_PORT_MENU}
       SERVER_PORT: ${SERVER_PORT_QR}
 
       DB_HOST: ${DB_HOST}
@@ -87,6 +96,10 @@ services:
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILE}
 
     ports:
+      - "${SERVER_PORT_MENU}:${SERVER_PORT_MENU}"
+
+    restart: unless-stopped
+
       - "${SERVER_PORT_QR}:${SERVER_PORT_QR}"
 
     restart: unless-stopped
