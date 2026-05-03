@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // 🔥 custom hatalar
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiError> handleRuntime(RuntimeException ex) {
         return ResponseEntity
@@ -22,7 +21,6 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-    // 🔥 validation hataları
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiError> handleValidation(MethodArgumentNotValidException ex) {
 
@@ -40,7 +38,6 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-    // 🔥 fallback (son çare)
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiError> handleGeneral(Exception ex) {
         return ResponseEntity
