@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///Users/barisatala/Desktop/QResto/frontend/src/features/menu/menu-product-detail/components/MenuDetailPage.jsx"],"sourcesContent":["export default function MenuDetailPage({ productId }) {\n    return <div>Menu Detail: {productId}</div>;\n  }"],"names":["MenuDetailPage","productId"],"mappings":";;;;;;AAAe,SAASA,eAAe,EAAEC,SAAS,EAAE;IAChD,qBAAO,+QAAC;;YAAI;YAAcA;;;;;;;AAC5B"}},
+    {"offset": {"line": 32, "column": 0}, "map": {"version":3,"sources":["file:///Users/barisatala/Desktop/QResto/frontend/src/app/menu/%5Bid%5D/page.js"],"sourcesContent":["import MenuDetailPage from \"@/features/menu/menu-product-detail/components/MenuDetailPage\";\n\nexport default async function Page({ params }) {\n  const { id } = await params;\n  return <MenuDetailPage productId={id} />;\n}\n"],"names":["Page","params","id","productId"],"mappings":";;;;;AAAA;;;AAEe,eAAeA,KAAK,EAAEC,MAAM,EAAE;IAC3C,MAAM,EAAEC,EAAE,EAAE,GAAG,MAAMD;IACrB,qBAAO,+QAAC,iOAAc;QAACE,WAAWD;;;;;;AACpC"}}]
+}

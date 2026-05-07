@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///Users/barisatala/Desktop/QResto/frontend/src/features/menu/menu-list/components/MenuListPage.jsx"],"sourcesContent":["export default function MenuListPage() {\n    return <div>Menu List</div>;\n  }"],"names":["MenuListPage"],"mappings":";;;;;;AAAe,SAASA;IACpB,qBAAO,+QAAC;kBAAI;;;;;;AACd"}},
+    {"offset": {"line": 29, "column": 0}, "map": {"version":3,"sources":["file:///Users/barisatala/Desktop/QResto/frontend/src/app/page.js"],"sourcesContent":["import MenuListPage from \"@/features/menu/menu-list/components/MenuListPage\";\n\nexport default function Page() {\n  return <MenuListPage />;\n}"],"names":["Page"],"mappings":";;;;;AAAA;;;AAEe,SAASA;IACtB,qBAAO,+QAAC,kNAAY;;;;;AACtB"}}]
+}

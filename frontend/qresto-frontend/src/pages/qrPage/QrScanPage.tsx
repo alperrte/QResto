@@ -39,7 +39,7 @@ const QrScanPage = () => {
 
                 console.log("SCAN OK:", data);
 
-                navigate("/menu");
+                navigate("/welcome");
             } catch (err) {
                 console.error(err);
                 alert("QR okunamadı");

@@ -1,0 +1,120 @@
+/* Welcome sayfasına özel giriş animasyonları (route geçişleri: styles/routeTransitions.css) */
+
+.welcome-hero-entrance {
+  animation: welcome-hero-layer-in 900ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes welcome-hero-layer-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.welcome-hero-photo {
+  animation: welcome-hero-photo-in 1100ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes welcome-hero-photo-in {
+  from {
+    opacity: 0;
+    transform: scale(1.07);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+.welcome-topbar-reveal {
+  animation: welcome-topbar-slide 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes welcome-topbar-slide {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-card-rise {
+  animation: welcome-card-rise 760ms cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  animation-delay: 140ms;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes welcome-card-rise {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+    filter: blur(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.welcome-actions-stagger > * {
+  animation: welcome-action-rise 560ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+.welcome-actions-stagger > *:nth-child(1) {
+  animation-delay: 300ms;
+}
+
+.welcome-actions-stagger > *:nth-child(2) {
+  animation-delay: 400ms;
+}
+
+.welcome-actions-stagger > *:nth-child(3) {
+  animation-delay: 500ms;
+}
+
+@keyframes welcome-action-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcome-redirect-hint {
+  animation: welcome-redirect-fade 640ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes welcome-redirect-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .welcome-hero-entrance,
+  .welcome-hero-photo,
+  .welcome-topbar-reveal,
+  .welcome-card-rise,
+  .welcome-actions-stagger > *,
+  .welcome-redirect-hint {
+    animation: none !important;
+  }
+}
