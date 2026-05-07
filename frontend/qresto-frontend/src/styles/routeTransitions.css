@@ -1,0 +1,84 @@
+/* Shared route transition utilities (loaded globally via index.css) */
+
+.route-enter-from-left {
+  animation: route-enter-from-left 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.route-exit-to-left {
+  animation: route-exit-to-left 360ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.route-enter-from-right {
+  animation: route-enter-from-right 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.route-exit-to-right {
+  animation: route-exit-to-right 360ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Same motion as route-enter-from-right, longer duration (e.g. menu detail) */
+.route-enter-from-right-slow {
+  animation: route-enter-from-right 760ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes route-enter-from-left {
+  0% {
+    opacity: 0;
+    transform: translateX(-38px);
+    filter: blur(1.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes route-exit-to-left {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0.94;
+    transform: translateX(-32px);
+    filter: blur(1.2px);
+  }
+}
+
+@keyframes route-enter-from-right {
+  0% {
+    opacity: 0;
+    transform: translateX(38px);
+    filter: blur(1.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+@keyframes route-exit-to-right {
+  0% {
+    opacity: 1;
+    transform: translateX(0);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0.94;
+    transform: translateX(32px);
+    filter: blur(1.2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .route-enter-from-left,
+  .route-exit-to-left,
+  .route-enter-from-right,
+  .route-exit-to-right,
+  .route-enter-from-right-slow {
+    animation: none !important;
+  }
+}

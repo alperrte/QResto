@@ -1,0 +1,54 @@
+/* QResto menü tasarımı — Material benzeri renk token’ları (Tailwind v4 @theme) */
+
+@theme {
+  /* Renkler */
+  --color-background: #fff8f5;
+  --color-on-background: #1e1b18;
+  --color-surface: #fff8f5;
+  --color-surface-bright: #fff8f5;
+  --color-surface-dim: #e1d8d4;
+  --color-surface-container: #f5ece7;
+  --color-surface-container-low: #fbf2ed;
+  --color-surface-container-high: #efe6e2;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-highest: #e9e1dc;
+  --color-surface-variant: #e9e1dc;
+  --color-on-surface: #1e1b18;
+  --color-on-surface-variant: #594138;
+  --color-primary: #a63b00;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #f26522;
+  --color-on-primary-container: #4f1800;
+  --color-primary-fixed: #ffdbce;
+  --color-secondary: #b32825;
+  --color-on-secondary: #ffffff;
+  --color-outline: #8d7166;
+  --color-outline-variant: #e1bfb3;
+  --color-error: #ba1a1a;
+  --color-surface-tint: #a63b00;
+
+  /* Tipografi */
+  --font-headline: "Newsreader", ui-serif, Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+
+  --text-display-lg: 2.25rem;
+  --text-display-lg--line-height: 1.2;
+  --text-headline-md: 1.5rem;
+  --text-headline-md--line-height: 1.3;
+  --text-body-lg: 1rem;
+  --text-body-lg--line-height: 1.5;
+  --text-body-sm: 0.875rem;
+  --text-body-sm--line-height: 1.4;
+  --text-label-bold: 0.875rem;
+  --text-label-bold--line-height: 1.2;
+  --text-label-bold--letter-spacing: 0.02em;
+  --text-price-tag: 1.125rem;
+  --text-price-tag--line-height: 1;
+
+  /* Boşluklar */
+  --spacing-container-margin: 1.25rem;
+  --spacing-stack-md: 1.5rem;
+  --spacing-stack-sm: 0.75rem;
+  --spacing-base: 0.5rem;
+  --spacing-gutter: 1rem;
+}

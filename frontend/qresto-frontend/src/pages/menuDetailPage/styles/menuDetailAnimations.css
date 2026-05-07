@@ -1,0 +1,57 @@
+/* Menu detail micro interactions */
+.menu-detail-fade-up {
+  animation: menu-detail-fade-up 660ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity, filter;
+}
+
+@keyframes menu-detail-fade-up {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(1.2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+.menu-detail-bottom-rise {
+  animation: menu-detail-bottom-rise 760ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+@keyframes menu-detail-bottom-rise {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menu-detail-option-row {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    background-color 180ms ease;
+}
+
+.menu-detail-option-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgb(30 27 24 / 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-detail-fade-up,
+  .menu-detail-bottom-rise {
+    animation: none !important;
+  }
+
+  .menu-detail-option-row {
+    transition: none !important;
+  }
+}

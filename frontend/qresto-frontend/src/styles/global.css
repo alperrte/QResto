@@ -1,0 +1,11 @@
+/* Page-level shared styles (Menu + Welcome) */
+
+.app-surface-page {
+  --app-surface-bg: var(--color-background);
+  background: var(--app-surface-bg) !important;
+  color: var(--color-on-background);
+}
+
+.app-surface-header {
+  background: var(--color-surface);
+}
