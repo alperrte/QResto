@@ -1,0 +1,297 @@
+.qresto-login-stage {
+  position: relative;
+  min-height: 100vh;
+  background-image:
+    linear-gradient(
+      90deg,
+      rgba(17, 24, 39, 0.18) 0%,
+      rgba(17, 24, 39, 0.2) 42%,
+      rgba(17, 24, 39, 0.5) 100%
+    ),
+    var(--qresto-login-bg);
+  background-size: cover;
+  background-position: center;
+}
+
+.qresto-login-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1.5rem clamp(6rem, 14vw, 16rem) 1.5rem 1rem;
+}
+
+.qresto-login-card {
+  width: min(500px, 92vw);
+  border: 1px solid rgba(255, 140, 0, 0.16);
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 20px 46px rgba(15, 23, 42, 0.2);
+  padding: 1.25rem 1.25rem 1.5rem;
+  animation: qrestoCardFloatIn 0.35s ease;
+}
+
+.qresto-login-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  margin-bottom: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--qresto-border) 70%, transparent);
+}
+
+.qresto-login-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: var(--qresto-text);
+}
+
+.qresto-login-subtitle {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--qresto-muted);
+}
+
+.qresto-role-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  transition: transform 0.24s ease, opacity 0.24s ease;
+}
+
+.qresto-role-grid.is-condensed {
+  transform: translateY(-4px) scale(0.985);
+  opacity: 0.92;
+}
+
+.qresto-role-card {
+  border: 1px solid rgba(255, 140, 0, 0.12);
+  border-radius: 1rem;
+  background: linear-gradient(
+    160deg,
+    rgba(255, 255, 255, 0.88),
+    rgba(255, 247, 242, 0.8)
+  );
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 10px 20px rgba(31, 41, 55, 0.08);
+  color: #1f2937;
+  padding: 0.85rem;
+  min-height: 142px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  text-align: left;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.qresto-role-card:hover {
+  transform: scale(1.03);
+  border-color: #ff6b00;
+  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.2), 0 14px 26px rgba(255, 61, 46, 0.2);
+}
+
+.qresto-role-card.is-selected {
+  border-color: #ff6b00;
+  background: linear-gradient(160deg, rgba(255, 247, 242, 0.96), rgba(255, 255, 255, 0.9));
+  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.26), 0 16px 30px rgba(255, 61, 46, 0.18);
+}
+
+.qresto-role-icon-wrap {
+  width: 42px;
+  height: 42px;
+  border-radius: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 107, 0, 0.16), rgba(255, 61, 46, 0.14));
+  color: #ff6b00;
+}
+
+.qresto-role-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 900;
+  line-height: 1.15rem;
+  min-height: 2.3rem;
+  color: #1f2937;
+}
+
+.qresto-role-description {
+  margin: 0.3rem 0 0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1rem;
+  min-height: 2rem;
+  color: rgb(71 85 105);
+}
+
+.qresto-login-form {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--qresto-border) 70%, transparent);
+  transform-origin: top;
+  transition: opacity 0.26s ease, transform 0.26s ease, max-height 0.26s ease, margin-top 0.26s ease;
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transform: translateY(-8px);
+  margin-top: 0;
+  padding-top: 0;
+  border-top-color: transparent;
+}
+
+.qresto-login-form.is-open {
+  max-height: 520px;
+  opacity: 1;
+  transform: translateY(0);
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top-color: color-mix(in srgb, var(--qresto-border) 70%, transparent);
+  animation: qrestoRoleFormOpen 0.38s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.qresto-login-form.is-closed {
+  pointer-events: none;
+  max-height: 520px;
+  opacity: 1;
+  transform: translateX(0);
+  clip-path: inset(0 0 0 0 round 12px);
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top-color: color-mix(in srgb, var(--qresto-border) 70%, transparent);
+  animation: qrestoRoleFormClose 0.26s cubic-bezier(0.4, 0, 1, 1);
+}
+
+.qresto-login-input {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in srgb, var(--qresto-border) 85%, transparent);
+  background: rgb(255 255 255 / 80%);
+  padding: 0.8rem 0.95rem;
+  color: var(--qresto-text);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.qresto-login-input:focus {
+  border-color: var(--qresto-primary);
+  box-shadow: 0 0 0 3px rgb(251 146 60 / 45%);
+  background: var(--qresto-surface);
+}
+
+.qresto-login-btn-secondary {
+  flex: 1;
+  border-radius: 0.85rem;
+  border: 1px solid var(--qresto-border);
+  padding: 0.8rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--qresto-text);
+  background: var(--qresto-surface);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.qresto-login-btn-secondary:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--qresto-primary) 50%, var(--qresto-border));
+}
+
+.qresto-login-btn-primary {
+  flex: 1;
+  border-radius: 0.85rem;
+  border: none;
+  padding: 0.8rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: #fff;
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--qresto-primary) 36%, transparent);
+  transition: transform 0.2s ease, filter 0.2s ease, opacity 0.2s ease;
+}
+
+.qresto-login-footer {
+  margin: 1rem 0 0;
+  padding-top: 0.8rem;
+  border-top: 1px solid color-mix(in srgb, var(--qresto-border) 70%, transparent);
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--qresto-muted);
+}
+
+@keyframes qrestoCardFloatIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes qrestoRoleFormOpen {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+    clip-path: inset(0 100% 0 0 round 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+    clip-path: inset(0 0 0 0 round 12px);
+  }
+}
+
+@keyframes qrestoRoleFormClose {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+    clip-path: inset(0 0 0 0 round 12px);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(16px);
+    clip-path: inset(0 100% 0 0 round 12px);
+  }
+}
+
+.qresto-login-btn-primary:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.02);
+}
+
+.qresto-login-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+@media (max-width: 1024px) {
+  .qresto-login-shell {
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .qresto-role-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .qresto-role-card {
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 640px) {
+  .qresto-role-grid {
+    grid-template-columns: 1fr;
+  }
+}
