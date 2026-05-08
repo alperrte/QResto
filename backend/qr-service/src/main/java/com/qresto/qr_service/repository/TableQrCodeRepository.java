@@ -17,4 +17,7 @@ public interface TableQrCodeRepository extends JpaRepository<TableQrCode, Long> 
 
     Optional<TableQrCode> findByRestaurantTableIdAndActiveTrue(Long tableId);
 
+    Optional<TableQrCode> findFirstByRestaurantTableIdOrderByVersionNoDesc(Long tableId);
+
+    void deleteByRestaurantTableId(Long tableId);
 }

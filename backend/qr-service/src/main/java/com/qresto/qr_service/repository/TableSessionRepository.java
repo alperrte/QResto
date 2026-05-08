@@ -17,4 +17,6 @@ public interface TableSessionRepository extends JpaRepository<TableSession, Long
 
     List<TableSession> findByRestaurantTableIdAndStatusIn(Long tableId, List<TableSessionStatus> statuses);
 
+    void deleteByRestaurantTableId(Long tableId);
+
 }

@@ -35,7 +35,6 @@ public class QrService {
         return QrValidationResponse.builder()
                 .valid(qrCode.getActive() && table.getActive())
                 .tableId(table.getId())
-                .tableNo(table.getTableNo())
                 .tableName(table.getName())
                 .tableActive(table.getActive())
                 .qrActive(qrCode.getActive())
@@ -89,7 +88,6 @@ public class QrService {
 
         RestaurantTableResponse tableResponse = RestaurantTableResponse.builder()
                 .id(table.getId())
-                .tableNo(table.getTableNo())
                 .name(table.getName())
                 .capacity(table.getCapacity())
                 .active(table.getActive())
