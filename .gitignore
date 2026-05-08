@@ -120,17 +120,17 @@ coverage/
 *.lcov
 
 # -------------------------------
-
 # 🗂 Uploads / Static Files
-
 # -------------------------------
 
 uploads/
 cvs/
-*.pdf
-*.png
-*.jpg
-*.jpeg
+
+# sadece upload edilen dosyaları ignore et
+uploads/**/*.pdf
+uploads/**/*.png
+uploads/**/*.jpg
+uploads/**/*.jpeg
 
 # -------------------------------
 
