@@ -36,6 +36,7 @@
   --qresto-hover: #2b3546;
 }
 
+
 body {
   background: var(--qresto-bg);
   color: var(--qresto-text);

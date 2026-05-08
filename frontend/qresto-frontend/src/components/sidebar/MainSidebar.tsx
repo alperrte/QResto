@@ -1,44 +1,71 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import {
-    LayoutDashboard,
-    QrCode,
-    LogOut,
-} from "lucide-react";
+import { LayoutDashboard, QrCode, LogOut } from "lucide-react";
+
 import { useAuth } from "../../auth/AuthContext";
 import { getRoleHomePath } from "../../auth/routeGuards";
 
-import qrestoLogo from "../../assets/qresto_logo2.png";
+import lightLogo from "../../assets/qresto_logo_light.png";
+import darkLogo from "../../assets/qresto_logo_dark.png";
 
 function MainSidebar() {
+    const [isDarkMode, setIsDarkMode] = useState(false);
     const { user, logout } = useAuth();
+
+    useEffect(() => {
+        const checkTheme = () => {
+            const htmlHasDark = document.documentElement.classList.contains("dark");
+            const bodyHasDark = document.body.classList.contains("dark");
+            const dataTheme = document.documentElement.getAttribute("data-theme");
+
+            setIsDarkMode(htmlHasDark || bodyHasDark || dataTheme === "dark");
+        };
+
+        checkTheme();
+
+        const observer = new MutationObserver(checkTheme);
+
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class", "data-theme"],
+        });
+
+        observer.observe(document.body, {
+            attributes: true,
+            attributeFilter: ["class"],
+        });
+
+        return () => observer.disconnect();
+    }, []);
 
     if (!user) {
         return null;
     }
 
+    const sidebarLogo = isDarkMode ? darkLogo : lightLogo;
+
+    const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+        `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
+            isActive
+                ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
+                : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
+        }`;
+
     return (
         <aside className="sticky left-0 top-0 flex h-screen w-[250px] shrink-0 flex-col bg-[var(--qresto-sidebar)]">
-            <div className="flex h-[92px] w-full items-center justify-center overflow-hidden border-b border-[var(--qresto-border-strong)] bg-[var(--qresto-sidebar)]">
+            <div className="flex h-[92px] w-[250px] shrink-0 items-center justify-center overflow-hidden border-b border-[var(--qresto-border-strong)] bg-[var(--qresto-sidebar)]">
                 <img
-                    src={qrestoLogo}
+                    src={sidebarLogo}
                     alt="QResto Logo"
-                    className="h-[120px] w-[280px] object-cover object-center"
+                    className="block h-[84px] w-[238px] object-contain object-center"
+                    draggable="false"
                 />
             </div>
 
             <nav className="flex flex-1 flex-col gap-2 px-4 py-6">
-                <NavLink
-                    to={getRoleHomePath(user.role)}
-                    className={({ isActive }) =>
-                        `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
-                            isActive
-                                ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
-                                : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
-                        }`
-                    }
-                >
+                <NavLink to={getRoleHomePath(user.role)} className={navLinkClass}>
                     <LayoutDashboard size={19} />
-                    Dashboard
+                    Kontrol Paneli
                 </NavLink>
 
                 {user.role === "ADMIN" ? (
@@ -47,13 +74,7 @@ function MainSidebar() {
                         onClick={() => {
                             window.dispatchEvent(new Event("qresto-qr-page-reset"));
                         }}
-                        className={({ isActive }) =>
-                            `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
-                                isActive
-                                    ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
-                                    : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
-                            }`
-                        }
+                        className={navLinkClass}
                     >
                         <QrCode size={19} />
                         Masalar & QR Kodlar
