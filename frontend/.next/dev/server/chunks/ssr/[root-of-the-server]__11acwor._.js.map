@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///Users/barisatala/Desktop/QResto/frontend/src/app/page.js"],"sourcesContent":["export default function HomePage() {\n  return (\n    <main className=\"min-h-screen bg-zinc-950 text-white flex items-center justify-center\">\n      <h1 className=\"text-3xl font-bold\">QResto Frontend</h1>\n    </main>\n  );\n}"],"names":["HomePage","className"],"mappings":";;;;;;AAAe,SAASA;IACtB,qBACE,+QAAC;QAAKC,WAAU;kBACd,cAAA,+QAAC;YAAGA,WAAU;sBAAqB;;;;;;;;;;;AAGzC"}}]
-}

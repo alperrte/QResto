@@ -11,4 +11,4 @@ npm i qrcode
 
 npm i -D @types/qrcode
 
-
+npm install lucide-react
