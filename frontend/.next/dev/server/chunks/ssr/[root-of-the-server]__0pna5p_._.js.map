@@ -1,7 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 10, "column": 0}, "map": {"version":3,"sources":["file:///Users/barisatala/Desktop/QResto/frontend/src/features/welcome/components/WelcomePage.jsx"],"sourcesContent":["export default function WelcomePage() {\n    return <div>Welcome</div>;\n  }"],"names":["WelcomePage"],"mappings":";;;;;;AAAe,SAASA;IACpB,qBAAO,+QAAC;kBAAI;;;;;;AACd"}},
-    {"offset": {"line": 29, "column": 0}, "map": {"version":3,"sources":["file:///Users/barisatala/Desktop/QResto/frontend/src/app/page.js"],"sourcesContent":["import WelcomePage from \"@/features/welcome/components/WelcomePage\";\n\nexport default function Page() {\n  return <WelcomePage />;\n}"],"names":["Page"],"mappings":";;;;;AAAA;;;AAEe,SAASA;IACtB,qBAAO,+QAAC,oMAAW;;;;;AACrB"}}]
-}

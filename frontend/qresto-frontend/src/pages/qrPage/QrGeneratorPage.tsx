@@ -76,7 +76,6 @@ const QrGeneratorPage = () => {
             setCapacity("");
 
             await loadTables();
-
             setActiveTab("preview");
         } catch (error) {
             console.error(error);
@@ -163,63 +162,75 @@ const QrGeneratorPage = () => {
     };
 
     return (
-        <div className="min-h-screen bg-[#F7F3EE] text-[#1F1713] p-6 lg:p-10">
-            <div className="max-w-7xl mx-auto space-y-8">
-                <header className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
+        <div className="text-[var(--qresto-text)] transition-colors duration-300">
+            <div className="mx-auto max-w-6xl space-y-8">
+                <header className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
                     <div>
-                        <h1 className="text-4xl lg:text-5xl font-black !text-[#24140D]">
+                        <h1 className="text-4xl font-black text-[var(--qresto-text)] lg:text-5xl">
                             Masalar & QR Kodlar
                         </h1>
-                        <p className="text-[#6B5A4F] mt-3 text-base">
+
+                        <p className="mt-3 text-base text-[var(--qresto-muted)]">
                             Masalarınızı yönetin, QR kodları önizleyin, yenileyin ve PNG olarak indirin.
                         </p>
                     </div>
 
-                    <div className="bg-white border border-[#F1D8C2] rounded-2xl px-5 py-3 shadow-sm">
-                        <span className="text-green-700 font-bold">● QR Sistemi Aktif</span>
+                    <div className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-5 py-3 shadow-sm">
+                        <span className="font-bold text-emerald-600">
+                            ● QR Sistemi Aktif
+                        </span>
                     </div>
                 </header>
 
-                <section className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
-                    <div className="bg-white rounded-3xl p-6 border border-[#F1D8C2] shadow-sm">
+                <section className="mx-auto grid max-w-5xl grid-cols-1 gap-5 md:grid-cols-3">
+                    <div className="rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-sm">
                         <div className="flex items-center justify-between">
-                            <p className="text-[#7B6A5F] font-bold">Toplam Masa</p>
+                            <p className="font-bold text-[var(--qresto-muted)]">
+                                Toplam Masa
+                            </p>
                             <span className="text-3xl">🍽️</span>
                         </div>
-                        <h2 className="text-4xl font-black !text-[#24140D] mt-2">
+
+                        <h2 className="mt-2 text-4xl font-black text-[var(--qresto-text)]">
                             {tables.length}
                         </h2>
                     </div>
 
-                    <div className="bg-green-50 rounded-3xl p-6 border border-green-200 shadow-sm">
+                    <div className="rounded-3xl border border-emerald-200 bg-emerald-50 p-6 shadow-sm">
                         <div className="flex items-center justify-between">
-                            <p className="text-green-800 font-bold">Aktif Masa</p>
+                            <p className="font-bold text-emerald-800">
+                                Aktif Masa
+                            </p>
                             <span className="text-3xl">✅</span>
                         </div>
-                        <h2 className="text-4xl font-black !text-green-800 mt-2">
+
+                        <h2 className="mt-2 text-4xl font-black text-emerald-800">
                             {tables.filter((table) => table.active).length}
                         </h2>
                     </div>
 
-                    <div className="bg-red-50 rounded-3xl p-6 border border-red-200 shadow-sm">
+                    <div className="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm">
                         <div className="flex items-center justify-between">
-                            <p className="text-red-800 font-bold">Pasif Masa</p>
+                            <p className="font-bold text-red-800">
+                                Pasif Masa
+                            </p>
                             <span className="text-3xl">⛔</span>
                         </div>
-                        <h2 className="text-4xl font-black !text-red-800 mt-2">
+
+                        <h2 className="mt-2 text-4xl font-black text-red-800">
                             {tables.filter((table) => !table.active).length}
                         </h2>
                     </div>
                 </section>
 
-                <section className="bg-white rounded-3xl border border-[#F1D8C2] shadow-sm p-3">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <section className="rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-3 shadow-sm">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <button
                             onClick={() => setActiveTab("tables")}
-                            className={`rounded-2xl py-4 font-bold transition ${
+                            className={`rounded-2xl py-4 font-bold transition-all duration-200 ${
                                 activeTab === "tables"
-                                    ? "bg-gradient-to-r from-[#FF3D00] to-[#FF7A00] text-white"
-                                    : "bg-[#FFF6EC] text-[#3B2418]"
+                                    ? "bg-gradient-to-r from-[#FF3D00] to-[#FF7A00] text-white shadow-md shadow-orange-200"
+                                    : "bg-[var(--qresto-bg)] text-[var(--qresto-text)] hover:text-[var(--qresto-primary)]"
                             }`}
                         >
                             Masalar
@@ -227,10 +238,10 @@ const QrGeneratorPage = () => {
 
                         <button
                             onClick={() => setActiveTab("create")}
-                            className={`rounded-2xl py-4 font-bold transition ${
+                            className={`rounded-2xl py-4 font-bold transition-all duration-200 ${
                                 activeTab === "create"
-                                    ? "bg-gradient-to-r from-[#FF3D00] to-[#FF7A00] text-white"
-                                    : "bg-[#FFF6EC] text-[#3B2418]"
+                                    ? "bg-gradient-to-r from-[#FF3D00] to-[#FF7A00] text-white shadow-md shadow-orange-200"
+                                    : "bg-[var(--qresto-bg)] text-[var(--qresto-text)] hover:text-[var(--qresto-primary)]"
                             }`}
                         >
                             Yeni Masa + QR
@@ -239,41 +250,44 @@ const QrGeneratorPage = () => {
                 </section>
 
                 {activeTab === "tables" && (
-                    <section className="bg-white rounded-3xl p-6 border border-[#F1D8C2] shadow-sm">
-                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                    <section className="rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-sm">
+                        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
-                                <h2 className="text-3xl font-black text-[#24140D]">
+                                <h2 className="text-3xl font-black text-[var(--qresto-text)]">
                                     Masa Listesi
                                 </h2>
-                                <p className="text-[#7B6A5F] mt-1">
+
+                                <p className="mt-1 text-[var(--qresto-muted)]">
                                     Masaların QR kodlarını önizleyebilir veya yenileyebilirsiniz.
                                 </p>
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                        <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                             {tables.map((table) => (
                                 <div
                                     key={table.id}
-                                    className="bg-[#FFF6EC] rounded-3xl p-5 border border-[#F1D8C2]"
+                                    className="rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-5"
                                 >
-                                    <div className="flex justify-between items-start gap-4">
+                                    <div className="flex items-start justify-between gap-4">
                                         <div>
-                                            <h3 className="text-2xl font-black text-[#24140D]">
+                                            <h3 className="text-2xl font-black text-[var(--qresto-text)]">
                                                 Masa {table.tableNo}
                                             </h3>
-                                            <p className="text-[#5F5149] mt-1 font-medium">
+
+                                            <p className="mt-1 font-medium text-[var(--qresto-muted)]">
                                                 {table.name}
                                             </p>
-                                            <p className="text-sm text-[#7B6A5F] mt-1">
+
+                                            <p className="mt-1 text-sm text-[var(--qresto-muted)]">
                                                 Kapasite: {table.capacity ?? "-"}
                                             </p>
                                         </div>
 
                                         <span
-                                            className={`text-xs px-4 py-2 rounded-full font-bold ${
+                                            className={`rounded-full px-4 py-2 text-xs font-bold ${
                                                 table.active
-                                                    ? "bg-green-100 text-green-700"
+                                                    ? "bg-emerald-100 text-emerald-700"
                                                     : "bg-red-100 text-red-700"
                                             }`}
                                         >
@@ -281,27 +295,27 @@ const QrGeneratorPage = () => {
                                         </span>
                                     </div>
 
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-6">
+                                    <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
                                         <button
                                             onClick={() => handleShowQr(table)}
-                                            className="bg-[#FF6A00] text-white font-bold rounded-2xl py-3"
+                                            className="rounded-2xl bg-[var(--qresto-primary)] py-3 font-bold text-white transition-all duration-200 hover:-translate-y-[2px] hover:opacity-90"
                                         >
                                             QR Önizle
                                         </button>
 
                                         <button
                                             onClick={() => openRegenerateModal(table)}
-                                            className="bg-[#3B2418] text-white font-bold rounded-2xl py-3"
+                                            className="rounded-2xl bg-[var(--qresto-text)] py-3 font-bold text-[var(--qresto-surface)] transition-all duration-200 hover:-translate-y-[2px] hover:opacity-90"
                                         >
                                             Yenile
                                         </button>
 
                                         <button
                                             onClick={() => openTableStatusModal(table)}
-                                            className={`font-bold rounded-2xl py-3 ${
+                                            className={`rounded-2xl py-3 font-bold transition-all duration-200 hover:-translate-y-[2px] ${
                                                 table.active
-                                                    ? "bg-red-100 text-red-700"
-                                                    : "bg-green-100 text-green-700"
+                                                    ? "bg-red-100 text-red-700 hover:bg-red-200"
+                                                    : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
                                             }`}
                                         >
                                             {table.active ? "Pasife Al" : "Aktif Et"}
@@ -311,14 +325,14 @@ const QrGeneratorPage = () => {
                             ))}
 
                             {tables.length === 0 && (
-                                <div className="xl:col-span-3 text-center py-20">
-                                    <p className="text-[#7B6A5F] font-medium">
+                                <div className="py-20 text-center xl:col-span-3">
+                                    <p className="font-medium text-[var(--qresto-muted)]">
                                         Henüz masa oluşturulmadı.
                                     </p>
 
                                     <button
                                         onClick={() => setActiveTab("create")}
-                                        className="mt-5 bg-[#FF6A00] text-white font-bold rounded-2xl px-6 py-3"
+                                        className="mt-5 rounded-2xl bg-[var(--qresto-primary)] px-6 py-3 font-bold text-white"
                                     >
                                         İlk Masayı Oluştur
                                     </button>
@@ -329,11 +343,12 @@ const QrGeneratorPage = () => {
                 )}
 
                 {activeTab === "create" && (
-                    <section className="bg-white rounded-3xl p-8 border border-[#F1D8C2] shadow-sm max-w-2xl mx-auto">
-                        <h2 className="text-3xl font-black !text-[#24140D] text-center">
+                    <section className="mx-auto max-w-2xl rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-8 shadow-sm">
+                        <h2 className="text-center text-3xl font-black text-[var(--qresto-text)]">
                             Yeni Masa + QR Oluştur
                         </h2>
-                        <p className="text-[#7B6A5F] mt-2 mb-6 text-center">
+
+                        <p className="mb-6 mt-2 text-center text-[var(--qresto-muted)]">
                             Yeni masa oluşturulduktan sonra masaya özel QR kod otomatik hazırlanır.
                         </p>
 
@@ -343,7 +358,7 @@ const QrGeneratorPage = () => {
                                 placeholder="Masa No"
                                 value={tableNo}
                                 onChange={(e) => setTableNo(e.target.value)}
-                                className="w-full bg-[#FFF6EC] border border-[#F1D8C2] text-[#24140D] rounded-2xl px-5 py-4 outline-none placeholder:text-[#A38F81]"
+                                className="w-full rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-5 py-4 text-[var(--qresto-text)] outline-none placeholder:text-[var(--qresto-muted)]"
                             />
 
                             <input
@@ -351,7 +366,7 @@ const QrGeneratorPage = () => {
                                 placeholder="Masa Adı"
                                 value={tableName}
                                 onChange={(e) => setTableName(e.target.value)}
-                                className="w-full bg-[#FFF6EC] border border-[#F1D8C2] text-[#24140D] rounded-2xl px-5 py-4 outline-none placeholder:text-[#A38F81]"
+                                className="w-full rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-5 py-4 text-[var(--qresto-text)] outline-none placeholder:text-[var(--qresto-muted)]"
                             />
 
                             <input
@@ -359,13 +374,13 @@ const QrGeneratorPage = () => {
                                 placeholder="Kapasite"
                                 value={capacity}
                                 onChange={(e) => setCapacity(e.target.value)}
-                                className="w-full bg-[#FFF6EC] border border-[#F1D8C2] text-[#24140D] rounded-2xl px-5 py-4 outline-none placeholder:text-[#A38F81]"
+                                className="w-full rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-5 py-4 text-[var(--qresto-text)] outline-none placeholder:text-[var(--qresto-muted)]"
                             />
 
                             <button
                                 onClick={handleCreateTable}
                                 disabled={loading}
-                                className="w-full bg-gradient-to-r from-[#FF3D00] to-[#FF7A00] text-white font-bold rounded-2xl py-4 disabled:opacity-60"
+                                className="w-full rounded-2xl bg-gradient-to-r from-[#FF3D00] to-[#FF7A00] py-4 font-bold text-white disabled:opacity-60"
                             >
                                 {loading ? "Oluşturuluyor..." : "Masa + QR Oluştur"}
                             </button>
@@ -374,53 +389,54 @@ const QrGeneratorPage = () => {
                 )}
 
                 {activeTab === "preview" && (
-                    <section className="bg-white rounded-3xl p-6 border border-[#F1D8C2] shadow-sm">
+                    <section className="rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-sm">
                         {!selectedQr ? (
-                            <div className="text-center py-20">
-                                <h2 className="text-3xl font-black text-[#24140D]">
+                            <div className="py-20 text-center">
+                                <h2 className="text-3xl font-black text-[var(--qresto-text)]">
                                     QR Önizleme
                                 </h2>
-                                <p className="text-[#7B6A5F] mt-2">
+
+                                <p className="mt-2 text-[var(--qresto-muted)]">
                                     Bir masanın QR kodunu önizlemek için masa listesinden QR Önizle butonuna basın.
                                 </p>
 
                                 <button
                                     onClick={() => setActiveTab("tables")}
-                                    className="mt-6 bg-[#FF6A00] text-white font-bold rounded-2xl px-6 py-3"
+                                    className="mt-6 rounded-2xl bg-[var(--qresto-primary)] px-6 py-3 font-bold text-white"
                                 >
                                     Masa Listesine Git
                                 </button>
                             </div>
                         ) : (
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-                                <div className="bg-[#FFF6EC] rounded-3xl p-6 flex justify-center">
+                            <div className="grid grid-cols-1 items-center gap-8 lg:grid-cols-2">
+                                <div className="flex justify-center rounded-3xl bg-[var(--qresto-bg)] p-6">
                                     <img
                                         src={selectedQr.imageUrl}
                                         alt={`Masa ${selectedQr.table.tableNo} QR`}
-                                        className="w-80 h-80 bg-white rounded-2xl p-3"
+                                        className="h-80 w-80 rounded-2xl bg-white p-3"
                                     />
                                 </div>
 
                                 <div>
-                                    <h2 className="text-4xl font-black text-[#24140D]">
+                                    <h2 className="text-4xl font-black text-[var(--qresto-text)]">
                                         Masa {selectedQr.table.tableNo} QR Kodu
                                     </h2>
 
-                                    <p className="text-[#7B6A5F] mt-3">
+                                    <p className="mt-3 text-[var(--qresto-muted)]">
                                         Bu QR kod masaya özel oluşturulmuştur. Restoran bu PNG dosyasını masaya yerleştirebilir.
                                     </p>
 
-                                    <div className="bg-[#FFF6EC] rounded-2xl p-4 mt-5 break-all text-sm text-[#3B2418] border border-[#F1D8C2]">
+                                    <div className="mt-5 break-all rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4 text-sm text-[var(--qresto-text)]">
                                         {selectedQr.qr.qrContent}
                                     </div>
 
-                                    <p className="mt-4 text-sm text-[#7B6A5F]">
+                                    <p className="mt-4 text-sm text-[var(--qresto-muted)]">
                                         QR Versiyon: {selectedQr.qr.versionNo}
                                     </p>
 
                                     <button
                                         onClick={() => setModalType("download")}
-                                        className="mt-6 bg-gradient-to-r from-[#FF3D00] to-[#FF7A00] text-white font-bold rounded-2xl px-8 py-4"
+                                        className="mt-6 rounded-2xl bg-gradient-to-r from-[#FF3D00] to-[#FF7A00] px-8 py-4 font-bold text-white"
                                     >
                                         PNG Olarak İndir
                                     </button>
@@ -432,9 +448,9 @@ const QrGeneratorPage = () => {
             </div>
 
             {modalType && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-3xl p-7 max-w-md w-full shadow-2xl">
-                        <h2 className="text-2xl font-black text-[#24140D] mb-3">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="w-full max-w-md rounded-3xl bg-[var(--qresto-surface)] p-7 shadow-2xl">
+                        <h2 className="mb-3 text-2xl font-black text-[var(--qresto-text)]">
                             {modalType === "download"
                                 ? "QR indirilsin mi?"
                                 : modalType === "regenerate"
@@ -444,7 +460,7 @@ const QrGeneratorPage = () => {
                                         : "Masa aktif edilsin mi?"}
                         </h2>
 
-                        <p className="text-[#7B6A5F] mb-6">
+                        <p className="mb-6 text-[var(--qresto-muted)]">
                             {modalType === "download"
                                 ? "Bu QR kod PNG olarak cihazınıza indirilecek."
                                 : modalType === "regenerate"
@@ -457,7 +473,7 @@ const QrGeneratorPage = () => {
                         <div className="flex gap-3">
                             <button
                                 onClick={() => setModalType(null)}
-                                className="flex-1 bg-gray-100 rounded-2xl py-3 font-bold text-[#3B2418]"
+                                className="flex-1 rounded-2xl bg-[var(--qresto-bg)] py-3 font-bold text-[var(--qresto-text)]"
                             >
                                 Vazgeç
                             </button>
@@ -470,7 +486,7 @@ const QrGeneratorPage = () => {
                                             ? confirmRegenerateQr
                                             : confirmTableStatusChange
                                 }
-                                className="flex-1 bg-[#FF6A00] text-white rounded-2xl py-3 font-bold"
+                                className="flex-1 rounded-2xl bg-[var(--qresto-primary)] py-3 font-bold text-white"
                             >
                                 Onayla
                             </button>
