@@ -47,4 +47,9 @@ public class RestaurantTableController {
     public RestaurantTableResponse getTableById(@PathVariable Long tableId) {
         return restaurantTableService.getTableById(tableId);
     }
+
+    @DeleteMapping("/{tableId}")
+    public void deleteTable(@PathVariable Long tableId) {
+        restaurantTableService.deleteTable(tableId);
+    }
 }

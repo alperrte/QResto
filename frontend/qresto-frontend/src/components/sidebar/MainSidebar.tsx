@@ -25,7 +25,7 @@ function MainSidebar() {
                         `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
                             isActive
                                 ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
-                                : "text-[var(--qresto-muted)] hover:bg-orange-50 hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/60"
+                                : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
                         }`
                     }
                 >
@@ -35,11 +35,14 @@ function MainSidebar() {
 
                 <NavLink
                     to="/app/tables-qr"
+                    onClick={() => {
+                        window.dispatchEvent(new Event("qresto-qr-page-reset"));
+                    }}
                     className={({ isActive }) =>
                         `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
                             isActive
                                 ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
-                                : "text-[var(--qresto-muted)] hover:bg-orange-50 hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/60"
+                                : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
                         }`
                     }
                 >

@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 public class RestaurantTableResponse {
 
     private Long id;
-    private Integer tableNo;
     private String name;
     private Integer capacity;
     private Boolean active;

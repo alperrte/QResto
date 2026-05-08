@@ -8,9 +8,6 @@ import lombok.Data;
 @Data
 public class CreateRestaurantTableRequest {
 
-    @NotNull(message = "Table number cannot be null")
-    private Integer tableNo;
-
     @NotBlank(message = "Table name cannot be blank")
     private String name;
 

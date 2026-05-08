@@ -39,4 +39,14 @@ public class TableQrCodeController {
                 .contentType(MediaType.TEXT_PLAIN)
                 .body(qrImage);
     }
+
+    @PatchMapping("/table/{tableId}/activate")
+    public TableQrCodeResponse activateQrCode(@PathVariable Long tableId) {
+        return tableQrCodeService.activateQrCode(tableId);
+    }
+
+    @PatchMapping("/table/{tableId}/deactivate")
+    public TableQrCodeResponse deactivateQrCode(@PathVariable Long tableId) {
+        return tableQrCodeService.deactivateQrCode(tableId);
+    }
 }
