@@ -5,9 +5,20 @@ import type {
     TableQrCodeResponse,
     UpdateRestaurantTableRequest,
 } from "../types/qr.types";
+import { authStorage } from "../auth/authStorage";
 
 const qrApi = axios.create({
     baseURL: import.meta.env.VITE_QR_SERVICE_URL || "http://localhost:7072/api",
+});
+
+qrApi.interceptors.request.use((config) => {
+    const accessToken = authStorage.getAccessToken();
+
+    if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    return config;
 });
 
 export const getTables = async (): Promise<RestaurantTableResponse[]> => {
