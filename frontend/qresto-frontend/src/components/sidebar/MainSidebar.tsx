@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { LayoutDashboard, QrCode, LogOut } from "lucide-react";
 
+import { useAuth } from "../../auth/AuthContext";
+import { getRoleHomePath } from "../../auth/routeGuards";
+
 import lightLogo from "../../assets/qresto_logo_light.png";
 import darkLogo from "../../assets/qresto_logo_dark.png";
 
 function MainSidebar() {
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const { user, logout } = useAuth();
 
     useEffect(() => {
         const checkTheme = () => {
@@ -34,6 +38,10 @@ function MainSidebar() {
         return () => observer.disconnect();
     }, []);
 
+    if (!user) {
+        return null;
+    }
+
     const sidebarLogo = isDarkMode ? darkLogo : lightLogo;
 
     const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -55,24 +63,31 @@ function MainSidebar() {
             </div>
 
             <nav className="flex flex-1 flex-col gap-2 px-4 py-6">
-                <NavLink to="/app/dashboard" className={navLinkClass}>
+                <NavLink to={getRoleHomePath(user.role)} className={navLinkClass}>
                     <LayoutDashboard size={19} />
                     Kontrol Paneli
                 </NavLink>
 
-                <NavLink
-                    to="/app/tables-qr"
-                    onClick={() => window.dispatchEvent(new Event("qresto-qr-page-reset"))}
-                    className={navLinkClass}
-                >
-                    <QrCode size={19} />
-                    Masalar & QR Kodlar
-                </NavLink>
+                {user.role === "ADMIN" ? (
+                    <NavLink
+                        to="/app/tables-qr"
+                        onClick={() => {
+                            window.dispatchEvent(new Event("qresto-qr-page-reset"));
+                        }}
+                        className={navLinkClass}
+                    >
+                        <QrCode size={19} />
+                        Masalar & QR Kodlar
+                    </NavLink>
+                ) : null}
             </nav>
 
             <div className="border-t border-[var(--qresto-border)] p-4">
                 <button
                     type="button"
+                    onClick={() => {
+                        void logout();
+                    }}
                     className="flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-red-200 transition-all duration-200 hover:-translate-y-[2px] hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:shadow-red-300 active:translate-y-0"
                 >
                     <LogOut size={19} />
