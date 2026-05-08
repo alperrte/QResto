@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AppHeader from "../../components/layout/AppHeader";
 import HeaderIconButton from "../../components/ui/HeaderIconButton";
-import { getMenuItemById } from "../menuPage/menuItems";
 import MenuDetailAddToCartButton from "./components/MenuDetailAddToCartButton";
 import MenuDetailBottomBar from "./components/MenuDetailBottomBar";
 import MenuDetailExtrasSection from "./components/MenuDetailExtrasSection";
@@ -13,6 +12,8 @@ import MenuDetailPortionSection from "./components/MenuDetailPortionSection";
 import type { PortionChoice } from "./components/MenuDetailPortionSection";
 import MenuDetailQuantityStepper from "./components/MenuDetailQuantityStepper";
 import MenuDetailSummary from "./components/MenuDetailSummary";
+import { useMenuItemDetail } from "./hooks/useMenuItemDetail";
+import { mapDetailResponseToMenuItem } from "./mappers/mapMenuItemDetail";
 import "./styles/menuDetailAnimations.css";
 import "./styles/menuDetail.css";
 
@@ -20,7 +21,8 @@ const MenuDetailPage = () => {
     const BACK_TRANSITION_MS = 360;
     const { itemId } = useParams<{ itemId: string }>();
     const navigate = useNavigate();
-    const item = getMenuItemById(itemId);
+    const { data, loading, error } = useMenuItemDetail(itemId);
+    const item = data ? mapDetailResponseToMenuItem(data) : undefined;
     const [quantity, setQuantity] = useState(1);
     const [orderNote, setOrderNote] = useState("");
     const [isLeavingToMenu, setIsLeavingToMenu] = useState(false);
@@ -50,7 +52,15 @@ const MenuDetailPage = () => {
         }, BACK_TRANSITION_MS);
     };
 
-    if (!item) {
+    if (loading) {
+        return (
+            <div className="menu-detail-page-shell bg-surface text-on-surface min-h-screen flex items-center justify-center">
+                Menü detayı yükleniyor...
+            </div>
+        );
+    }
+
+    if (!item || error) {
         return <MenuDetailNotFound />;
     }
 

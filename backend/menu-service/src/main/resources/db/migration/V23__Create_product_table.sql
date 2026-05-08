@@ -59,3 +59,83 @@ BEGIN
     CREATE INDEX IX_product_name
         ON menu.product(name);
 END;
+
+IF EXISTS (
+    SELECT 1
+    FROM sys.tables t
+    INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
+    WHERE t.name = 'product'
+      AND s.name = 'menu'
+)
+BEGIN
+    INSERT INTO menu.product (
+        category_id,
+        sub_category_id,
+        name,
+        description,
+        price,
+        image_url,
+        vat_included,
+        ingredients,
+        removable_ingredients,
+        addable_ingredients,
+        calorie,
+        gram,
+        prep_time_min,
+        avg_rating,
+        active,
+        in_stock
+    )
+    SELECT
+        c.id,
+        NULL,
+        seed.name,
+        seed.description,
+        seed.price,
+        seed.image_url,
+        1,
+        seed.ingredients,
+        seed.removable_ingredients,
+        seed.addable_ingredients,
+        seed.calorie,
+        seed.gram,
+        seed.prep_time_min,
+        seed.avg_rating,
+        1,
+        1
+    FROM (
+        VALUES
+            (N'Başlangıçlar', N'Mercimek Çorbası', N'Günlük taze mercimek çorbası.', CAST(95.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1547592180-85f173990554', N'mercimek,havuç,soğan', N'', N'limon,biber', 180, 320, 10, CAST(4.50 AS DECIMAL(3,2))),
+            (N'Başlangıçlar', N'Çıtır Patates', N'Baharatlı ve çıtır patates kızartması.', CAST(110.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1576107232684-1279f390859f', N'patates,baharat', N'tuz', N'ketçap,mayonez', 340, 200, 12, CAST(4.30 AS DECIMAL(3,2))),
+            (N'Ana Yemekler', N'Izgara Tavuk', N'Sebzeli ızgara tavuk fileto.', CAST(245.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1604909052743-94e838986d24', N'tavuk,sebze,zeytinyağı', N'', N'ek sos', 520, 380, 20, CAST(4.60 AS DECIMAL(3,2))),
+            (N'Ana Yemekler', N'Et Sote', N'Özel soslu dana et sote.', CAST(295.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1544025162-d76694265947', N'dana eti,biber,soğan', N'', N'ekmek', 640, 420, 22, CAST(4.70 AS DECIMAL(3,2))),
+            (N'Pizzalar', N'Margarita Pizza', N'Mozzarella ve domates soslu klasik pizza.', CAST(210.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38', N'mozzarella,domates sosu', N'sarımsak', N'ekstra peynir,zeytin', 760, 510, 18, CAST(4.40 AS DECIMAL(3,2))),
+            (N'Pizzalar', N'Karışık Pizza', N'Sucuk, salam ve sebzeli özel pizza.', CAST(255.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1513104890138-7c749659a591', N'mozzarella,sucuk,salam,biber', N'zeytin', N'ekstra kaşar', 890, 540, 20, CAST(4.55 AS DECIMAL(3,2))),
+            (N'Burgerler', N'Klasik Burger', N'Izgara köfte, cheddar ve özel sos.', CAST(235.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1568901346375-23c9450c58cd', N'köfte,cheddar,marul', N'soğan,turşu', N'ekstra cheddar', 810, 360, 16, CAST(4.45 AS DECIMAL(3,2))),
+            (N'Burgerler', N'Acılı Tavuk Burger', N'Çıtır tavuk ve acı sos ile.', CAST(225.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1550547660-d9450f859349', N'tavuk,acı sos,marul', N'soğan', N'jalapeno,ekstra sos', 780, 340, 15, CAST(4.35 AS DECIMAL(3,2))),
+            (N'Tatlılar', N'San Sebastian', N'Akışkan kıvamlı cheesecake.', CAST(165.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1533134242443-d4fd215305ad', N'peynir,yumurta,krema', N'', N'çikolata sosu', 430, 180, 8, CAST(4.80 AS DECIMAL(3,2))),
+            (N'Tatlılar', N'Sufle', N'Sıcak servis edilen çikolatalı sufle.', CAST(150.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1606313564200-e75d5e30476c', N'çikolata,un,yumurta', N'', N'dondurma', 410, 170, 9, CAST(4.65 AS DECIMAL(3,2))),
+            (N'İçecekler', N'Ev Yapımı Limonata', N'Taze sıkım limonata.', CAST(70.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1523677011781-c91d1bbe2f9e', N'limon,su,nane', N'', N'buz', 95, 300, 5, CAST(4.20 AS DECIMAL(3,2))),
+            (N'İçecekler', N'Soğuk Kahve', N'Sütlü soğuk kahve.', CAST(85.00 AS DECIMAL(10,2)), N'https://images.unsplash.com/photo-1461023058943-07fcbe16d735', N'kahve,süt,buz', N'şeker', N'vanilya şurubu', 160, 280, 6, CAST(4.25 AS DECIMAL(3,2)))
+    ) AS seed(
+        category_name,
+        name,
+        description,
+        price,
+        image_url,
+        ingredients,
+        removable_ingredients,
+        addable_ingredients,
+        calorie,
+        gram,
+        prep_time_min,
+        avg_rating
+    )
+    INNER JOIN menu.category c ON c.name = seed.category_name
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM menu.product p
+        WHERE p.name = seed.name
+          AND p.category_id = c.id
+    );
+END;
