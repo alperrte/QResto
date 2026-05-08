@@ -6,15 +6,18 @@ import type { MenuItemDetailResponse } from "../types/menuDetail.types";
  * Alan adları backend’e göre güncellenir.
  */
 export const mapDetailResponseToMenuItem = (dto: MenuItemDetailResponse): MenuItem => {
+    const price = Number(dto.price ?? 0);
     return {
-        id: dto.id,
+        id: String(dto.id),
         name: dto.name,
-        description: dto.description,
-        priceLabel: `${dto.currency === "TRY" ? "₺" : ""}${dto.basePrice}`,
-        imageUrl: dto.imageUrl,
-        prepMinutes: dto.prepMinutes,
-        kcal: dto.kcal,
-        rating: dto.rating ?? 0,
-        categoryId: dto.categoryId as MenuItem["categoryId"],
+        description: dto.description ?? "Açıklama bulunmuyor.",
+        priceLabel: `₺${price.toFixed(2)}`,
+        imageUrl:
+            dto.imageUrl ||
+            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=900&q=80",
+        prepMinutes: dto.prepTimeMin ?? 0,
+        kcal: dto.calorie ?? 0,
+        rating: Number(dto.avgRating ?? 0),
+        categoryId: String(dto.categoryId),
     };
 };

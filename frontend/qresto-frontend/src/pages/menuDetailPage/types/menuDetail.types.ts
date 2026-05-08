@@ -1,41 +1,23 @@
-/**
- * Backend / veritabanı ile hizalanacak menü ürün detayı ve seçenek şekilleri (REST örneği).
- * Gerçek API sözleşmesine göre güncellenir.
- */
-
-export interface MenuItemModifierOptionDto {
-    id: string;
-    name: string;
-    /** Ek ücret (kuruş veya API’nin kullandığı para birimi birimi). */
-    priceDelta: number;
-    sortOrder: number;
-}
-
-export interface MenuItemModifierGroupDto {
-    id: string;
-    /** Örn: portion, extras */
-    code: string;
-    label: string;
-    selection: "single" | "multiple";
-    required: boolean;
-    options: MenuItemModifierOptionDto[];
-}
-
 export interface MenuItemDetailResponse {
-    id: string;
-    restaurantId?: string;
+    id: number;
+    categoryId: number;
+    subCategoryId: number | null;
     name: string;
-    description: string;
+    description: string | null;
+    price: number;
     imageUrl: string;
-    /** Temel fiyat (sayısal). Gösterim için currency ile birlikte kullanılır. */
-    basePrice: number;
-    currency: string;
-    categoryId: string;
-    prepMinutes: number;
-    kcal: number;
-    rating: number | null;
-    isAvailable: boolean;
-    modifierGroups?: MenuItemModifierGroupDto[];
+    vatIncluded: boolean;
+    ingredients: string | null;
+    removableIngredients: string | null;
+    addableIngredients: string | null;
+    calorie: number | null;
+    gram: number | null;
+    prepTimeMin: number | null;
+    avgRating: number;
+    active: boolean;
+    inStock: boolean;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface AddLineItemRequest {

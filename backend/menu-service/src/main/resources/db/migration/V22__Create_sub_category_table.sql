@@ -28,3 +28,29 @@ BEGIN
     CREATE INDEX IX_sub_category_active
         ON menu.sub_category(active);
 END;
+
+IF EXISTS (
+    SELECT 1
+    FROM sys.tables t
+    INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
+    WHERE t.name = 'category'
+      AND s.name = 'menu'
+)
+BEGIN
+    INSERT INTO menu.category (name, active)
+    SELECT seed.name, 1
+    FROM (
+        VALUES
+            (N'Başlangıçlar'),
+            (N'Ana Yemekler'),
+            (N'Pizzalar'),
+            (N'Burgerler'),
+            (N'Tatlılar'),
+            (N'İçecekler')
+    ) AS seed(name)
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM menu.category c
+        WHERE c.name = seed.name
+    );
+END;

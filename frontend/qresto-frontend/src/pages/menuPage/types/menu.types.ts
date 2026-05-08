@@ -1,40 +1,29 @@
-/**
- * Backend / veritabanı ile hizalanacak menü listesi ve kategori şekilleri (REST örneği).
- */
-
 export interface MenuCategoryDto {
-    id: string;
-    label: string;
-    /** Material Symbols adı vb. */
-    icon: string;
-    sortOrder: number;
-    defaultFill?: boolean;
+    id: number;
+    name: string;
+    active: boolean;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface MenuItemListItemDto {
-    id: string;
+    id: number;
+    categoryId: number;
+    subCategoryId: number | null;
     name: string;
-    description: string;
+    description: string | null;
+    price: number;
     imageUrl: string;
-    basePrice: number;
-    currency: string;
-    categoryId: string;
-    prepMinutes: number;
-    kcal: number;
-    rating: number | null;
-    isAvailable: boolean;
-}
-
-/** Tek çağrıda kategori + ürün listesi (tercih edilen sözleşme). */
-export interface MenuCatalogResponse {
-    categories: MenuCategoryDto[];
-    items: MenuItemListItemDto[];
-}
-
-/** Sayfalama kullanılıyorsa */
-export interface MenuItemsPageResponse {
-    items: MenuItemListItemDto[];
-    totalCount: number;
-    page: number;
-    pageSize: number;
+    vatIncluded: boolean;
+    ingredients: string | null;
+    removableIngredients: string | null;
+    addableIngredients: string | null;
+    calorie: number | null;
+    gram: number | null;
+    prepTimeMin: number | null;
+    avgRating: number;
+    active: boolean;
+    inStock: boolean;
+    createdAt: string;
+    updatedAt: string;
 }
