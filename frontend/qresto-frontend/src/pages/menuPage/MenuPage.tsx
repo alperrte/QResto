@@ -1,16 +1,17 @@
 import { useMemo, useRef, useState, type WheelEvent } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-  MENU_CATEGORIES,
-  SAMPLE_MENU_ITEMS,
-  type MenuCategoryFilterId,
-} from "./menuItems";
+import { type MenuCategoryFilterId } from "./menuItems";
 import AppHeader from "../../components/layout/AppHeader";
 import HeaderIconButton from "../../components/ui/HeaderIconButton";
 import MenuCategoryButton from "./components/MenuCategoryButton";
 import MenuCategoryHeading from "./components/MenuCategoryHeading";
 import MenuItemCard from "./components/MenuItemCard";
 import MenuSearchBar from "./components/MenuSearchBar";
+import { useMenuCatalog } from "./hooks/useMenuCatalog";
+import {
+  mapCatalogItemsToMenuItems,
+  mapCategoriesToRows,
+} from "./mappers/mapMenuCatalog";
 import "./styles/menuAnimations.css";
 
 const MenuPage = () => {
@@ -21,10 +22,19 @@ const MenuPage = () => {
     useState<MenuCategoryFilterId>("all");
   const [isLeavingToWelcome, setIsLeavingToWelcome] = useState(false);
   const categoryScrollRef = useRef<HTMLDivElement>(null);
+  const { data, loading, error, refetch } = useMenuCatalog();
+  const categoryRows = useMemo(
+    () => mapCategoriesToRows(data?.categories ?? []),
+    [data?.categories]
+  );
+  const catalogItems = useMemo(
+    () => mapCatalogItemsToMenuItems(data?.items ?? []),
+    [data?.items]
+  );
 
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return SAMPLE_MENU_ITEMS.filter((item) => {
+    return catalogItems.filter((item) => {
       const catOk =
         selectedCategory === "all" || item.categoryId === selectedCategory;
       if (!catOk) return false;
@@ -34,14 +44,14 @@ const MenuPage = () => {
         item.description.toLowerCase().includes(q)
       );
     });
-  }, [query, selectedCategory]);
+  }, [query, selectedCategory, catalogItems]);
   const selectedCategoryLabel = useMemo(() => {
     if (selectedCategory === "all") return "Tüm Kategoriler";
     return (
-      MENU_CATEGORIES.find((category) => category.id === selectedCategory)
+      categoryRows.find((category) => category.id === selectedCategory)
         ?.label ?? "Tüm Kategoriler"
     );
-  }, [selectedCategory]);
+  }, [selectedCategory, categoryRows]);
 
   const shouldAnimateCardStagger =
     selectedCategory === "all" && query.trim() === "";
@@ -51,7 +61,7 @@ const MenuPage = () => {
   const HEADING_TO_CARD_GAP_MS = 90;
   const CARD_STEP_MS = 64;
   const categoryHalfPointMs =
-    Math.max(0, Math.floor((MENU_CATEGORIES.length - 1) / 2)) *
+    Math.max(0, Math.floor((categoryRows.length - 1) / 2)) *
       CATEGORY_STEP_MS +
     CATEGORY_ANIMATION_MS * 0.55;
   const headingDelayMs = Math.max(0, categoryHalfPointMs + HEADING_GAP_MS);
@@ -64,7 +74,6 @@ const MenuPage = () => {
     // Trackpad/mouse tekerleğini yatay kaydırmaya çevirerek chip listesini kolay kaydırır.
     if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
       container.scrollLeft += event.deltaY;
-      event.preventDefault();
     }
   };
 
@@ -115,7 +124,7 @@ const MenuPage = () => {
             onWheel={handleCategoryWheel}
             className="flex overflow-x-auto hide-scrollbar gap-stack-sm pb-2 -mx-container-margin px-container-margin scroll-smooth"
           >
-            {MENU_CATEGORIES.map((cat, idx) => {
+            {categoryRows.map((cat, idx) => {
               const isActive = selectedCategory === cat.id;
               return (
                 <MenuCategoryButton
@@ -137,12 +146,32 @@ const MenuPage = () => {
           className="flex flex-col gap-stack-md"
           aria-label="Öne çıkanlar"
         >
+          {loading ? (
+            <div className="py-8 text-center text-on-surface-variant">
+              Menü yükleniyor...
+            </div>
+          ) : null}
+          {error ? (
+            <div className="flex flex-col items-center gap-3 py-8">
+              <p className="text-body-sm text-center text-on-surface-variant">
+                Menü yüklenirken bir hata oluştu.
+              </p>
+              <button
+                type="button"
+                onClick={refetch}
+                className="rounded-full bg-primary-container text-on-primary-container font-sans text-label-bold py-2 px-5"
+              >
+                Tekrar Dene
+              </button>
+            </div>
+          ) : null}
+
           <MenuCategoryHeading
             title={selectedCategoryLabel}
             animationDelayMs={headingDelayMs}
           />
 
-          {filteredItems.length === 0 ? (
+          {!loading && !error && filteredItems.length === 0 ? (
             <div className="flex flex-col items-center gap-4 py-12 px-4">
               <p className="text-on-surface-variant text-body-sm text-center">
                 Bu filtreye uygun ürün bulunamadı.
@@ -159,7 +188,7 @@ const MenuPage = () => {
                 Filtreyi temizle
               </button>
             </div>
-          ) : (
+          ) : !loading && !error ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-stack-md">
               {filteredItems.map((item, idx) => (
                 <MenuItemCard
@@ -180,7 +209,7 @@ const MenuPage = () => {
                 />
               ))}
             </div>
-          )}
+          ) : null}
         </section>
       </main>
     </div>

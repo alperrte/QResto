@@ -2,25 +2,32 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "../../components/layout/AppHeader";
 import HeaderIconButton from "../../components/ui/HeaderIconButton";
+import WelcomeActionButtons from "./components/WelcomeActionButtons";
+import WelcomeInfoCard from "./components/WelcomeInfoCard";
+import WelcomeServiceModal, {
+  type ServiceModalStep,
+  type ServiceModalType,
+} from "./components/WelcomeServiceModal";
+import {
+  DEV_PREVIEW_TABLE,
+  HERO_IMAGE_URL,
+  MENU_TRANSITION_MS,
+  SERVICE_LOADING_MS,
+} from "./constants/welcome.constants";
 import "./welcomeStyles.css";
 import "./welcomeAnimations.css";
 
-const DEV_PREVIEW_TABLE = { tableNo: "12", tableName: "Örnek masa" };
-const HERO_IMAGE_URL =
-  "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1920&q=80";
-
 const WelcomePage = () => {
-  const MENU_TRANSITION_MS = 380;
   const navigate = useNavigate();
   const [isLeavingToMenu, setIsLeavingToMenu] = useState(false);
-  let tableNo = localStorage.getItem("tableNo");
+  const [activeServiceModal, setActiveServiceModal] = useState<ServiceModalType | null>(null);
+  const [serviceModalStep, setServiceModalStep] = useState<ServiceModalStep>("confirm");
   let tableName = localStorage.getItem("tableName");
   const storedTableId = localStorage.getItem("tableId");
 
   const useDevPreview = import.meta.env.DEV && !storedTableId;
 
   if (useDevPreview) {
-    tableNo = DEV_PREVIEW_TABLE.tableNo;
     tableName = DEV_PREVIEW_TABLE.tableName;
   }
 
@@ -36,6 +43,24 @@ const WelcomePage = () => {
     window.setTimeout(() => {
       navigate("/menu");
     }, MENU_TRANSITION_MS);
+  };
+
+  const handleOpenServiceModal = (type: ServiceModalType) => {
+    setServiceModalStep("confirm");
+    setActiveServiceModal(type);
+  };
+
+  const handleCloseServiceModal = () => {
+    if (serviceModalStep === "loading") return;
+    setActiveServiceModal(null);
+    setServiceModalStep("confirm");
+  };
+
+  const handleConfirmServiceCall = () => {
+    setServiceModalStep("loading");
+    window.setTimeout(() => {
+      setServiceModalStep("success");
+    }, SERVICE_LOADING_MS);
   };
 
   if (!import.meta.env.DEV && !localStorage.getItem("tableId")) {
@@ -87,83 +112,23 @@ const WelcomePage = () => {
 
       <main className="flex-grow z-20 flex flex-col justify-center items-center px-container-margin py-10 md:py-16 max-w-4xl mx-auto w-full">
         <div className="w-full max-w-lg flex flex-col gap-stack-md">
-          <div className="welcome-card welcome-card-rise welcome-glass-panel rounded-xl p-6 text-center shadow-lg">
-            {useDevPreview ? (
-              <p className="welcome-preview-badge text-xs font-medium rounded-lg py-2 px-3 mb-4">
-                Geliştirici önizleme — QR oturumu yok; yalnızca{" "}
-                <code className="text-[11px]">npm run dev</code> ortamında
-              </p>
-            ) : null}
-
-            <h2 className="font-headline text-display-lg text-on-surface mb-2">
-              Hoş Geldiniz
-            </h2>
-            <p className="text-body-sm text-on-surface-variant mb-4">
-              Bu menü üzerinden sipariş verebilir, ödeme yapabilir ve masanıza
-              özel işlemleri hızlıca yönetebilirsiniz.
-            </p>
-            <div className="inline-flex items-center gap-2 welcome-info-box px-4 py-2 rounded-full border">
-              <span
-                className="material-symbols-outlined welcome-accent text-xl"
-                data-weight="fill"
-              >
-                table_restaurant
-              </span>
-              <span className="font-bold text-label-bold text-on-surface">
-                Masa: {tableNo ?? "—"}
-              </span>
-              {tableName ? (
-                <span className="text-body-sm text-on-surface-variant">
-                  ({tableName})
-                </span>
-              ) : null}
-            </div>
-          </div>
-
-          <div className="welcome-actions-stagger grid grid-cols-2 gap-stack-sm">
-            <button
-              type="button"
-              onClick={handleGoToMenu}
-              disabled={isLeavingToMenu}
-              className="col-span-2 welcome-cta welcome-cta-gradient welcome-primary-action rounded-xl p-6 flex items-center justify-between shadow-md active:scale-[0.98] group"
-            >
-              <div className="flex flex-col text-left gap-1">
-                <span className="font-headline text-headline-md">
-                  Menüyü Gör
-                </span>
-                <span className="font-sans text-body-sm text-on-primary/80">
-                  Lezzetleri keşfet
-                </span>
-              </div>
-              <div className="bg-on-primary/20 p-3 rounded-full group-hover:scale-110 transition-transform">
-                <span className="material-symbols-outlined text-3xl">
-                  restaurant_menu
-                </span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              className="welcome-secondary-action rounded-xl p-4 flex flex-col items-center justify-center gap-2 shadow-sm border transition-colors active:scale-[0.98]"
-            >
-              <span className="material-symbols-outlined text-primary text-3xl">
-                room_service
-              </span>
-              <span className="font-bold text-label-bold">Garson Çağır</span>
-            </button>
-
-            <button
-              type="button"
-              className="welcome-secondary-action rounded-xl p-4 flex flex-col items-center justify-center gap-2 shadow-sm border transition-colors active:scale-[0.98]"
-            >
-              <span className="material-symbols-outlined text-primary text-3xl">
-                receipt_long
-              </span>
-              <span className="font-bold text-label-bold">Hesap İste</span>
-            </button>
-          </div>
+          <WelcomeInfoCard useDevPreview={useDevPreview} tableName={tableName} />
+          <WelcomeActionButtons
+            onGoToMenu={handleGoToMenu}
+            onCallWaiter={() => handleOpenServiceModal("waiter")}
+            onRequestBill={() => handleOpenServiceModal("bill")}
+            isLeavingToMenu={isLeavingToMenu}
+          />
         </div>
       </main>
+      <WelcomeServiceModal
+        isOpen={Boolean(activeServiceModal)}
+        modalType={activeServiceModal}
+        step={serviceModalStep}
+        tableName={tableName}
+        onClose={handleCloseServiceModal}
+        onConfirm={handleConfirmServiceCall}
+      />
     </div>
   );
 };

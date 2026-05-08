@@ -1,9 +1,14 @@
 import { useEffect, useState } from "react";
 import { fetchMenuCatalog } from "../services/menuService";
-import type { MenuCatalogResponse } from "../types/menu.types";
+import type { MenuCategoryDto, MenuItemListItemDto } from "../types/menu.types";
+
+type MenuCatalogData = {
+    categories: MenuCategoryDto[];
+    items: MenuItemListItemDto[];
+};
 
 type UseMenuCatalogResult = {
-    data: MenuCatalogResponse | null;
+    data: MenuCatalogData | null;
     loading: boolean;
     error: Error | null;
     refetch: () => void;
@@ -14,7 +19,7 @@ type UseMenuCatalogResult = {
  * `restaurantId` backend hazır olunca route veya context’ten geçirilebilir.
  */
 export const useMenuCatalog = (restaurantId?: string): UseMenuCatalogResult => {
-    const [data, setData] = useState<MenuCatalogResponse | null>(null);
+    const [data, setData] = useState<MenuCatalogData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
     const [version, setVersion] = useState(0);
