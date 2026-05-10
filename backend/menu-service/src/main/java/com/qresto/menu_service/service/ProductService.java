@@ -12,7 +12,7 @@ import com.qresto.menu_service.repository.SubCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.qresto.menu_service.dto.product.ProductOrderInfoResponse;
 import java.util.List;
 
 @Service
@@ -180,6 +180,33 @@ public class ProductService {
         response.setInStock(product.getInStock());
         response.setCreatedAt(product.getCreatedAt());
         response.setUpdatedAt(product.getUpdatedAt());
+        return response;
+    }
+
+    @Transactional(readOnly = true)
+    public ProductOrderInfoResponse getOrderInfoById(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Product not found: " + id));
+
+        return toOrderInfoResponse(product);
+    }
+
+    private ProductOrderInfoResponse toOrderInfoResponse(Product product) {
+        ProductOrderInfoResponse response = new ProductOrderInfoResponse();
+
+        response.setId(product.getId());
+        response.setName(product.getName());
+        response.setPrice(product.getPrice());
+        response.setVatIncluded(product.getVatIncluded());
+        response.setActive(product.getActive());
+        response.setInStock(product.getInStock());
+        response.setIngredients(product.getIngredients());
+        response.setRemovableIngredients(product.getRemovableIngredients());
+        response.setAddableIngredients(product.getAddableIngredients());
+        response.setPrepTimeMin(product.getPrepTimeMin());
+        response.setCategoryId(product.getCategory().getId());
+        response.setSubCategoryId(product.getSubCategory() != null ? product.getSubCategory().getId() : null);
+
         return response;
     }
 }

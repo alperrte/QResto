@@ -20,4 +20,6 @@ public interface GuestSessionRepository extends JpaRepository<GuestSession, Long
     List<GuestSession> findByTableSessionIdIn(List<Long> tableSessionIds);
 
     void deleteByTableSessionIdIn(List<Long> tableSessionIds);
+
+    Optional<GuestSession> findByIdAndTableSessionId(Long id, Long tableSessionId);
 }

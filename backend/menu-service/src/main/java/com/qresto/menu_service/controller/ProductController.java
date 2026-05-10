@@ -1,6 +1,7 @@
 package com.qresto.menu_service.controller;
 
 import com.qresto.menu_service.dto.product.ProductCreateRequest;
+import com.qresto.menu_service.dto.product.ProductOrderInfoResponse;
 import com.qresto.menu_service.dto.product.ProductResponse;
 import com.qresto.menu_service.dto.product.ProductUpdateRequest;
 import com.qresto.menu_service.service.ProductService;
@@ -62,5 +63,10 @@ public class ProductController {
     public ResponseEntity<ProductResponse> setInStock(@PathVariable Long id,
                                                       @RequestParam boolean value) {
         return ResponseEntity.ok(productService.setInStock(id, value));
+    }
+
+    @GetMapping("/{id}/order-info")
+    public ResponseEntity<ProductOrderInfoResponse> getOrderInfoById(@PathVariable Long id) {
+        return ResponseEntity.ok(productService.getOrderInfoById(id));
     }
 }
