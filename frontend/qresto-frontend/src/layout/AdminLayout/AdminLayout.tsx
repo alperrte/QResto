@@ -11,10 +11,8 @@ function AdminLayout() {
                 <div className="flex min-w-0 flex-1 flex-col border-l border-[var(--qresto-border-strong)]">
                     <PanelHeader />
 
-                    <main className="flex-1 px-8 py-8">
-                        <div className="mx-auto w-full max-w-7xl">
-                            <Outlet />
-                        </div>
+                    <main className="flex-1 min-w-0 px-8 py-8">
+                        <Outlet />
                     </main>
                 </div>
             </div>
