@@ -347,8 +347,8 @@ const QrGeneratorPage = () => {
     };
 
     return (
-        <div className="min-h-screen text-[var(--qresto-text)] transition-colors duration-300">
-            <div className="mx-auto w-full max-w-[1500px] space-y-8 px-4 pb-10 sm:px-6 lg:px-8">
+        <div className="min-h-full w-full text-[var(--qresto-text)] transition-colors duration-300">
+            <div className="w-full space-y-6 pb-6">
                 <header className="flex flex-col gap-5">
                     {(activeView === "create" || activeView === "preview") && (
                         <button
@@ -366,21 +366,21 @@ const QrGeneratorPage = () => {
                         onClick={goMainPage}
                         className="w-fit text-left"
                     >
-                        <h1 className="text-4xl font-black text-[var(--qresto-text)] transition-colors hover:text-[var(--qresto-primary)] lg:text-5xl">
+                        <h1 className="text-3xl font-black text-[var(--qresto-text)] transition-colors hover:text-[var(--qresto-primary)] lg:text-4xl">
                             Masalar & QR Kodlar
                         </h1>
                     </button>
 
-                    <p className="max-w-4xl text-base leading-7 text-[var(--qresto-muted)]">
+                    <p className="max-w-5xl text-sm leading-6 text-[var(--qresto-muted)]">
                         Masalarınızı yönetin, QR kodları önizleyin, masa oturumlarını yenileyin ve QR kodları PNG olarak indirin.
                     </p>
                 </header>
 
-                <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
+                <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
                     <button
                         type="button"
                         onClick={() => selectFilter("all")}
-                        className={`rounded-3xl border p-6 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 ${
+                        className={`rounded-3xl border p-5 text-left shadow-sm transition-all duration-200 hover:-translate-y-1 ${
                             tableFilter === "all"
                                 ? "border-[var(--qresto-primary)] bg-[var(--qresto-hover)]"
                                 : "border-[var(--qresto-border)] bg-[var(--qresto-surface)]"
@@ -442,10 +442,10 @@ const QrGeneratorPage = () => {
                 </section>
 
                 {activeView === "main" && (
-                    <section className="rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-sm">
-                        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <section className="rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-sm">
+                        <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div>
-                                <h2 className="text-3xl font-black text-[var(--qresto-text)]">
+                                <h2 className="text-2xl font-black text-[var(--qresto-text)]">
                                     Masa Listesi
                                 </h2>
 
@@ -466,11 +466,11 @@ const QrGeneratorPage = () => {
                             </button>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
                             {filteredTables.map((table) => (
                                 <div
                                     key={table.id}
-                                    className={`rounded-3xl border p-5 transition-all duration-200 ${
+                                    className={`rounded-3xl border p-4 transition-all duration-200 ${
                                         table.active
                                             ? "border-[var(--qresto-border)] bg-[var(--qresto-bg)]"
                                             : "border-slate-300 bg-slate-100 opacity-80 dark:border-slate-700 dark:bg-slate-800/60"
@@ -502,7 +502,7 @@ const QrGeneratorPage = () => {
                                         </span>
                                     </div>
 
-                                    <div className="mt-6 grid grid-cols-1 gap-3">
+                                    <div className="mt-5 grid grid-cols-1 gap-3">
                                         <button
                                             onClick={() => handleShowQr(table)}
                                             className="flex items-center justify-center gap-2 rounded-2xl bg-[var(--qresto-primary)] py-3 font-bold text-white transition-all duration-200 hover:-translate-y-[2px] hover:opacity-90"
