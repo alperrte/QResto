@@ -72,7 +72,9 @@ const MenuDetailAddToCartButton = ({
         return createdCart.id;
     };
 
-    const isValidCartItem = (item?: AddCartItemRequest) => {
+    const isValidCartItem = (
+        item?: AddCartItemRequest
+    ): item is AddCartItemRequest => {
         if (!item) {
             return false;
         }
