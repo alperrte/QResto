@@ -2,6 +2,7 @@ package com.qresto.order_service.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -25,18 +26,27 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+
                         .requestMatchers(
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
-                                "/api-docs/**",
-                                "/api/order/client-test/**",
-                                "/api/order/cart/**",
-                                "/api/order/orders/**",
-                                "/api/order/**",
-                                "/api/order/cart/**"
+                                "/api-docs/**"
                         ).permitAll()
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+
+                        .requestMatchers(HttpMethod.POST, "/api/order/cart").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/order/cart/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/order/cart/*/items").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/order/cart/*/items/*/quantity").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/order/cart/*/items/*").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/order/cart/*/clear").permitAll()
+
+                        .requestMatchers(HttpMethod.POST, "/api/order/orders/from-cart/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/order/orders/**").permitAll()
+
+                        .requestMatchers("/api/order/**").permitAll()
+
                         .anyRequest().authenticated()
                 )
                 .httpBasic(AbstractHttpConfigurer::disable)
