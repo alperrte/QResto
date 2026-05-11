@@ -1,4 +1,6 @@
 import { type ReactNode } from "react";
+import Cart from "../cart/Cart";
+import lightLogo from "../../assets/qresto_logo_light.png";
 
 type AppHeaderProps = {
     title?: ReactNode;
@@ -10,24 +12,37 @@ type AppHeaderProps = {
 };
 
 const AppHeader = ({
-    title = "QRESTO",
-    leftAction,
-    rightAction,
-    className = "",
-    titleClassName = "",
-    useSurface = true,
-}: AppHeaderProps) => {
+                       title = (
+                           <img
+                               src={lightLogo}
+                               alt="QResto Logo"
+                               className="mx-auto h-14 w-auto object-contain"
+                               draggable="false"
+                           />
+                       ),
+                       leftAction,
+                       rightAction,
+                       className = "",
+                       titleClassName = "",
+                       useSurface = true,
+                   }: AppHeaderProps) => {
     return (
         <header
             className={`${useSurface ? "app-surface-header" : ""} flex justify-between items-center w-full px-container-margin py-base ${className}`}
         >
-            <div className="w-10 flex items-center justify-start">{leftAction}</div>
+            <div className="w-10 flex items-center justify-start">
+                {leftAction}
+            </div>
+
             <h1
                 className={`font-headline text-display-lg text-primary text-center leading-none flex-1 ${titleClassName}`}
             >
                 {title}
             </h1>
-            <div className="w-10 flex items-center justify-end">{rightAction}</div>
+
+            <div className="w-10 flex items-center justify-end">
+                {rightAction ?? <Cart />}
+            </div>
         </header>
     );
 };

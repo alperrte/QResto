@@ -33,7 +33,7 @@ const MenuDetailPage = () => {
         parmesan: false,
     });
 
-    const basePrice = Number(item?.priceLabel.replace(/[^\d]/g, "") || 0);
+    const basePrice = Number(data?.price ?? 0);
     const portionExtra = portion === "large" ? 180 : 0;
     const extrasTotal =
         (extras.onion ? 25 : 0) + (extras.mushroom ? 40 : 0) + (extras.parmesan ? 35 : 0);
@@ -72,6 +72,7 @@ const MenuDetailPage = () => {
         >
             <AppHeader
                 useSurface={false}
+                title=""
                 className="menu-detail-top-actions"
                 leftAction={
                     <HeaderIconButton
@@ -109,7 +110,26 @@ const MenuDetailPage = () => {
                     onDecrement={() => setQuantity((q) => Math.max(1, q - 1))}
                     onIncrement={() => setQuantity((q) => q + 1)}
                 />
-                <MenuDetailAddToCartButton totalPriceFormatted={formatTry(totalPrice)} />
+
+                <MenuDetailAddToCartButton
+                    totalPriceFormatted={formatTry(totalPrice)}
+                    cartItem={{
+                        productId: Number(item.id),
+                        productName: item.name,
+                        productPrice: totalPrice,
+                        vatIncluded: true,
+                        quantity: quantity,
+                        addedIngredients: [
+                            extras.onion ? "Soğan" : null,
+                            extras.mushroom ? "Mantar" : null,
+                            extras.parmesan ? "Parmesan" : null,
+                        ]
+                            .filter(Boolean)
+                            .join(", "),
+                        removedIngredients: portion === "single" ? "" : "",
+                        note: orderNote,
+                    }}
+                />
             </MenuDetailBottomBar>
         </div>
     );

@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type WheelEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { type MenuCategoryFilterId } from "./menuItems";
 import AppHeader from "../../components/layout/AppHeader";
+import Cart from "../../components/cart/Cart";
 import HeaderIconButton from "../../components/ui/HeaderIconButton";
 import MenuCategoryButton from "./components/MenuCategoryButton";
 import MenuCategoryHeading from "./components/MenuCategoryHeading";
@@ -102,14 +103,7 @@ const MenuPage = () => {
             className="text-on-surface-variant hover:opacity-80 transition-opacity active:scale-95 flex items-center justify-center p-2 rounded-full"
           />
         }
-        rightAction={
-          <HeaderIconButton
-            icon="shopping_basket"
-            label="Sepet"
-            badge={2}
-            className="text-primary hover:opacity-80 transition-opacity active:scale-95 flex items-center justify-center p-2 rounded-full relative"
-          />
-        }
+        rightAction={<Cart />}
       />
 
       <main className="w-full max-w-[1200px] mx-auto px-container-margin py-stack-md flex flex-col gap-stack-md">
