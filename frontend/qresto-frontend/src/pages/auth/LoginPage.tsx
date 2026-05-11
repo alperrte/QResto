@@ -1,5 +1,5 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
-import type { ComponentType, CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ComponentType, CSSProperties, FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ChefHat, ShieldCheck, HandPlatter } from "lucide-react";
 import loginBg from "../../assets/QResto Login Page BG.png";

@@ -10,9 +10,11 @@ import {
     removeCartItem,
     updateCartItemQuantity,
 } from "../../services/orderService";
+import "./cartAnimations.css";
 
 const Cart = () => {
     const [cartOpen, setCartOpen] = useState(false);
+    const [isCartVisible, setIsCartVisible] = useState(false);
     const [cart, setCart] = useState<CartResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isOrdering, setIsOrdering] = useState(false);
@@ -35,8 +37,26 @@ const Cart = () => {
             0
         );
 
+    const openCart = () => {
+        setCartOpen(true);
+        window.requestAnimationFrame(() => {
+            setIsCartVisible(true);
+        });
+    };
+
+    const closeCart = () => {
+        setIsCartVisible(false);
+        window.setTimeout(() => {
+            setCartOpen(false);
+        }, 240);
+    };
+
     const toggleCart = () => {
-        setCartOpen((prev) => !prev);
+        if (cartOpen) {
+            closeCart();
+            return;
+        }
+        openCart();
     };
 
     const formatPrice = (price: number) => {
@@ -167,11 +187,17 @@ const Cart = () => {
                     <button
                         type="button"
                         aria-label="Sepeti kapat"
-                        onClick={toggleCart}
-                        className="absolute inset-0 bg-black/40"
+                        onClick={closeCart}
+                        className={`absolute inset-0 bg-black/40 cart-overlay ${
+                            isCartVisible ? "cart-overlay-open" : ""
+                        }`}
                     />
 
-                    <aside className="relative flex h-full w-full max-w-[420px] flex-col bg-[var(--qresto-surface)] p-6 text-[var(--qresto-text)] shadow-2xl">
+                    <aside
+                        className={`relative flex h-full w-full max-w-[420px] flex-col bg-[var(--qresto-surface)] p-6 text-[var(--qresto-text)] shadow-2xl cart-drawer ${
+                            isCartVisible ? "cart-drawer-open" : ""
+                        }`}
+                    >
                         <div className="mb-6 flex items-center justify-between border-b border-[var(--qresto-border)] pb-4">
                             <div>
                                 <h2 className="text-xl font-bold">Sepetim</h2>
@@ -185,7 +211,7 @@ const Cart = () => {
 
                             <button
                                 type="button"
-                                onClick={toggleCart}
+                                onClick={closeCart}
                                 className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--qresto-border)] transition hover:bg-[var(--qresto-hover)]"
                             >
                                 <X size={20} />
