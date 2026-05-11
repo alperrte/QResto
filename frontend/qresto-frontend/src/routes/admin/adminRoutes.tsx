@@ -5,7 +5,7 @@ import { RoleHomeRedirect, RoleRoute } from "../../auth/routeGuards";
 
 import DashboardPage from "../../pages/Admin/DashboardPage";
 import QrGeneratorPage from "../../pages/qrPage/QrGeneratorPage";
-import WaiterDashboardPage from "../../pages/waiter/WaiterDashboardPage";
+import WaiterDashboardPage from "../../pages/waiter/WaiterDashboard";
 import KitchenDashboardPage from "../../pages/kitchen/KitchenDashboardPage";
 
 const adminRoutes: React.ReactNode = (

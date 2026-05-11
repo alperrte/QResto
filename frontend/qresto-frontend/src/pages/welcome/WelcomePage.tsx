@@ -8,6 +8,7 @@ import WelcomeServiceModal, {
   type ServiceModalStep,
   type ServiceModalType,
 } from "./components/WelcomeServiceModal";
+import { createTableCall } from "../../services/waiterService";
 import {
   DEV_PREVIEW_TABLE,
   HERO_IMAGE_URL,
@@ -22,8 +23,10 @@ const WelcomePage = () => {
   const [isLeavingToMenu, setIsLeavingToMenu] = useState(false);
   const [activeServiceModal, setActiveServiceModal] = useState<ServiceModalType | null>(null);
   const [serviceModalStep, setServiceModalStep] = useState<ServiceModalStep>("confirm");
+  const [serviceModalError, setServiceModalError] = useState<string | null>(null);
   let tableName = localStorage.getItem("tableName");
   const storedTableId = localStorage.getItem("tableId");
+  const storedTableNo = localStorage.getItem("tableNo");
 
   const useDevPreview = import.meta.env.DEV && !storedTableId;
 
@@ -47,6 +50,7 @@ const WelcomePage = () => {
 
   const handleOpenServiceModal = (type: ServiceModalType) => {
     setServiceModalStep("confirm");
+    setServiceModalError(null);
     setActiveServiceModal(type);
   };
 
@@ -54,13 +58,42 @@ const WelcomePage = () => {
     if (serviceModalStep === "loading") return;
     setActiveServiceModal(null);
     setServiceModalStep("confirm");
+    setServiceModalError(null);
   };
 
-  const handleConfirmServiceCall = () => {
-    setServiceModalStep("loading");
-    window.setTimeout(() => {
-      setServiceModalStep("success");
-    }, SERVICE_LOADING_MS);
+  const handleConfirmServiceCall = async () => {
+    if (!storedTableId) {
+      setServiceModalError("Masa bilgisi bulunamadı. QR kodu tekrar okutun.");
+      return;
+    }
+
+    const tableId = Number(storedTableId);
+    const tableNumber = storedTableNo ? Number(storedTableNo) : undefined;
+    const callType: "WAITER_CALL" | "BILL_REQUEST" = activeServiceModal === "bill" ? "BILL_REQUEST" : "WAITER_CALL";
+    const message =
+      callType === "WAITER_CALL"
+        ? "Garson çağırma talebi"
+        : "Hesap isteme talebi";
+
+    try {
+      setServiceModalStep("loading");
+      setServiceModalError(null);
+
+      await createTableCall({
+        tableId,
+        tableNumber: Number.isFinite(tableNumber) ? tableNumber : undefined,
+        callType,
+        message,
+      });
+
+      window.setTimeout(() => {
+        setServiceModalStep("success");
+      }, SERVICE_LOADING_MS);
+    } catch (error) {
+      console.error(error);
+      setServiceModalError("Çağrı gönderilemedi. Lütfen tekrar deneyin.");
+      setServiceModalStep("confirm");
+    }
   };
 
   if (!import.meta.env.DEV && !localStorage.getItem("tableId")) {
@@ -129,6 +162,11 @@ const WelcomePage = () => {
         onClose={handleCloseServiceModal}
         onConfirm={handleConfirmServiceCall}
       />
+      {serviceModalError ? (
+        <div className="fixed bottom-4 left-1/2 z-[110] -translate-x-1/2 rounded-xl bg-red-600 px-4 py-3 text-sm text-white shadow-lg">
+          {serviceModalError}
+        </div>
+      ) : null}
     </div>
   );
 };

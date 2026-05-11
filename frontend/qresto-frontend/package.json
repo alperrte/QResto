@@ -17,6 +17,10 @@
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.15.0"
   },
+  "optionalDependencies": {
+    "sockjs-client": "^1.6.1",
+    "@stomp/stompjs": "^7.0.0"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@tailwindcss/vite": "^4.2.4",

@@ -138,5 +138,32 @@ services:
 
     restart: unless-stopped
 
+  waiter-service:
+    build: ./backend/waiter-service
+    container_name: qresto-waiter
+    env_file:
+      - .env
+    depends_on:
+      mssql:
+        condition: service_healthy
+      database:
+        condition: service_completed_successfully
+    environment:
+      SERVER_PORT: ${SERVER_PORT_WAITER}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      QR_SERVICE_URL: ${QR_SERVICE_URL}
+      KITCHEN_SERVICE_URL: ${KITCHEN_SERVICE_URL}
+      WAITER_SERVICE_URL: ${WAITER_SERVICE_URL}
+    ports:
+      - "${SERVER_PORT_WAITER}:${SERVER_PORT_WAITER}"
+    restart: unless-stopped
+
 volumes:
   mssql_data:
