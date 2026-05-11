@@ -24,26 +24,41 @@ public class AdminInitializer implements CommandLineRunner {
     @Value("${DEFAULT_ADMIN_PASSWORD}")
     private String adminPassword;
 
+    @Value("${DEFAULT_WAITER_EMAIL}")
+    private String waiterEmail;
+
+    @Value("${DEFAULT_WAITER_PASSWORD}")
+    private String waiterPassword;
+
+    @Value("${DEFAULT_KITCHEN_EMAIL}")
+    private String kitchenEmail;
+
+    @Value("${DEFAULT_KITCHEN_PASSWORD}")
+    private String kitchenPassword;
+
     @Override
     public void run(String... args) {
 
-        boolean exists = userRepository.existsByEmail(adminEmail);
+        createDefaultUser(adminEmail, adminPassword, Role.ADMIN);
+        createDefaultUser(waiterEmail, waiterPassword, Role.WAITER);
+        createDefaultUser(kitchenEmail, kitchenPassword, Role.KITCHEN);
+    }
+
+    private void createDefaultUser(String email, String password, Role role) {
+
+        boolean exists = userRepository.existsByEmail(email);
 
         if (!exists) {
 
-            User admin = new User();
+            User user = new User();
 
-            admin.setEmail(adminEmail);
+            user.setEmail(email);
+            user.setPassword(passwordEncoder.encode(password));
+            user.setRole(role);
 
-            admin.setPassword(
-                    passwordEncoder.encode(adminPassword)
-            );
+            userRepository.save(user);
 
-            admin.setRole(Role.ADMIN);
-
-            userRepository.save(admin);
-
-            System.out.println("✅ Default admin created.");
+            System.out.println("✅ Default " + role + " user created: " + email);
         }
     }
 }
