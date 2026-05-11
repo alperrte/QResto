@@ -7,7 +7,11 @@ import com.qresto.qr_service.entity.RestaurantTable;
 import com.qresto.qr_service.repository.RestaurantTableRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import com.qresto.qr_service.entity.TableSession;
+import com.qresto.qr_service.repository.GuestSessionRepository;
+import com.qresto.qr_service.repository.TableQrCodeRepository;
+import com.qresto.qr_service.repository.TableSessionRepository;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 @Service
@@ -15,14 +19,11 @@ import java.util.List;
 public class RestaurantTableService {
 
     private final RestaurantTableRepository restaurantTableRepository;
-
+    private final TableQrCodeRepository tableQrCodeRepository;
+    private final TableSessionRepository tableSessionRepository;
+    private final GuestSessionRepository guestSessionRepository;
     public RestaurantTableResponse createTable(CreateRestaurantTableRequest request) {
-        if (restaurantTableRepository.existsByTableNo(request.getTableNo())) {
-            throw new RuntimeException("Table number already exists: " + request.getTableNo());
-        }
-
         RestaurantTable table = RestaurantTable.builder()
-                .tableNo(request.getTableNo())
                 .name(request.getName())
                 .capacity(request.getCapacity())
                 .active(true)
@@ -45,6 +46,7 @@ public class RestaurantTableService {
         }
 
         RestaurantTable updatedTable = restaurantTableRepository.save(table);
+
         return mapToResponse(updatedTable);
     }
 
@@ -81,12 +83,33 @@ public class RestaurantTableService {
     private RestaurantTableResponse mapToResponse(RestaurantTable table) {
         return RestaurantTableResponse.builder()
                 .id(table.getId())
-                .tableNo(table.getTableNo())
                 .name(table.getName())
                 .capacity(table.getCapacity())
                 .active(table.getActive())
                 .createdAt(table.getCreatedAt())
                 .updatedAt(table.getUpdatedAt())
                 .build();
+    }
+
+    @Transactional
+    public void deleteTable(Long tableId) {
+        RestaurantTable table = restaurantTableRepository.findById(tableId)
+                .orElseThrow(() -> new RuntimeException("Table not found with id: " + tableId));
+
+        List<TableSession> tableSessions = tableSessionRepository.findByRestaurantTableId(tableId);
+
+        List<Long> tableSessionIds = tableSessions.stream()
+                .map(TableSession::getId)
+                .toList();
+
+        if (!tableSessionIds.isEmpty()) {
+            guestSessionRepository.deleteByTableSessionIdIn(tableSessionIds);
+        }
+
+        tableSessionRepository.deleteByRestaurantTableId(tableId);
+
+        tableQrCodeRepository.deleteByRestaurantTableId(tableId);
+
+        restaurantTableRepository.delete(table);
     }
 }

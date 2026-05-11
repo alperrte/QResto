@@ -1,10 +1,14 @@
 package com.qresto.qr_service.service;
 
+import com.qresto.qr_service.dto.response.OrderContextResponse;
 import com.qresto.qr_service.dto.response.TableSessionResponse;
+import com.qresto.qr_service.entity.GuestSession;
 import com.qresto.qr_service.entity.RestaurantTable;
 import com.qresto.qr_service.entity.TableQrCode;
 import com.qresto.qr_service.entity.TableSession;
+import com.qresto.qr_service.entity.enums.GuestSessionStatus;
 import com.qresto.qr_service.entity.enums.TableSessionStatus;
+import com.qresto.qr_service.repository.GuestSessionRepository;
 import com.qresto.qr_service.repository.RestaurantTableRepository;
 import com.qresto.qr_service.repository.TableQrCodeRepository;
 import com.qresto.qr_service.repository.TableSessionRepository;
@@ -21,6 +25,7 @@ public class TableSessionService {
     private final TableSessionRepository tableSessionRepository;
     private final RestaurantTableRepository restaurantTableRepository;
     private final TableQrCodeRepository tableQrCodeRepository;
+    private final GuestSessionRepository guestSessionRepository;
 
     public TableSessionResponse createTableSession(Long tableId, Long qrCodeId) {
         RestaurantTable table = restaurantTableRepository.findById(tableId)
@@ -120,6 +125,41 @@ public class TableSessionService {
                 .closeReason(tableSession.getCloseReason())
                 .createdAt(tableSession.getCreatedAt())
                 .updatedAt(tableSession.getUpdatedAt())
+                .build();
+    }
+
+    public OrderContextResponse getOrderContext(Long tableSessionId, Long guestSessionId) {
+        TableSession tableSession = tableSessionRepository.findById(tableSessionId)
+                .orElseThrow(() -> new RuntimeException("Table session not found: " + tableSessionId));
+
+        GuestSession guestSession = guestSessionRepository.findByIdAndTableSessionId(guestSessionId, tableSessionId)
+                .orElseThrow(() -> new RuntimeException("Guest session does not belong to this table session"));
+
+        boolean tableActive = Boolean.TRUE.equals(tableSession.getRestaurantTable().getActive());
+
+        boolean tableSessionAllowed =
+                tableSession.getStatus() == TableSessionStatus.ACTIVE ||
+                        tableSession.getStatus() == TableSessionStatus.ORDERED;
+
+        boolean guestSessionAllowed =
+                guestSession.getStatus() == GuestSessionStatus.ACTIVE;
+
+        boolean orderAllowed = tableActive && tableSessionAllowed && guestSessionAllowed;
+
+        String message = orderAllowed
+                ? "Order is allowed for this table session"
+                : "Order is not allowed for this table session";
+
+        return OrderContextResponse.builder()
+                .tableSessionId(tableSession.getId())
+                .guestSessionId(guestSession.getId())
+                .tableId(tableSession.getRestaurantTable().getId())
+                .tableName(tableSession.getRestaurantTable().getName())
+                .tableActive(tableActive)
+                .tableSessionStatus(tableSession.getStatus())
+                .guestSessionStatus(guestSession.getStatus())
+                .orderAllowed(orderAllowed)
+                .message(message)
                 .build();
     }
 }

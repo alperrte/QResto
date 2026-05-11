@@ -3,10 +3,22 @@ import type {
     CreateRestaurantTableRequest,
     RestaurantTableResponse,
     TableQrCodeResponse,
+    UpdateRestaurantTableRequest,
 } from "../types/qr.types";
+import { authStorage } from "../auth/authStorage";
 
 const qrApi = axios.create({
     baseURL: import.meta.env.VITE_QR_SERVICE_URL || "http://localhost:7072/api",
+});
+
+qrApi.interceptors.request.use((config) => {
+    const accessToken = authStorage.getAccessToken();
+
+    if (accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`;
+    }
+
+    return config;
 });
 
 export const getTables = async (): Promise<RestaurantTableResponse[]> => {
@@ -21,6 +33,26 @@ export const createTable = async (
     return response.data;
 };
 
+export const updateTable = async (
+    tableId: number,
+    payload: UpdateRestaurantTableRequest
+): Promise<RestaurantTableResponse> => {
+    const response = await qrApi.put(`/tables/${tableId}`, payload);
+    return response.data;
+};
+
+export const deleteTable = async (tableId: number): Promise<void> => {
+    await qrApi.delete(`/tables/${tableId}`);
+};
+
+export const activateTable = async (tableId: number): Promise<void> => {
+    await qrApi.patch(`/tables/${tableId}/activate`);
+};
+
+export const deactivateTable = async (tableId: number): Promise<void> => {
+    await qrApi.patch(`/tables/${tableId}/deactivate`);
+};
+
 export const generateQrCode = async (
     tableId: number
 ): Promise<TableQrCodeResponse> => {
@@ -28,7 +60,7 @@ export const generateQrCode = async (
     return response.data;
 };
 
-export const regenerateQrCode = async (
+export const refreshTableSessions = async (
     tableId: number
 ): Promise<TableQrCodeResponse> => {
     const response = await qrApi.post(`/qr-codes/table/${tableId}/regenerate`);
@@ -42,6 +74,20 @@ export const getActiveQrCode = async (
     return response.data;
 };
 
+export const activateQrCode = async (
+    tableId: number
+): Promise<TableQrCodeResponse> => {
+    const response = await qrApi.patch(`/qr-codes/table/${tableId}/activate`);
+    return response.data;
+};
+
+export const deactivateQrCode = async (
+    tableId: number
+): Promise<TableQrCodeResponse> => {
+    const response = await qrApi.patch(`/qr-codes/table/${tableId}/deactivate`);
+    return response.data;
+};
+
 export const scanQr = async (qrToken: string, deviceToken: string) => {
     const response = await qrApi.post("/qr/scan", {
         qrToken,
@@ -50,12 +96,3 @@ export const scanQr = async (qrToken: string, deviceToken: string) => {
 
     return response.data;
 };
-
-export const activateTable = async (tableId: number): Promise<void> => {
-    await qrApi.patch(`/tables/${tableId}/activate`);
-};
-
-export const deactivateTable = async (tableId: number): Promise<void> => {
-    await qrApi.patch(`/tables/${tableId}/deactivate`);
-};
-

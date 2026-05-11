@@ -37,6 +37,22 @@ const QrScanPage = () => {
                 localStorage.setItem("tableSessionId", String(data.tableSession.id));
                 localStorage.setItem("guestSessionId", String(data.guestSession.id));
 
+                localStorage.setItem("qresto_table_id", String(data.table.id));
+                localStorage.setItem("qresto_table_no", String(data.table.tableNo));
+                localStorage.setItem("qresto_table_name", data.table.name);
+
+                localStorage.setItem(
+                    "qresto_table_session_id",
+                    String(data.tableSession.id)
+                );
+
+                localStorage.setItem(
+                    "qresto_guest_session_id",
+                    String(data.guestSession.id)
+                );
+
+                localStorage.removeItem("qresto_cart_id");
+
                 console.log("SCAN OK:", data);
 
                 navigate("/welcome");

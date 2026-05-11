@@ -9,3 +9,36 @@
 .app-surface-header {
   background: var(--color-surface);
 }
+
+/*QRESTO RENKLER */
+
+:root {
+  --qresto-bg: #f8f8f8;
+  --qresto-surface: #ffffff;
+  --qresto-sidebar: #ffffff;
+  --qresto-text: #111827;
+  --qresto-muted: #64748b;
+  --qresto-border: #eadfd4;
+  --qresto-border-strong: #d8c8ba;
+  --qresto-primary: #ff4b16;
+  --qresto-hover: #fff3ea;
+}
+
+.dark {
+  --qresto-bg: #111827;
+  --qresto-surface: #1f2937;
+  --qresto-sidebar: #182230;
+  --qresto-text: #f9fafb;
+  --qresto-muted: #9ca3af;
+  --qresto-border: #374151;
+  --qresto-border-strong: #4b5563;
+  --qresto-primary: #ff5a1f;
+  --qresto-hover: #2b3546;
+}
+
+
+body {
+  background: var(--qresto-bg);
+  color: var(--qresto-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}

@@ -19,9 +19,6 @@ public class RestaurantTable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "table_no", nullable = false, unique = true)
-    private Integer tableNo;
-
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
@@ -37,10 +34,10 @@ public class RestaurantTable {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "restaurantTable", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "restaurantTable", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TableQrCode> qrCodes;
 
-    @OneToMany(mappedBy = "restaurantTable", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "restaurantTable", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TableSession> tableSessions;
 
     @PrePersist

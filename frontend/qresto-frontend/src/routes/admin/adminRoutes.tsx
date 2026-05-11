@@ -1,0 +1,33 @@
+import { Route } from "react-router-dom";
+
+import AdminLayout from "../../layout/AdminLayout/AdminLayout";
+import { RoleHomeRedirect, RoleRoute } from "../../auth/routeGuards";
+
+import DashboardPage from "../../pages/Admin/DashboardPage";
+import QrGeneratorPage from "../../pages/qrPage/QrGeneratorPage";
+import WaiterDashboardPage from "../../pages/waiter/WaiterDashboardPage";
+import KitchenDashboardPage from "../../pages/kitchen/KitchenDashboardPage";
+
+const adminRoutes: React.ReactNode = (
+    <Route path="/app" element={<AdminLayout />}>
+        <Route index element={<RoleHomeRedirect />} />
+
+        <Route element={<RoleRoute allowedRoles={["ADMIN"]} />}>
+            <Route path="admin/dashboard" element={<DashboardPage />} />
+            <Route
+                path="tables-qr"
+                element={<QrGeneratorPage />}
+            />
+        </Route>
+
+        <Route element={<RoleRoute allowedRoles={["WAITER"]} />}>
+            <Route path="waiter/dashboard" element={<WaiterDashboardPage />} />
+        </Route>
+
+        <Route element={<RoleRoute allowedRoles={["KITCHEN"]} />}>
+            <Route path="kitchen/dashboard" element={<KitchenDashboardPage />} />
+        </Route>
+    </Route>
+);
+
+export default adminRoutes;

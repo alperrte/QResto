@@ -1,6 +1,5 @@
 export interface RestaurantTableResponse {
     id: number;
-    tableNo: number;
     name: string;
     capacity: number | null;
     active: boolean;
@@ -9,9 +8,14 @@ export interface RestaurantTableResponse {
 }
 
 export interface CreateRestaurantTableRequest {
-    tableNo: number;
     name: string;
     capacity?: number;
+}
+
+export interface UpdateRestaurantTableRequest {
+    name: string;
+    capacity?: number;
+    active?: boolean;
 }
 
 export interface TableQrCodeResponse {
