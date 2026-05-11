@@ -1,0 +1,17 @@
+.cart-overlay {
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.cart-overlay-open {
+  opacity: 1;
+}
+
+.cart-drawer {
+  transform: translateX(100%);
+  transition: transform 300ms ease-out;
+}
+
+.cart-drawer-open {
+  transform: translateX(0);
+}

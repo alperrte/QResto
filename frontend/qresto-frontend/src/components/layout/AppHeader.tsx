@@ -1,5 +1,6 @@
 import { type ReactNode } from "react";
 import Cart from "../cart/Cart";
+import lightLogo from "../../assets/qresto_logo_light.png";
 
 type AppHeaderProps = {
     title?: ReactNode;
@@ -11,7 +12,14 @@ type AppHeaderProps = {
 };
 
 const AppHeader = ({
-                       title = "QRESTO",
+                       title = (
+                           <img
+                               src={lightLogo}
+                               alt="QResto Logo"
+                               className="mx-auto h-14 w-auto object-contain"
+                               draggable="false"
+                           />
+                       ),
                        leftAction,
                        rightAction,
                        className = "",
