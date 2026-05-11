@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import {
@@ -7,7 +8,6 @@ import {
     ClipboardList,
     Coffee,
     Loader2,
-    RefreshCw,
     ReceiptText,
     Soup,
     Table2,
@@ -22,10 +22,12 @@ import {
     getTables,
     markOrderServed,
     resolveCall,
+    getActiveTableSession,
     type KitchenOrderResponse,
     type QrTableResponse,
     type TableCallResponse,
     type TableCallType,
+    type TableSessionResponse,
 } from "../../services/waiterService";
 
 function ensureArray<T>(value: unknown): T[] {
@@ -91,23 +93,99 @@ function formatDateTime(value?: string | null) {
     if (!value) return "-";
 
     try {
+        // Parse date defensively: if incoming string lacks timezone, treat it as UTC
+        const parseToDate = (v: string) => {
+            if (!v) return new Date(0);
+            // numeric epoch
+            if (/^\d+$/.test(v)) return new Date(Number(v));
+
+            // contains timezone designator (Z or +hh:mm or -hh:mm)
+            if (/[Zz]|[+\-]\d{2}:?\d{2}/.test(v)) return new Date(v);
+
+            // iso-like without timezone -> append Z to treat as UTC
+            const isoLike = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/;
+            if (isoLike.test(v)) return new Date(v + "Z");
+
+            // fallback
+            return new Date(v);
+        };
+
+        const dt = parseToDate(value);
+
         return new Intl.DateTimeFormat("tr-TR", {
             hour: "2-digit",
             minute: "2-digit",
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
-        }).format(new Date(value));
+            timeZone: "Europe/Istanbul",
+        }).format(dt);
     } catch {
         return value;
     }
 }
 
+function normalizeOrderStatus(status?: string) {
+    return (status || "UNKNOWN").toUpperCase();
+}
+
+function getOrderStatusLabel(status?: string) {
+    switch (normalizeOrderStatus(status)) {
+        case "RECEIVED":
+            return "Alındı";
+        case "PREPARING":
+            return "Hazırlanıyor";
+        case "READY":
+            return "Hazır";
+        case "SERVED":
+            return "Servis Edildi";
+        case "PAYMENT_PENDING":
+            return "Ödeme Bekliyor";
+        case "PAID":
+            return "Ödendi";
+        case "COMPLETED":
+            return "Tamamlandı";
+        case "CANCELLED":
+            return "İptal";
+        default:
+            return status || "Bilinmiyor";
+    }
+}
+
+function getOrderStatusTone(status?: string) {
+    switch (normalizeOrderStatus(status)) {
+        case "RECEIVED":
+            return { bg: "#eef5ff", text: "#2f80ed" };
+        case "PREPARING":
+            return { bg: "#fff4e8", text: "#d97706" };
+        case "READY":
+            return { bg: "#eafaf1", text: "#1f8f4a" };
+        case "SERVED":
+            return { bg: "#f2ecff", text: "#7c4dff" };
+        case "PAYMENT_PENDING":
+            return { bg: "#fff8e6", text: "#c79200" };
+        case "PAID":
+            return { bg: "#edf9f0", text: "#2f9d57" };
+        case "COMPLETED":
+            return { bg: "#edf9f0", text: "#2f9d57" };
+        case "CANCELLED":
+            return { bg: "#fdecec", text: "#c0392b" };
+        default:
+            return { bg: "#eef5ff", text: "#2f80ed" };
+    }
+}
+
+function isOrderArchived(status?: string) {
+    const normalized = normalizeOrderStatus(status);
+    return normalized === "CANCELLED" || normalized === "COMPLETED" || normalized === "PAID";
+}
+
 export default function WaiterDashboard() {
     const [calls, setCalls] = useState<TableCallResponse[]>([]);
     const [tables, setTables] = useState<QrTableResponse[]>([]);
-    const [readyOrders, setReadyOrders] = useState<KitchenOrderResponse[]>([]);
-    const [cancelledOrders, setCancelledOrders] = useState<KitchenOrderResponse[]>([]);
+    const [orders, setOrders] = useState<KitchenOrderResponse[]>([]);
+    const [tableSessions, setTableSessions] = useState<TableSessionResponse[]>([]);
+    const [heldTableTimestamps, setHeldTableTimestamps] = useState<Map<number, number>>(new Map());
 
     const [initialLoading, setInitialLoading] = useState(true);
     const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
@@ -143,15 +221,59 @@ export default function WaiterDashboard() {
             ]);
 
             setCalls(ensureArray<TableCallResponse>(allCallsData));
-            setTables(ensureArray<QrTableResponse>(tablesData));
-            setReadyOrders(ensureArray<KitchenOrderResponse>(readyOrdersData));
-            setCancelledOrders(ensureArray<KitchenOrderResponse>(cancelledOrdersData));
+
+            const tableList = ensureArray<QrTableResponse>(tablesData);
+            setTables(tableList);
+
+            const activeSessions = await Promise.all(
+                tableList.map(async (table) => {
+                    const session = await getActiveTableSession(table.id);
+                    return session;
+                })
+            );
+
+            setTableSessions(
+                activeSessions.filter(
+                    (session): session is TableSessionResponse => Boolean(session)
+                )
+            );
+
+
+
+            const fetched = [
+                ...ensureArray<KitchenOrderResponse>(readyOrdersData),
+                ...ensureArray<KitchenOrderResponse>(cancelledOrdersData),
+            ];
+
+            // Merge fetched orders with existing orders to avoid briefly losing STOMP-driven items.
+            setOrders((prev) => {
+                const map = new Map<number, KitchenOrderResponse>();
+
+                // keep previous entries first
+                prev.forEach((o) => map.set(o.orderId, o));
+
+                // overwrite/insert fetched entries
+                fetched.forEach((o) => map.set(o.orderId, { ...map.get(o.orderId), ...o }));
+
+                // also keep recent STOMP-added orders that backend polling might not return yet
+                const now = Date.now();
+                prev.forEach((o) => {
+                    if (!map.has(o.orderId)) {
+                        const created = o.createdAt ? new Date(o.createdAt).getTime() : now;
+                        // keep if created within last 30 seconds
+                        if (now - created < 30_000) {
+                            map.set(o.orderId, o);
+                        }
+                    }
+                });
+
+                return Array.from(map.values()).sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+            });
         } catch (err) {
             console.error(err);
             setCalls([]);
             setTables([]);
-            setReadyOrders([]);
-            setCancelledOrders([]);
+            setOrders([]);
             setError("Garson paneli verileri yüklenirken bir hata oluştu.");
         } finally {
             if (showLoading) {
@@ -188,6 +310,30 @@ export default function WaiterDashboard() {
                             setCalls((prev) => {
                                 if (!body) return prev;
 
+                                // update held state timestamps: record last activity when waiter call active
+                                try {
+                                    if (body.tableId) {
+                                        if (body.callType === "WAITER_CALL" && body.status === "ACTIVE") {
+                                            setHeldTableTimestamps((prev) => {
+                                                const next = new Map(prev);
+                                                next.set(body.tableId!, Date.now());
+                                                return next;
+                                            });
+                                        }
+
+                                        // if a bill request was resolved, release hold
+                                        if (body.callType === "BILL_REQUEST" && body.status === "RESOLVED") {
+                                            setHeldTableTimestamps((prev) => {
+                                                const next = new Map(prev);
+                                                next.delete(body.tableId!);
+                                                return next;
+                                            });
+                                        }
+                                    }
+                                } catch (e) {
+                                    // ignore held state errors
+                                }
+
                                 const exists = prev.find((c) => c.id === body.id);
                                 if (exists) {
                                     return prev.map((c) => (c.id === body.id ? body : c));
@@ -200,12 +346,55 @@ export default function WaiterDashboard() {
                         }
                     });
 
-                    if (!refreshTimer) {
-                        refreshTimer = window.setInterval(() => {
-                            loadDashboard().catch(() => {
-                                // keep the live view running even if polling briefly fails
+                    client.subscribe('/topic/waiter/orders', (message) => {
+                        try {
+                            const body = JSON.parse(message.body) as KitchenOrderResponse;
+
+                            setOrders((prev) => {
+                                if (!body) return prev;
+
+                                const exists = prev.find((o) => o.orderId === body.orderId);
+                                if (exists) {
+                                    return prev.map((o) => (o.orderId === body.orderId ? { ...o, ...body } : o));
+                                }
+
+                                // when an order arrives, update last-activity timestamp to hold the table
+                                try {
+                                                    if (body.tableId) {
+                                                        setHeldTableTimestamps((prev) => {
+                                                            const next = new Map(prev);
+                                                            next.set(body.tableId!, Date.now());
+                                                            return next;
+                                                        });
+                                                    }
+                                } catch (e) {
+                                    /* ignore */
+                                }
+
+                                return [body, ...prev];
                             });
-                        }, 15000);
+                        } catch (err) {
+                            console.error('Error parsing STOMP order message', err);
+                        }
+                    });
+
+                    if (!refreshTimer) {
+                                refreshTimer = window.setInterval(() => {
+                                    loadDashboard().catch(() => {
+                                        // keep the live view running even if polling briefly fails
+                                    });
+
+                                    // periodically cleanup held timestamps older than 30 minutes
+                                    setHeldTableTimestamps((prev) => {
+                                        const next = new Map(prev);
+                                        const now = Date.now();
+                                        const ttl = 30 * 60 * 1000; // 30 minutes
+                                        Array.from(next.entries()).forEach(([tableId, ts]) => {
+                                            if (now - ts > ttl) next.delete(tableId);
+                                        });
+                                        return next;
+                                    });
+                                }, 15000);
                     }
                 },
                 onWebSocketError: (event) => {
@@ -255,6 +444,78 @@ export default function WaiterDashboard() {
         [calls]
     );
 
+    function formatDuration(start?: string | null, end?: string | null) {
+        try {
+            const parse = (v?: string | null) => {
+                if (!v) return Date.now();
+                // reuse parsing logic: if iso without tz, treat as UTC
+                if (/^\d+$/.test(v)) return Number(v);
+                if (/[Zz]|[+\-]\d{2}:?\d{2}/.test(v)) return new Date(v).getTime();
+                const isoLike = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/;
+                if (isoLike.test(v)) return new Date(v + "Z").getTime();
+                return new Date(v).getTime();
+            };
+
+            const s = parse(start);
+            const e = end ? parse(end) : Date.now();
+
+            const diff = Math.max(0, e - s);
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+
+            if (mins > 0) return `${mins} dk ${secs} sn`;
+            return `${secs} sn`;
+        } catch {
+            return "-";
+        }
+    }
+
+    const activeOrders = useMemo(
+        () => orders.filter((order) => !isOrderArchived(order.status)),
+        [orders]
+    );
+    const activeOrderByTableId = useMemo(() => {
+        const map = new Map<number, KitchenOrderResponse>();
+
+        activeOrders.forEach((order) => {
+            if (order.tableId) map.set(order.tableId, order);
+        });
+
+        return map;
+    }, [activeOrders]);
+
+    const activeTableSessionByTableId = useMemo(() => {
+        const map = new Map<number, TableSessionResponse>();
+
+        tableSessions.forEach((session) => {
+            if (
+                session.tableId &&
+                ["ACTIVE", "ORDERED", "PAYMENT_PENDING"].includes(session.status)
+            ) {
+                map.set(session.tableId, session);
+            }
+        });
+
+        return map;
+    }, [tableSessions]);
+
+
+    const getTableDisplayName = (tableId?: number, tableNumber?: number) => {
+        if (tableId) {
+            const t = tables.find((x) => x.id === tableId);
+            if (t && t.name) return t.name;
+        }
+
+        if (tableNumber) return `Masa ${tableNumber}`;
+        if (tableId) return `Masa ID: ${tableId}`;
+        return "Masa";
+    };
+
+    const archivedOrders = useMemo(
+        () => orders.filter((order) => isOrderArchived(order.status)),
+        [orders]
+    );
+
     const activeCallByTableId = useMemo(() => {
         const map = new Map<number, TableCallResponse>();
 
@@ -298,6 +559,20 @@ export default function WaiterDashboard() {
         try {
             setActionLoadingId(callId);
             await resolveCall(callId, userEmail);
+
+            // if resolved call is a bill request, release held table immediately
+            try {
+                const resolvedCall = calls.find((c) => c.id === callId);
+                if (resolvedCall && resolvedCall.callType === "BILL_REQUEST" && resolvedCall.tableId) {
+                    setHeldTableTimestamps((prev) => {
+                        const next = new Map(prev);
+                        next.delete(resolvedCall.tableId!);
+                        return next;
+                    });
+                }
+            } catch (e) {
+                /* ignore */
+            }
             await loadDashboard();
         } catch (err) {
             console.error(err);
@@ -362,22 +637,7 @@ export default function WaiterDashboard() {
                             </p>
                         </div>
 
-                        <button
-                            onClick={() => loadDashboard()}
-                            disabled={initialLoading}
-                            className="inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-70"
-                            style={{
-                                background: "var(--qresto-primary)",
-                                color: "#fff",
-                            }}
-                        >
-                            {initialLoading ? (
-                                <Loader2 size={18} className="animate-spin" />
-                            ) : (
-                                <RefreshCw size={18} />
-                            )}
-                            Yenile
-                        </button>
+                        {/* Yenile butonu kaldırıldı (dev ortamda STOMP ile anlık güncelleniyor) */}
                     </div>
                 </div>
 
@@ -455,8 +715,23 @@ export default function WaiterDashboard() {
                             <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
                                 {tables.map((table) => {
                                     const activeCall = activeCallByTableId.get(table.id);
-                                    const tone = getTableCallTone(activeCall?.callType);
-                                    const statusLabel = activeCall ? getCallTypeLabel(activeCall.callType) : "Boş";
+                                    const activeSession = activeTableSessionByTableId.get(table.id);
+                                    const hasActiveOrder = activeOrderByTableId.has(table.id);
+
+                                    const now = Date.now();
+                                    const ttl = 30 * 60 * 1000;
+                                    const heldTs = heldTableTimestamps.get(table.id) as number | undefined;
+                                    const isHeld = typeof heldTs === "number" && now - heldTs < ttl;
+
+                                    const isOccupied =
+                                        Boolean(activeSession) ||
+                                        Boolean(activeCall) ||
+                                        hasActiveOrder ||
+                                        isHeld;
+                                    const tone = isOccupied
+                                        ? { borderColor: "#fdecec", textColor: "#c0392b", badgeBg: "#fdecec" }
+                                        : getTableCallTone(activeCall?.callType);
+                                    const statusLabel = isOccupied ? "Dolu" : "Boş";
 
                                     return (
                                         <div
@@ -480,15 +755,15 @@ export default function WaiterDashboard() {
                                                 </div>
                                             </div>
 
-                                            <div className="mt-5 flex items-center justify-between gap-3">
-                                                <span className="rounded-full px-3 py-1 text-xs font-bold" style={{ background: activeCall ? tone.badgeBg : "#edf9f0", color: activeCall ? tone.textColor : "#2f9d57" }}>
-                                                    {statusLabel}
-                                                </span>
+                                                <div className="mt-5 flex items-center justify-between gap-3">
+                                                    <span className="rounded-full px-3 py-1 text-xs font-bold" style={{ background: isOccupied ? tone.badgeBg : "#edf9f0", color: isOccupied ? tone.textColor : "#2f9d57" }}>
+                                                        {statusLabel}
+                                                    </span>
 
-                                                <span className="text-xs font-medium" style={{ color: "var(--qresto-muted)" }}>
-                                                    {table.active ? "Aktif masa" : "Pasif masa"}
-                                                </span>
-                                            </div>
+                                                    <span className="text-xs font-medium" style={{ color: "var(--qresto-muted)" }}>
+                                                        {isOccupied ? "Dolu" : table.active ? "Aktif masa" : "Boş"}
+                                                    </span>
+                                                </div>
 
                                             {activeCall ? (
                                                 <div className="mt-4 rounded-2xl border px-3 py-3 text-sm" style={{ borderColor: tone.borderColor, background: tone.badgeBg, color: tone.textColor }}>
@@ -540,11 +815,18 @@ export default function WaiterDashboard() {
                                                 </div>
 
                                                 <div>
-                                                    <h3 className="font-bold">
-                                                        {call.tableNumber ? `Masa ${call.tableNumber}` : `Masa ID: ${call.tableId}`}
-                                                    </h3>
+                                                        <h3 className="font-bold">
+                                                            {getTableDisplayName(call.tableId, call.tableNumber)}
+                                                        </h3>
                                                     <p className="text-xs font-medium" style={{ color: "var(--qresto-muted)" }}>
                                                         {getCallTypeLabel(call.callType)}
+                                                    </p>
+                                                    <p className="text-xs mt-1" style={{ color: "var(--qresto-muted)" }}>
+                                                        <span style={{ fontWeight: 600, marginRight: 6 }}>Çağrı zamanı:</span>
+                                                        {formatDateTime(call.createdAt)}
+                                                        <span style={{ marginLeft: 8, fontSize: 12, color: "var(--qresto-muted)" }}>
+                                                            ({formatDuration(call.createdAt)})
+                                                        </span>
                                                     </p>
                                                 </div>
                                             </div>
@@ -559,9 +841,15 @@ export default function WaiterDashboard() {
                                         </p>
 
                                         <div className="mt-4 flex items-center justify-between border-t pt-4" style={{ borderColor: "var(--qresto-border)" }}>
-                                            <span className="text-xs" style={{ color: "var(--qresto-muted)" }}>
-                                                {formatDateTime(call.createdAt)}
-                                            </span>
+                                            <div className="text-xs" style={{ color: "var(--qresto-muted)" }}>
+                                                {call.resolvedAt ? (
+                                                    <>
+                                                        <div><strong>Çağrı zamanı:</strong> {formatDateTime(call.createdAt)}</div>
+                                                        <div style={{ marginTop: 4 }}><strong>Tamamlama zamanı:</strong> {formatDateTime(call.resolvedAt)}</div>
+                                                        <div style={{ fontSize: 12, marginTop: 6 }}>{formatDuration(call.createdAt, call.resolvedAt)}</div>
+                                                    </>
+                                                ) : null}
+                                            </div>
 
                                             <button
                                                 onClick={() => handleResolveCall(call.id)}
@@ -605,16 +893,16 @@ export default function WaiterDashboard() {
                                     <h3 className="text-sm font-bold uppercase tracking-wide text-[var(--qresto-muted)]">
                                         Aktif Siparişler
                                     </h3>
-                                    <span className="text-xs text-[var(--qresto-muted)]">{readyOrders.length}</span>
+                                    <span className="text-xs text-[var(--qresto-muted)]">{activeOrders.length}</span>
                                 </div>
 
                                 {initialLoading ? (
                                     <LoadingBox text="Siparişler yükleniyor..." />
-                                ) : readyOrders.length === 0 ? (
-                                    <EmptyBox text="Servis bekleyen hazır sipariş yok." />
+                                ) : activeOrders.length === 0 ? (
+                                    <EmptyBox text="Aktif sipariş yok." />
                                 ) : (
                                     <div className="flex flex-col gap-3">
-                                        {readyOrders.map((order) => (
+                                        {activeOrders.map((order) => (
                                             <div
                                                 key={order.orderId}
                                                 className="rounded-2xl border p-4"
@@ -625,37 +913,48 @@ export default function WaiterDashboard() {
                                             >
                                                 <div className="flex items-start justify-between gap-3">
                                                     <div>
-                                                        <h4 className="font-bold">
-                                                            {order.tableNumber
-                                                                ? `Masa ${order.tableNumber}`
-                                                                : `Masa ID: ${order.tableId}`}
-                                                        </h4>
+                                                        <h4 className="font-bold">{getTableDisplayName(order.tableId, order.tableNumber)}</h4>
                                                         <p className="mt-1 text-xs" style={{ color: "var(--qresto-muted)" }}>
                                                             Sipariş No: {order.orderNumber || order.orderId}
                                                         </p>
+                                                        <p className="text-xs mt-1" style={{ color: "var(--qresto-muted)" }}>
+                                                            <span style={{ fontWeight: 600, marginRight: 6 }}>Sipariş zamanı:</span>
+                                                            {formatDateTime(order.createdAt)}
+                                                            <span style={{ marginLeft: 8, fontSize: 12, color: "var(--qresto-muted)" }}>
+                                                                ({formatDuration(order.createdAt)})
+                                                            </span>
+                                                        </p>
                                                     </div>
 
-                                                    <span className="rounded-full px-3 py-1 text-xs font-bold" style={{ background: "#eef5ff", color: "#2f80ed" }}>
-                                                        {order.status}
+                                                    <span
+                                                        className="rounded-full px-3 py-1 text-xs font-bold"
+                                                        style={{
+                                                            background: getOrderStatusTone(order.status).bg,
+                                                            color: getOrderStatusTone(order.status).text,
+                                                        }}
+                                                    >
+                                                        {getOrderStatusLabel(order.status)}
                                                     </span>
                                                 </div>
 
-                                                <button
-                                                    onClick={() => handleMarkOrderServed(order.orderId)}
-                                                    disabled={orderActionLoadingId === order.orderId}
-                                                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:scale-[1.02] disabled:opacity-60"
-                                                    style={{
-                                                        background: "var(--qresto-primary)",
-                                                        color: "#fff",
-                                                    }}
-                                                >
-                                                    {orderActionLoadingId === order.orderId ? (
-                                                        <Loader2 size={15} className="animate-spin" />
-                                                    ) : (
-                                                        <CheckCircle2 size={15} />
-                                                    )}
-                                                    Servis Edildi
-                                                </button>
+                                                {normalizeOrderStatus(order.status) === "READY" ? (
+                                                    <button
+                                                        onClick={() => handleMarkOrderServed(order.orderId)}
+                                                        disabled={orderActionLoadingId === order.orderId}
+                                                        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:scale-[1.02] disabled:opacity-60"
+                                                        style={{
+                                                            background: "var(--qresto-primary)",
+                                                            color: "#fff",
+                                                        }}
+                                                    >
+                                                        {orderActionLoadingId === order.orderId ? (
+                                                            <Loader2 size={15} className="animate-spin" />
+                                                        ) : (
+                                                            <CheckCircle2 size={15} />
+                                                        )}
+                                                        Servis Edildi
+                                                    </button>
+                                                ) : null}
                                             </div>
                                         ))}
                                     </div>
@@ -667,16 +966,16 @@ export default function WaiterDashboard() {
                                     <h3 className="text-sm font-bold uppercase tracking-wide text-[var(--qresto-muted)]">
                                         Geçmiş Siparişler
                                     </h3>
-                                    <span className="text-xs text-[var(--qresto-muted)]">{cancelledOrders.length}</span>
+                                    <span className="text-xs text-[var(--qresto-muted)]">{archivedOrders.length}</span>
                                 </div>
 
                                 {initialLoading ? (
                                     <LoadingBox text="Geçmiş siparişler yükleniyor..." />
-                                ) : cancelledOrders.length === 0 ? (
-                                    <EmptyBox text="İptal edilen sipariş yok." />
+                                ) : archivedOrders.length === 0 ? (
+                                    <EmptyBox text="Geçmiş sipariş yok." />
                                 ) : (
                                     <div className="flex flex-col gap-3">
-                                        {cancelledOrders.map((order) => (
+                                        {archivedOrders.map((order) => (
                                             <div
                                                 key={order.orderId}
                                                 className="rounded-2xl border p-4"
@@ -695,9 +994,28 @@ export default function WaiterDashboard() {
                                                     Sipariş No: {order.orderNumber || order.orderId}
                                                 </p>
 
-                                                <span className="mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold" style={{ background: "#eef5ff", color: "#2f80ed" }}>
-                                                    {order.status}
-                                                </span>
+                                                <div style={{ marginTop: 8 }}>
+                                                    <div style={{ fontSize: 13, color: "var(--qresto-muted)" }}>
+                                                        Oluşturuldu: {formatDateTime(order.createdAt)}
+                                                    </div>
+                                                    <div style={{ fontSize: 13, color: "var(--qresto-muted)", marginTop: 4 }}>
+                                                        Güncellendi: {formatDateTime(order.updatedAt)}
+                                                    </div>
+                                                    <div style={{ marginTop: 6 }}>
+                                                        <span
+                                                            className="inline-flex rounded-full px-3 py-1 text-xs font-bold"
+                                                            style={{
+                                                                background: getOrderStatusTone(order.status).bg,
+                                                                color: getOrderStatusTone(order.status).text,
+                                                            }}
+                                                        >
+                                                            {getOrderStatusLabel(order.status)}
+                                                        </span>
+                                                        <span style={{ marginLeft: 8, fontSize: 12, color: "var(--qresto-muted)" }}>
+                                                            {formatDuration(order.createdAt, order.updatedAt)}
+                                                        </span>
+                                                    </div>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -789,8 +1107,16 @@ export default function WaiterDashboard() {
                                                 className="flex items-center justify-between gap-3 text-xs"
                                                 style={{ color: "var(--qresto-muted)" }}
                                             >
-                                                <span>{formatDateTime(call.createdAt)}</span>
-                                                <span>{call.resolvedAt ? formatDateTime(call.resolvedAt) : "-"}</span>
+                                                <span>
+                                                    <strong>Çağrı zamanı:</strong> {formatDateTime(call.createdAt)}
+                                                    <span style={{ marginLeft: 8, fontSize: 12, color: "var(--qresto-muted)" }}>
+                                                        ({formatDuration(call.createdAt, call.resolvedAt)})
+                                                    </span>
+                                                </span>
+
+                                                <span>
+                                                    <strong>Tamamlama zamanı:</strong> {call.resolvedAt ? formatDateTime(call.resolvedAt) : "-"}
+                                                </span>
                                             </div>
 
                                             {call.resolvedBy ? (

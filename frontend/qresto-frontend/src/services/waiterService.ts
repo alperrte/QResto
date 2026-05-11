@@ -1,6 +1,8 @@
 import axios from "axios";
 
 export const WAITER_API_URL = "http://localhost:7074";
+const QR_API_URL =
+    import.meta.env.VITE_QR_SERVICE_URL || "http://localhost:7072/api";
 
 function getAuthHeader() {
     const token =
@@ -16,6 +18,20 @@ function getAuthHeader() {
 export type TableCallType = "WAITER_CALL" | "BILL_REQUEST" | "HELP_REQUEST";
 export type TableCallStatus = "ACTIVE" | "RESOLVED" | "CANCELLED";
 
+export interface TableSessionResponse {
+    id: number;
+    tableId: number;
+    qrCodeId?: number | null;
+    sessionCode: string;
+    status: "ACTIVE" | "ORDERED" | "PAYMENT_PENDING" | "COMPLETED" | "CANCELLED" | "EXPIRED" | "CLOSED_BY_WAITER" | "CLOSED_BY_ADMIN";
+    startedAt: string;
+    lastActivityAt: string;
+    closedAt?: string | null;
+    closeReason?: string | null;
+    createdAt: string;
+    updatedAt?: string | null;
+}
+
 export interface TableCallResponse {
     id: number;
     tableId: number;
@@ -27,6 +43,7 @@ export interface TableCallResponse {
     resolvedAt?: string | null;
     resolvedBy?: string | null;
 }
+
 
 export interface CreateTableCallRequest {
     tableId: number;
@@ -143,4 +160,18 @@ export async function markOrderServed(orderId: number) {
     );
 
     return response.data;
+}
+export async function getActiveTableSession(tableId: number) {
+    try {
+        const response = await axios.get<TableSessionResponse>(
+            `${QR_API_URL}/table-sessions/active/table/${tableId}`,
+            {
+                headers: getAuthHeader(),
+            }
+        );
+
+        return response.data;
+    } catch {
+        return null;
+    }
 }

@@ -112,6 +112,13 @@ public class WaiterService {
         return response;
     }
 
+    public void publishOrderEvent(KitchenOrderResponse event) {
+        try {
+            messagingTemplate.convertAndSend("/topic/waiter/orders", event);
+        } catch (Exception ignored) {
+        }
+    }
+
     public void deleteTableCall(Long callId) {
 
         TableCall tableCall = tableCallRepository.findById(callId)
