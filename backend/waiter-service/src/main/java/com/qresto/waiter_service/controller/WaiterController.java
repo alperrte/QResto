@@ -127,4 +127,12 @@ public class WaiterController {
     ) {
         return ResponseEntity.ok(waiterService.getActiveQrCodeByTableId(tableId, authHeader));
     }
+
+    @PostMapping("/internal/orders/event")
+    public ResponseEntity<String> publishOrderEvent(
+            @RequestBody KitchenOrderResponse event
+    ) {
+        waiterService.publishOrderEvent(event);
+        return ResponseEntity.ok("ok");
+    }
 }

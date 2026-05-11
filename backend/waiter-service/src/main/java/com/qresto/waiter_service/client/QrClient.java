@@ -3,6 +3,7 @@ package com.qresto.waiter_service.client;
 import com.qresto.waiter_service.dto.response.QrTableResponse;
 import com.qresto.waiter_service.dto.response.QrValidationResponse;
 import com.qresto.waiter_service.dto.response.TableQrCodeResponse;
+import com.qresto.waiter_service.dto.response.TableSessionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -95,5 +96,20 @@ public class QrClient {
         }
 
         return headers;
+    }
+    public TableSessionResponse getActiveSessionByTableId(Long tableId, String token) {
+
+        String url = qrServiceUrl + "/api/table-sessions/active/table/" + tableId;
+
+        HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
+
+        ResponseEntity<TableSessionResponse> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                TableSessionResponse.class
+        );
+
+        return response.getBody();
     }
 }
