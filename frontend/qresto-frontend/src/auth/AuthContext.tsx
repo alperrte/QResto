@@ -1,4 +1,5 @@
 import { createContext, useContext, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { authStorage } from "./authStorage";
 import { loginRequest, logoutRequest } from "./authService";
 import type { AuthResponse, AuthUser } from "./auth.types";
@@ -12,31 +13,16 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const decodeEmailFromJwt = (token: string): string => {
-    try {
-        const payloadPart = token.split(".")[1];
-
-        if (!payloadPart) {
-            return "";
-        }
-
-        const normalized = payloadPart.replace(/-/g, "+").replace(/_/g, "/");
-        const decodedPayload = atob(normalized);
-        const payload = JSON.parse(decodedPayload) as { sub?: string };
-        return payload.sub ?? "";
-    } catch (_error) {
-        return "";
-    }
-};
-
 const mapAuthResponseToUser = (response: AuthResponse): AuthUser => ({
     userId: response.userId,
     role: response.role,
-    email: decodeEmailFromJwt(response.accessToken),
+    email: response.email,
 });
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-    const [user, setUser] = useState<AuthUser | null>(() => authStorage.getUser());
+export function AuthProvider({ children }: { children: ReactNode }) {
+    const [user, setUser] = useState<AuthUser | null>(() => {
+        return authStorage.getUser();
+    });
 
     const login = async (email: string, password: string) => {
         const response = await loginRequest({
@@ -53,22 +39,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         setUser(nextUser);
+
         return nextUser;
     };
 
     const logout = async () => {
         const refreshToken = authStorage.getRefreshToken();
 
-        if (refreshToken) {
-            try {
+        try {
+            if (refreshToken) {
                 await logoutRequest(refreshToken);
-            } catch (_error) {
-                // Session localde daima temizlenmeli.
             }
+        } catch {
+            // Backend logout patlasa bile local session kesin temizlenmeli.
+        } finally {
+            authStorage.clearSession();
+            setUser(null);
+            window.location.href = "/login";
         }
-
-        authStorage.clearSession();
-        setUser(null);
     };
 
     const value = useMemo<AuthContextValue>(
