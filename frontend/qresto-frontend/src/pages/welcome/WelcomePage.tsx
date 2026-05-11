@@ -24,9 +24,14 @@ const WelcomePage = () => {
   const [activeServiceModal, setActiveServiceModal] = useState<ServiceModalType | null>(null);
   const [serviceModalStep, setServiceModalStep] = useState<ServiceModalStep>("confirm");
   const [serviceModalError, setServiceModalError] = useState<string | null>(null);
-  let tableName = localStorage.getItem("tableName");
-  const storedTableId = localStorage.getItem("tableId");
-  const storedTableNo = localStorage.getItem("tableNo");
+  let tableName =
+      sessionStorage.getItem("tableName") ||
+      localStorage.getItem("tableName");
+
+  const storedTableId =
+      sessionStorage.getItem("tableId") ||
+      localStorage.getItem("tableId");
+
 
   const useDevPreview = import.meta.env.DEV && !storedTableId;
 
@@ -35,7 +40,11 @@ const WelcomePage = () => {
   }
 
   useEffect(() => {
-    if (import.meta.env.PROD && !localStorage.getItem("tableId")) {
+    if (
+        import.meta.env.PROD &&
+        !sessionStorage.getItem("tableId") &&
+        !localStorage.getItem("tableId")
+    ) {
       navigate("/qr/scan", { replace: true });
     }
   }, [navigate]);
@@ -62,18 +71,46 @@ const WelcomePage = () => {
   };
 
   const handleConfirmServiceCall = async () => {
-    if (!storedTableId) {
+    const currentTableId =
+        sessionStorage.getItem("tableId") ||
+        localStorage.getItem("tableId");
+
+    const currentTableNo =
+        sessionStorage.getItem("tableNo") ||
+        localStorage.getItem("tableNo");
+
+    const currentTableName =
+        sessionStorage.getItem("tableName") ||
+        localStorage.getItem("tableName");
+
+    if (!currentTableId) {
       setServiceModalError("Masa bilgisi bulunamadı. QR kodu tekrar okutun.");
       return;
     }
 
-    const tableId = Number(storedTableId);
-    const tableNumber = storedTableNo ? Number(storedTableNo) : undefined;
-    const callType: "WAITER_CALL" | "BILL_REQUEST" = activeServiceModal === "bill" ? "BILL_REQUEST" : "WAITER_CALL";
+    const tableId = Number(currentTableId);
+    const tableNumber = currentTableNo ? Number(currentTableNo) : undefined;
+
+    if (!Number.isFinite(tableId)) {
+      setServiceModalError("Masa bilgisi hatalı. QR kodu tekrar okutun.");
+      return;
+    }
+
+    const callType: "WAITER_CALL" | "BILL_REQUEST" =
+        activeServiceModal === "bill" ? "BILL_REQUEST" : "WAITER_CALL";
+
     const message =
-      callType === "WAITER_CALL"
-        ? "Garson çağırma talebi"
-        : "Hesap isteme talebi";
+        callType === "WAITER_CALL"
+            ? "Garson çağırma talebi"
+            : "Hesap isteme talebi";
+
+    console.log("GARSON ÇAĞRI PAYLOAD:", {
+      tableId,
+      tableNumber,
+      tableName: currentTableName,
+      callType,
+      message,
+    });
 
     try {
       setServiceModalStep("loading");
@@ -96,7 +133,11 @@ const WelcomePage = () => {
     }
   };
 
-  if (!import.meta.env.DEV && !localStorage.getItem("tableId")) {
+  if (
+      !import.meta.env.DEV &&
+      !sessionStorage.getItem("tableId") &&
+      !localStorage.getItem("tableId")
+  ) {
     return (
       <div className="app-surface-page route-enter-from-left min-h-screen">
         <AppHeader
