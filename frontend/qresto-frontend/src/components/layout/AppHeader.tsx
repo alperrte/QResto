@@ -4,6 +4,7 @@ import Cart from "../cart/Cart";
 type AppHeaderProps = {
     title?: ReactNode;
     leftAction?: ReactNode;
+    rightAction?: ReactNode;
     className?: string;
     titleClassName?: string;
     useSurface?: boolean;
@@ -12,6 +13,7 @@ type AppHeaderProps = {
 const AppHeader = ({
                        title = "QRESTO",
                        leftAction,
+                       rightAction,
                        className = "",
                        titleClassName = "",
                        useSurface = true,
@@ -31,7 +33,7 @@ const AppHeader = ({
             </h1>
 
             <div className="w-10 flex items-center justify-end">
-                <Cart />
+                {rightAction ?? <Cart />}
             </div>
         </header>
     );
