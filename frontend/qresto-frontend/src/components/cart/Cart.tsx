@@ -19,7 +19,7 @@ const Cart = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [isOrdering, setIsOrdering] = useState(false);
 
-    const storedCartId = localStorage.getItem("qresto_cart_id");
+    const storedCartId = sessionStorage.getItem("qresto_cart_id");
     const cartId = storedCartId ? Number(storedCartId) : null;
 
     const cartItems = cart?.items ?? [];
@@ -155,7 +155,7 @@ const Cart = () => {
 
             alert(`Siparişiniz oluşturuldu.\nSipariş No: ${order.orderNo}`);
 
-            localStorage.removeItem("qresto_cart_id");
+            sessionStorage.removeItem("qresto_cart_id");
             setCart(null);
             setCartOpen(false);
         } catch (error) {
