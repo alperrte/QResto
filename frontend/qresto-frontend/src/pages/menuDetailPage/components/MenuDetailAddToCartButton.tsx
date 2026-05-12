@@ -33,7 +33,7 @@ const MenuDetailAddToCartButton = ({
     };
 
     const getStorageNumber = (key: string): number | null => {
-        const value = localStorage.getItem(key);
+        const value = sessionStorage.getItem(key);
 
         if (!value) {
             return null;
@@ -58,7 +58,7 @@ const MenuDetailAddToCartButton = ({
         const tableSessionId = getStorageNumber("qresto_table_session_id");
         const guestSessionId = getStorageNumber("qresto_guest_session_id");
         const tableId = getStorageNumber("qresto_table_id");
-        const tableName = localStorage.getItem("qresto_table_name") ?? "Masa";
+        const tableName = sessionStorage.getItem("qresto_table_name") ?? "Masa";
 
         if (!tableSessionId || !guestSessionId || !tableId) {
             console.error("Eksik QR session bilgisi:", {
@@ -86,7 +86,7 @@ const MenuDetailAddToCartButton = ({
             tableName
         );
 
-        localStorage.setItem("qresto_cart_id", String(createdCart.id));
+        sessionStorage.setItem("qresto_cart_id", String(createdCart.id));
 
         return createdCart.id;
     };

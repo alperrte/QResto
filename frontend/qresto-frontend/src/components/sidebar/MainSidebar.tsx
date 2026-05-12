@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, QrCode, LogOut, UtensilsCrossed, ChevronDown } from "lucide-react";
+import { LayoutDashboard, QrCode, LogOut,Coffee, UtensilsCrossed, ChevronDown } from "lucide-react";
 
 import { useAuth } from "../../auth/AuthContext";
 import { getRoleHomePath } from "../../auth/routeGuards";

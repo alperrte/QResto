@@ -8,7 +8,7 @@ import MenuCategoriesAdminPage from "../../pages/Admin/MenuCategoriesAdminPage";
 import MenuAdminPage from "../../pages/Admin/MenuAdminPage/MenuAdminPage";
 import ProductSetupWizardPage from "../../pages/Admin/MenuAdminPage/ProductWizard/ProductSetupWizardPage";
 import QrGeneratorPage from "../../pages/qrPage/QrGeneratorPage";
-import WaiterDashboardPage from "../../pages/waiter/WaiterDashboardPage";
+import WaiterDashboardPage from "../../pages/waiter/WaiterDashboard";
 import KitchenDashboardPage from "../../pages/kitchen/KitchenDashboardPage";
 
 const adminRoutes: React.ReactNode = (

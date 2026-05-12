@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ComponentType, CSSProperties, FormEvent } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 import { ChefHat, ShieldCheck, HandPlatter } from "lucide-react";
+import axios from "axios";
 import loginBg from "../../assets/QResto Login Page BG.png";
 import { useAuth } from "../../auth/AuthContext";
 import { getRoleHomePath } from "../../auth/routeGuards";
@@ -93,8 +94,21 @@ function LoginPage() {
                 getRoleHomePath(loggedInUser.role);
 
             navigate(redirectTo, { replace: true });
-        } catch (_error) {
-            setErrorMessage("E-posta veya şifre hatalı.");
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                const backendMessage =
+                    (error.response?.data as { message?: string } | undefined)?.message || "";
+
+                if (backendMessage.toLowerCase().includes("invalid email or password")) {
+                    setErrorMessage("E-posta veya şifre hatalı.");
+                } else if (backendMessage) {
+                    setErrorMessage(backendMessage);
+                } else {
+                    setErrorMessage("Giriş sırasında sunucu hatası oluştu.");
+                }
+            } else {
+                setErrorMessage("E-posta veya şifre hatalı.");
+            }
         } finally {
             setIsSubmitting(false);
         }

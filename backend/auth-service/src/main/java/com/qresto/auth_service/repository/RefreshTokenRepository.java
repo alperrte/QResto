@@ -10,6 +10,6 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
 
     Optional<RefreshToken> findByToken(String token);
 
-    // 🔥 EKLE BURAYA
+
     void deleteAllByUser(User user);
 }

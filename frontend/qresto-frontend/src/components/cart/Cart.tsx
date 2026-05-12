@@ -28,7 +28,7 @@ const Cart = () => {
     const [orderCelebration, setOrderCelebration] = useState<{ orderNo: string } | null>(null);
     const [orderErrorMessage, setOrderErrorMessage] = useState<string | null>(null);
 
-    const storedCartId = localStorage.getItem("qresto_cart_id");
+    const storedCartId = sessionStorage.getItem("qresto_cart_id");
     const cartId = storedCartId ? Number(storedCartId) : null;
 
     const cartItems = cart?.items ?? [];
@@ -189,7 +189,9 @@ const Cart = () => {
         try {
             const order = await createOrderFromCart(cartId);
 
-            localStorage.removeItem("qresto_cart_id");
+            alert(`Siparişiniz oluşturuldu.\nSipariş No: ${order.orderNo}`);
+
+            sessionStorage.removeItem("qresto_cart_id");
             setCart(null);
             setOrderCelebration({ orderNo: order.orderNo });
         } catch (error) {

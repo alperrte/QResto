@@ -4,6 +4,7 @@ import com.qresto.order_service.client.MenuServiceClient;
 import com.qresto.order_service.client.QrServiceClient;
 import com.qresto.order_service.dto.client.MenuProductOrderInfoResponse;
 import com.qresto.order_service.dto.client.QrOrderContextResponse;
+import com.qresto.order_service.dto.request.DemoPaymentRequest;
 import com.qresto.order_service.dto.request.OrderCancelRequest;
 import com.qresto.order_service.dto.request.OrderStatusUpdateRequest;
 import com.qresto.order_service.dto.response.OrderItemResponse;
@@ -19,6 +20,13 @@ import com.qresto.order_service.repository.CartRepository;
 import com.qresto.order_service.repository.CustomerOrderRepository;
 import com.qresto.order_service.repository.OrderItemRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestTemplate;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,9 +44,11 @@ public class OrderService {
 
     private final CartRepository cartRepository;
     private final CustomerOrderRepository customerOrderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final QrServiceClient qrServiceClient;
     private final MenuServiceClient menuServiceClient;
+
+    @Value("${waiter.service.url:http://localhost:7074}")
+    private String waiterServiceUrl;
 
     public OrderResponse createOrderFromCart(Long cartId) {
         Cart cart = cartRepository.findById(cartId)
@@ -108,6 +118,12 @@ public class OrderService {
 
         CustomerOrder savedOrder = customerOrderRepository.save(order);
 
+        // notify waiter-service so waiter UI can receive the new order in real-time
+        try {
+            sendOrderEvent(savedOrder);
+        } catch (Exception ignored) {
+        }
+
         cart.setStatus(CartStatus.ORDERED);
         cart.setOrderedAt(LocalDateTime.now());
         cart.setSubtotalAmount(subtotalAmount);
@@ -168,7 +184,12 @@ public class OrderService {
         order.setStatus(request.getStatus());
         setStatusTimestamp(order, request.getStatus());
 
-        return toResponse(customerOrderRepository.save(order));
+        CustomerOrder saved = customerOrderRepository.save(order);
+        try {
+            sendOrderEvent(saved);
+        } catch (Exception ignored) {
+        }
+        return toResponse(saved);
     }
 
     public OrderResponse cancelOrder(Long orderId, OrderCancelRequest request) {
@@ -191,7 +212,12 @@ public class OrderService {
             }
         }
 
-        return toResponse(customerOrderRepository.save(order));
+        CustomerOrder saved = customerOrderRepository.save(order);
+        try {
+            sendOrderEvent(saved);
+        } catch (Exception ignored) {
+        }
+        return toResponse(saved);
     }
 
     private void setStatusTimestamp(CustomerOrder order, OrderStatus status) {
@@ -278,5 +304,60 @@ public class OrderService {
         response.setUpdatedAt(item.getUpdatedAt());
 
         return response;
+    }
+
+    private void sendOrderEvent(CustomerOrder order) {
+        try {
+            RestTemplate rest = new RestTemplate();
+            String url = waiterServiceUrl + "/waiter/internal/orders/event";
+
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("orderId", order.getId());
+            payload.put("tableId", order.getTableId());
+            payload.put("tableNumber", null);
+            payload.put("orderNumber", order.getOrderNo());
+            payload.put("status", order.getStatus().name());
+            payload.put("totalAmount", order.getTotalAmount());
+            payload.put("createdAt", order.getCreatedAt());
+            payload.put("updatedAt", order.getUpdatedAt());
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+
+            rest.postForEntity(url, entity, Void.class);
+        } catch (Exception ignored) {
+        }
+    }
+
+    /* Fake Payment Demo */
+    public OrderResponse demoPayment(Long orderId, DemoPaymentRequest request) {
+        CustomerOrder order = customerOrderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Sipariş bulunamadı: " + orderId));
+
+        if (!order.getGuestSessionId().equals(request.getGuestSessionId())) {
+            throw new IllegalArgumentException("Bu sipariş bu kullanıcı oturumuna ait değil");
+        }
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalArgumentException("İptal edilmiş sipariş ödenemez");
+        }
+
+        if (order.getStatus() == OrderStatus.PAID) {
+            throw new IllegalArgumentException("Bu sipariş zaten ödenmiş");
+        }
+
+        order.setStatus(OrderStatus.PAID);
+        order.setPaidAt(LocalDateTime.now());
+
+        CustomerOrder savedOrder = customerOrderRepository.save(order);
+
+        try {
+            sendOrderEvent(savedOrder);
+        } catch (Exception ignored) {
+        }
+
+        return toResponse(savedOrder);
     }
 }

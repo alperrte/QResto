@@ -22,6 +22,12 @@
 }
 
 .qresto-login-card {
+  --qresto-text: #111827;
+  --qresto-muted: #64748b;
+  --qresto-border: #cbd5e1;
+  --qresto-surface: #ffffff;
+  --qresto-primary: #f97316;
+
   width: min(500px, 92vw);
   border: 1px solid rgba(255, 140, 0, 0.16);
   border-radius: 1.5rem;
@@ -41,6 +47,22 @@
   margin-bottom: 1rem;
   padding-bottom: 0.8rem;
   border-bottom: 1px solid color-mix(in srgb, var(--qresto-border) 70%, transparent);
+}
+.qresto-login-form h1 {
+  color: #111827;
+}
+
+.qresto-login-form label span {
+  color: #334155;
+}
+
+.qresto-login-input {
+  color: #111827;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.qresto-login-input::placeholder {
+  color: #94a3b8;
 }
 
 .qresto-login-title {

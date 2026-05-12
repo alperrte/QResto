@@ -1,6 +1,7 @@
 package com.qresto.qr_service.controller;
 
 import com.qresto.qr_service.dto.response.OrderContextResponse;
+import com.qresto.qr_service.dto.response.TableSessionResponse;
 import com.qresto.qr_service.service.TableSessionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -16,5 +17,9 @@ public class TableSessionController {
     public OrderContextResponse getOrderContext(@PathVariable Long tableSessionId,
                                                 @RequestParam Long guestSessionId) {
         return tableSessionService.getOrderContext(tableSessionId, guestSessionId);
+    }
+    @GetMapping("/active/table/{tableId}")
+    public TableSessionResponse getActiveSessionByTable(@PathVariable Long tableId) {
+        return tableSessionService.getActiveSessionByTable(tableId);
     }
 }
