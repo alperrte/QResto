@@ -128,3 +128,13 @@ export type OrderAdminProductSalesRowResponse = {
     trend: "up" | "down" | "flat";
 };
 
+export type TableSessionBillResponse = {
+    tableSessionId: number;
+    tableId: number;
+    tableName: string;
+    subtotalAmount: number;
+    vatAmount: number;
+    totalAmount: number;
+    orderCount: number;
+    orders: OrderResponse[];
+};

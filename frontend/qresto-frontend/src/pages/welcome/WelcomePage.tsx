@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/layout/AppHeader";
 import HeaderIconButton from "../../components/ui/HeaderIconButton";
 import OrderPaymentRatingModal from "../../components/rating/OrderPaymentRatingModal";
-import OrderRatingModal from "../../components/rating/OrderRatingModal";
 import WelcomeActionButtons from "./components/WelcomeActionButtons";
 import WelcomeInfoCard from "./components/WelcomeInfoCard";
 import WelcomePayChoiceModal from "./components/WelcomePayChoiceModal";
@@ -12,8 +11,7 @@ import WelcomeServiceModal, {
   type ServiceModalType,
 } from "./components/WelcomeServiceModal";
 import { createTableCall } from "../../services/waiterService";
-import { getOrdersByTableSession } from "../../services/orderService";
-import type { OrderResponse } from "../../types/cartTypes";
+
 import {
   DEV_PREVIEW_TABLE,
   HERO_IMAGE_URL,
@@ -32,21 +30,9 @@ const readTableSessionId = (): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-const pickOrderForOnlinePay = (orders: OrderResponse[]): OrderResponse | null => {
-  const eligible = orders.filter((o) => o.status !== "PAID" && o.status !== "CANCELLED");
-  if (eligible.length === 0) return null;
-  return [...eligible].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )[0];
-};
 
-/** Oturumdaki ödenmemiş en yeni siparişi bulur; online ödeme modalı için. */
-const fetchOrderForPaymentRating = async (): Promise<OrderResponse | null> => {
-  const sessionId = readTableSessionId();
-  if (!sessionId) return null;
-  const list = await getOrdersByTableSession(sessionId);
-  return pickOrderForOnlinePay(list);
-};
+
+
 
 const WelcomePage = () => {
   const navigate = useNavigate();
@@ -56,10 +42,9 @@ const WelcomePage = () => {
   const [serviceModalStep, setServiceModalStep] = useState<ServiceModalStep>("confirm");
   const [serviceModalError, setServiceModalError] = useState<string | null>(null);
   const [payChoiceOpen, setPayChoiceOpen] = useState(false);
-  const [onlinePayLoading, setOnlinePayLoading] = useState(false);
+  const onlinePayLoading = false;
   const [payChoiceError, setPayChoiceError] = useState<string | null>(null);
-  const [paymentRatingOrder, setPaymentRatingOrder] = useState<OrderResponse | null>(null);
-  const [ratingOnlyOrder, setRatingOnlyOrder] = useState<OrderResponse | null>(null);
+  const [paymentRatingTableSessionId, setPaymentRatingTableSessionId] = useState<number | null>(null);
   let tableName =
       sessionStorage.getItem("tableName") ||
       localStorage.getItem("tableName");
@@ -135,36 +120,22 @@ const WelcomePage = () => {
   };
 
   const handlePayChoiceOnlinePay = async () => {
-    if (!readTableSessionId()) {
+    const sessionId = readTableSessionId();
+
+    if (!sessionId) {
       setPayChoiceError("Oturum bulunamadı. QR kodu tekrar okutun.");
       return;
     }
-    setOnlinePayLoading(true);
+
     setPayChoiceError(null);
-    try {
-      const order = await fetchOrderForPaymentRating();
-      if (!order) {
-        setPayChoiceError(
-          "Ödenecek sipariş bulunamadı. Önce menüden sipariş verin veya Siparişlerim sayfasından kontrol edin."
-        );
-        return;
-      }
-      setPayChoiceOpen(false);
-      setPaymentRatingOrder(order);
-    } catch (e) {
-      console.error(e);
-      setPayChoiceError("Siparişler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.");
-    } finally {
-      setOnlinePayLoading(false);
-    }
+    setPayChoiceOpen(false);
+    setPaymentRatingTableSessionId(sessionId);
   };
 
-  const handleCloseRatingOnlyModal = () => {
-    setRatingOnlyOrder(null);
-  };
+
 
   const handleClosePaymentRatingModal = () => {
-    setPaymentRatingOrder(null);
+    setPaymentRatingTableSessionId(null);
   };
 
   const handleConfirmServiceCall = async () => {
@@ -313,11 +284,11 @@ const WelcomePage = () => {
         onSelectOnlinePay={() => void handlePayChoiceOnlinePay()}
         onSelectBillRequest={handlePayChoiceBillRequest}
       />
-      {paymentRatingOrder ? (
-        <OrderPaymentRatingModal order={paymentRatingOrder} onClose={handleClosePaymentRatingModal} />
-      ) : null}
-      {ratingOnlyOrder ? (
-        <OrderRatingModal order={ratingOnlyOrder} onClose={handleCloseRatingOnlyModal} />
+      {paymentRatingTableSessionId ? (
+          <OrderPaymentRatingModal
+              tableSessionId={paymentRatingTableSessionId}
+              onClose={handleClosePaymentRatingModal}
+          />
       ) : null}
       {serviceModalError ? (
         <div className="fixed bottom-4 left-1/2 z-[110] -translate-x-1/2 rounded-xl bg-red-600 px-4 py-3 text-sm text-white shadow-lg">

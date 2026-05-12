@@ -18,9 +18,9 @@ type ProductRatingState = Record<
 >;
 
 type OrderRatingFormProps = {
-    order: OrderResponse;
+    order?: OrderResponse;
+    orders?: OrderResponse[];
     onClose: () => void;
-    /** Ayarlar kaynaklı kapatma (ör. ödeme modalında yalnızca değerlendirme kısmını kaldırmak için) */
     onRatingFlowRevoked?: () => void;
 };
 
@@ -29,21 +29,42 @@ const formatPrice = (price: number) => `₺${price.toFixed(2)}`;
 const POLL_MS = 10_000;
 
 const OrderRatingForm = ({
-    order,
-    onClose,
-    onRatingFlowRevoked,
-}: OrderRatingFormProps) => {
-    const [paidOrder, setPaidOrder] = useState<OrderResponse>(order);
+                             order,
+                             orders,
+                             onClose,
+                             onRatingFlowRevoked,
+                         }: OrderRatingFormProps) => {
+    const ratingOrders = useMemo(() => {
+        if (orders && orders.length > 0) {
+            return orders;
+        }
+
+        return order ? [order] : [];
+    }, [order, orders]);
+
+    const primaryOrder = ratingOrders[0];
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
     const [showRatingThankYou, setShowRatingThankYou] = useState(false);
 
+    const activeRatingItems = useMemo(() => {
+        return ratingOrders.flatMap((currentOrder) =>
+            currentOrder.items
+                .filter((item) => item.status === "ACTIVE")
+                .map((item) => ({
+                    orderId: currentOrder.id,
+                    guestSessionId: currentOrder.guestSessionId,
+                    item,
+                }))
+        );
+    }, [ratingOrders]);
+
     const initialProductRatings = useMemo(() => {
-        return order.items.reduce<ProductRatingState>((acc, item) => {
-            acc[item.id] = { rating: 5, comment: "" };
+        return activeRatingItems.reduce<ProductRatingState>((acc, row) => {
+            acc[row.item.id] = { rating: 5, comment: "" };
             return acc;
         }, {});
-    }, [order.items]);
+    }, [activeRatingItems]);
 
     const [productRatings, setProductRatings] =
         useState<ProductRatingState>(initialProductRatings);
@@ -97,10 +118,9 @@ const OrderRatingForm = ({
     }, []);
 
     useEffect(() => {
-        setPaidOrder(order);
         setProductRatings(
-            order.items.reduce<ProductRatingState>((acc, item) => {
-                acc[item.id] = { rating: 5, comment: "" };
+            activeRatingItems.reduce<ProductRatingState>((acc, row) => {
+                acc[row.item.id] = { rating: 5, comment: "" };
                 return acc;
             }, {})
         );
@@ -109,7 +129,7 @@ const OrderRatingForm = ({
         setErrorMessage("");
         setShowRatingThankYou(false);
         setIsSubmitting(false);
-    }, [order]);
+    }, [activeRatingItems]);
 
     const updateProductRating = (
         orderItemId: number,
@@ -149,28 +169,29 @@ const OrderRatingForm = ({
         setErrorMessage("");
 
         try {
-            const activeItems = paidOrder.items.filter((item) => item.status === "ACTIVE");
             const sendProductComment = productCommentsAllowed === true;
             const sendRestaurantComment = restaurantCommentsAllowed === true;
 
-            for (const item of activeItems) {
-                const ratingData = productRatings[item.id];
+            for (const row of activeRatingItems) {
+                const ratingData = productRatings[row.item.id];
+
                 await createProductRating({
-                    orderId: paidOrder.id,
-                    orderItemId: item.id,
-                    guestSessionId: paidOrder.guestSessionId,
+                    orderId: row.orderId,
+                    orderItemId: row.item.id,
+                    guestSessionId: row.guestSessionId,
                     rating: ratingData?.rating ?? 5,
                     comment: sendProductComment ? (ratingData?.comment ?? "") : "",
                 });
             }
 
-            await createRestaurantRating({
-                orderId: paidOrder.id,
-                guestSessionId: paidOrder.guestSessionId,
-                rating: restaurantRating,
-                comment: sendRestaurantComment ? restaurantComment : "",
-            });
-
+            if (primaryOrder) {
+                await createRestaurantRating({
+                    orderId: primaryOrder.id,
+                    guestSessionId: primaryOrder.guestSessionId,
+                    rating: restaurantRating,
+                    comment: sendRestaurantComment ? restaurantComment : "",
+                });
+            }
             setShowRatingThankYou(true);
         } catch (error) {
             console.error("Değerlendirme gönderilirken hata oluştu:", error);
@@ -192,9 +213,7 @@ const OrderRatingForm = ({
             </div>
 
             <div className="space-y-4">
-                {paidOrder.items
-                    .filter((item) => item.status === "ACTIVE")
-                    .map((item) => (
+                {activeRatingItems.map(({ item }) => (
                         <div
                             key={item.id}
                             className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4"

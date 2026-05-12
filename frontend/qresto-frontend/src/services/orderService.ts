@@ -9,6 +9,7 @@ import type {
     OrderAdminTopProductResponse,
     OrderResponse,
     UpdateCartItemQuantityRequest,
+    TableSessionBillResponse,
 } from "../types/cartTypes";
 
 const ORDER_SERVICE_BASE_URL =
@@ -194,6 +195,26 @@ export const getAdminTodayOrders = async (): Promise<OrderResponse[]> => {
 
 export const getOrderById = async (orderId: number): Promise<OrderResponse> => {
     const response = await orderApi.get<OrderResponse>(`/orders/${orderId}`);
+
+    return response.data;
+};
+
+export const getTableSessionBill = async (
+    tableSessionId: number
+): Promise<TableSessionBillResponse> => {
+    const response = await orderApi.get<TableSessionBillResponse>(
+        `/orders/table-session/${tableSessionId}/bill`
+    );
+
+    return response.data;
+};
+
+export const markTableSessionOrdersPaid = async (
+    tableSessionId: number
+): Promise<OrderResponse[]> => {
+    const response = await orderApi.patch<OrderResponse[]>(
+        `/orders/table-session/${tableSessionId}/mark-paid`
+    );
 
     return response.data;
 };

@@ -48,7 +48,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
-
+import com.qresto.order_service.dto.response.TableSessionBillResponse;
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -727,6 +727,55 @@ public class OrderService {
         return savedOrders.stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TableSessionBillResponse getTableSessionBill(Long tableSessionId) {
+        List<OrderStatus> payableStatuses = List.of(
+                OrderStatus.RECEIVED,
+                OrderStatus.PREPARING,
+                OrderStatus.READY,
+                OrderStatus.SERVED,
+                OrderStatus.COMPLETED,
+                OrderStatus.PAYMENT_PENDING
+        );
+
+        List<CustomerOrder> orders = customerOrderRepository
+                .findByTableSessionIdAndStatusIn(tableSessionId, payableStatuses);
+
+        if (orders.isEmpty()) {
+            throw new IllegalArgumentException("Bu masa oturumuna ait ödenecek sipariş bulunamadı: " + tableSessionId);
+        }
+
+        BigDecimal subtotalAmount = orders.stream()
+                .map(CustomerOrder::getSubtotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal vatAmount = orders.stream()
+                .map(CustomerOrder::getVatAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalAmount = orders.stream()
+                .map(CustomerOrder::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        CustomerOrder firstOrder = orders.get(0);
+
+        TableSessionBillResponse response = new TableSessionBillResponse();
+        response.setTableSessionId(tableSessionId);
+        response.setTableId(firstOrder.getTableId());
+        response.setTableName(firstOrder.getTableName());
+        response.setSubtotalAmount(subtotalAmount);
+        response.setVatAmount(vatAmount);
+        response.setTotalAmount(totalAmount);
+        response.setOrderCount(orders.size());
+        response.setOrders(
+                orders.stream()
+                        .map(this::toResponse)
+                        .toList()
+        );
+
+        return response;
     }
 
 }

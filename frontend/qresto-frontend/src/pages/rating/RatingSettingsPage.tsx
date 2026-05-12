@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import type { ElementType } from "react";
 
+import RatingPageHero from "./components/RatingPageHero";
 import type { RatingSettingsResponse } from "../../types/ratingTypes";
 import {
     getRatingSettings,
@@ -137,6 +138,7 @@ function RatingSettingsPage() {
 
     const pendingNextValue =
         pendingKey && settingsData ? !settingsData[pendingKey] : false;
+
     const getActionText = (nextValue: boolean) => {
         return nextValue ? "açmak" : "kapatmak";
     };
@@ -230,53 +232,10 @@ function RatingSettingsPage() {
 
     return (
         <div className="space-y-5">
-            <section className="relative overflow-hidden rounded-[26px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-7 shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
-                <div className="absolute inset-0 bg-gradient-to-r from-[var(--qresto-hover)] via-transparent to-[var(--qresto-hover)] opacity-70" />
-
-                <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                    <div className="flex items-start gap-5">
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--qresto-primary)] text-white shadow-[0_12px_28px_rgba(255,75,22,0.32)]">
-                            <Star size={30} />
-                        </div>
-
-                        <div>
-                            <h2 className="text-3xl font-black tracking-tight text-[var(--qresto-text)]">
-                                Değerlendirme Servisi Ayarları
-                            </h2>
-
-                            <p className="mt-2 text-sm font-medium text-[var(--qresto-muted)]">
-                                Ürün ve restoran değerlendirme akışlarını bu sayfadan yönetin.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="pointer-events-none hidden items-center justify-center lg:flex">
-                        <div className="relative flex h-28 w-48 items-center justify-center">
-                            <div className="absolute bottom-3 h-10 w-28 rounded-full bg-[var(--qresto-primary)]/20 blur-xl" />
-
-                            <div className="absolute right-4 top-1 text-xl text-[var(--qresto-primary)] opacity-40">
-                                ✦
-                            </div>
-
-                            <div className="absolute left-6 top-3 text-base text-[var(--qresto-primary)] opacity-40">
-                                ✦
-                            </div>
-
-                            <div className="absolute left-1/2 top-6 text-sm text-[var(--qresto-primary)] opacity-40">
-                                ✦
-                            </div>
-
-                            <div className="relative rounded-full bg-[var(--qresto-hover)] p-3 shadow-[0_12px_30px_rgba(255,75,22,0.18)]">
-                                <Star
-                                    size={62}
-                                    fill="currentColor"
-                                    className="text-[var(--qresto-primary)]"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
+            <RatingPageHero
+                title="Değerlendirme Servisi Ayarları"
+                description="Ürün ve restoran değerlendirme akışlarını bu sayfadan yönetin."
+            />
 
             {errorMessage && (
                 <section className="rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-500">
@@ -297,15 +256,15 @@ function RatingSettingsPage() {
                             </div>
 
                             <div>
-                                <p className="text-sm font-medium text-[var(--qresto-muted)]">
+                                <p className="text-sm font-semibold text-[var(--qresto-muted)]">
                                     Aktif Modül
                                 </p>
 
-                                <p className="text-3xl font-black leading-none text-[var(--qresto-text)]">
+                                <p className="mt-2 text-[30px] font-black leading-none text-[var(--qresto-text)]">
                                     {stats.activeModuleCount} / {stats.totalModuleCount}
                                 </p>
 
-                                <p className="mt-2 text-sm font-bold text-green-500">
+                                <p className="mt-2 text-xs font-semibold text-green-500">
                                     {stats.moduleStatusText}
                                 </p>
                             </div>
@@ -317,15 +276,15 @@ function RatingSettingsPage() {
                             </div>
 
                             <div>
-                                <p className="text-sm font-medium text-[var(--qresto-muted)]">
+                                <p className="text-sm font-semibold text-[var(--qresto-muted)]">
                                     Yorum Ayarları
                                 </p>
 
-                                <p className="text-3xl font-black leading-none text-[var(--qresto-text)]">
+                                <p className="mt-2 text-[30px] font-black leading-none text-[var(--qresto-text)]">
                                     {stats.activeCommentCount} / {stats.totalCommentCount}
                                 </p>
 
-                                <p className="mt-2 text-sm font-bold text-green-500">
+                                <p className="mt-2 text-xs font-semibold text-green-500">
                                     {stats.commentStatusText}
                                 </p>
                             </div>
@@ -337,11 +296,11 @@ function RatingSettingsPage() {
                             </div>
 
                             <div>
-                                <p className="text-sm font-medium text-[var(--qresto-muted)]">
+                                <p className="text-sm font-semibold text-[var(--qresto-muted)]">
                                     Son Güncelleme
                                 </p>
 
-                                <p className="text-xl font-black leading-tight text-[var(--qresto-text)]">
+                                <p className="mt-2 text-[30px] font-black leading-none text-[var(--qresto-text)]">
                                     {stats.lastUpdatedText}
                                 </p>
                             </div>
