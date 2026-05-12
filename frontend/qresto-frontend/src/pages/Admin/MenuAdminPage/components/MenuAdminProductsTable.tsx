@@ -32,7 +32,7 @@ function MenuAdminProductsTable({
     onDeleteProduct,
 }: MenuAdminProductsTableProps) {
     return (
-        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant card-shadow overflow-hidden">
+        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant card-shadow">
             <table className="w-full text-left border-collapse">
                 <thead>
                     <tr className="menu-admin-table-head-enter border-b border-outline-variant bg-surface-container-low">
@@ -64,7 +64,7 @@ function MenuAdminProductsTable({
                         <th className="p-3 text-label-bold text-secondary text-right">İşlem</th>
                     </tr>
                 </thead>
-                <tbody className="divide-y divide-outline-variant">
+                <tbody className="divide-y divide-outline-variant isolate">
                     {loading ? (
                         <tr>
                             <td colSpan={6} className="p-6 text-center text-on-surface-variant">

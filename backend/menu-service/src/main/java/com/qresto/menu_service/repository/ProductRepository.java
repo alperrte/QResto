@@ -15,13 +15,16 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     /**
      * Müşteri menüsü için görünür ürünler:
      * - product.active = true
-     * - (product.category.active = true OR product.category IS NULL)
+     * - kategori yok veya kategori aktif
+     * <p>Not: {@code p.category is null} tek başına bazı Hibernate sürümlerinde iç JOIN ile SQL üretip
+     * {@code category_id} null satırları dışlayabiliyor; açık {@code left join} ile kategorisiz ürünler korunur.
      */
     @Query("""
         select p
         from Product p
+        left join p.category c
         where p.active = true
-          and (p.category is null or p.category.active = true)
+          and (c is null or c.active = true)
     """)
     List<Product> findCustomerVisibleActiveProducts();
 
@@ -49,9 +52,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("""
         select p
         from Product p
+        left join p.category c
         where p.active = true
           and lower(p.name) like lower(concat('%', :keyword, '%'))
-          and (p.category is null or p.category.active = true)
+          and (c is null or c.active = true)
     """)
     List<Product> searchCustomerVisibleActiveProducts(@Param("keyword") String keyword);
 

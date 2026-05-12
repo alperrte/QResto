@@ -12,6 +12,7 @@ import { useMenuCatalog } from "./hooks/useMenuCatalog";
 import {
   mapCatalogItemsToMenuItems,
   mapCategoriesToRows,
+  menuItemMatchesCategoryFilter,
 } from "./mappers/mapMenuCatalog";
 import { useProductRatingSummaries } from "./hooks/useProductRatingSummaries";
 import "./styles/menuAnimations.css";
@@ -47,9 +48,8 @@ const MenuPage = () => {
 
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return catalogItems.filter((item) => {
-      const catOk =
-        selectedCategory === "all" || item.categoryId === selectedCategory;
+    const matched = catalogItems.filter((item) => {
+      const catOk = menuItemMatchesCategoryFilter(item, selectedCategory);
       if (!catOk) return false;
       if (!q) return true;
       return (
@@ -57,6 +57,17 @@ const MenuPage = () => {
         item.description.toLowerCase().includes(q)
       );
     });
+    // «Tümü» + boş arama: kategorisiz ürünler grid’in sonunda kalıp “yok” sanılmasın diye öne alınır.
+    if (selectedCategory === "all" && !q) {
+      const uncategorized: typeof matched = [];
+      const rest: typeof matched = [];
+      for (const item of matched) {
+        if (item.categoryId === "") uncategorized.push(item);
+        else rest.push(item);
+      }
+      return [...uncategorized, ...rest];
+    }
+    return matched;
   }, [query, selectedCategory, catalogItems]);
   const selectedCategoryLabel = useMemo(() => {
     if (selectedCategory === "all") return "Tüm Kategoriler";

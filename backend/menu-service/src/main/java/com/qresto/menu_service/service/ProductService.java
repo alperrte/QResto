@@ -77,7 +77,7 @@ public class ProductService {
     public List<ProductResponse> listActive() {
         // Müşteri menüsü için görünür ürünler:
         // - ürün aktif olmalı
-        // - kategori aktif olmalı veya kategori hiç atanmadı (null)
+        // - kategori aktif olmalı veya kategori hiç atanmadı (null; repository'de left join ile)
         return productRepository.findCustomerVisibleActiveProducts().stream()
                 .map(this::toResponse)
                 .toList();

@@ -6,8 +6,10 @@ export type MenuItem = {
     description: string;
     priceLabel: string;
     imageUrl: string;
-    prepMinutes: number;
-    kcal: number;
+    /** Sihirbazda girildiyse; yoksa kartta gösterilmez. */
+    prepMinutes: number | null;
+    kcal: number | null;
+    gram: number | null;
     rating: number;
     categoryId: string;
 };

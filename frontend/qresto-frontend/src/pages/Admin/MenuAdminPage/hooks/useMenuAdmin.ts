@@ -6,6 +6,7 @@ import {
     mapMenuAdminDraftToCreatePayload,
     mapMenuAdminDraftToUpdatePayload,
 } from "../mappers/mapMenuAdmin";
+import { categoryIdMatchesMenuFilter } from "../../../menuPage/mappers/mapMenuCatalog";
 import type { MenuProductOptionGroupPayload } from "../services/menuAdminApi";
 import {
     createMenuProductApi,
@@ -85,8 +86,7 @@ export const useMenuAdmin = (): MenuAdminState => {
     const filteredProducts = useMemo(() => {
         const q = normalizeSearchText(query);
         let list = products.filter((product) => {
-            const categoryOk =
-                selectedCategoryId === "all" || product.categoryId === selectedCategoryId;
+            const categoryOk = categoryIdMatchesMenuFilter(product.categoryId, selectedCategoryId);
             if (!categoryOk) return false;
             if (!q) return true;
             return (

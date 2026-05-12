@@ -160,18 +160,39 @@ const MenuDetailOptionGroups = ({ groups, value, onChange }: MenuDetailOptionGro
 
 export default MenuDetailOptionGroups;
 
+export type BuildDefaultOptionSelectionContext = {
+    /** Ürün adı; örn. Izgara Tavuk pişirme grubunda varsayılan Orta için kullanılır */
+    productName?: string | null;
+};
+
 export const buildDefaultOptionSelection = (
-    groups: MenuProductOptionGroupDto[]
+    groups: MenuProductOptionGroupDto[],
+    context?: BuildDefaultOptionSelectionContext
 ): MenuDetailOptionSelection => {
     const radioByGroupId: Record<string, number> = {};
     const multiByGroupId: Record<string, number[]> = {};
+    const productName = context?.productName?.trim() ?? "";
+
     for (const g of groups) {
         const gid = String(g.id);
         if (g.kind === "portion") {
-            const first = g.choices[0];
+            const sorted = [...g.choices].sort((a, b) => a.sortOrder - b.sortOrder);
+            const first = sorted[0];
             if (first) radioByGroupId[gid] = first.id;
         } else if (g.kind === "single") {
-            /* Varsayılan seçim yok; kullanıcı tıklayınca setRadio dolar. */
+            const sorted = [...g.choices].sort((a, b) => a.sortOrder - b.sortOrder);
+            if (sorted.length === 0) continue;
+            let pick = sorted[0];
+            const meta = (g.metaTitle || "").trim();
+            if (
+                productName === "Izgara Tavuk" &&
+                meta.includes("Pişirme") &&
+                sorted.length >= 2
+            ) {
+                const orta = sorted.find((c) => c.label.trim().toLowerCase() === "orta");
+                if (orta) pick = orta;
+            }
+            radioByGroupId[gid] = pick.id;
         } else {
             multiByGroupId[gid] = [];
         }
