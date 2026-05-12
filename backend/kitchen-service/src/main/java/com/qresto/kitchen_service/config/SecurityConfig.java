@@ -47,6 +47,9 @@ public class SecurityConfig {
                                 "/api-docs/**"
                         ).permitAll()
 
+                        .requestMatchers("/api/test/**")
+                        .permitAll()
+
                         .anyRequest().authenticated()
                 )
 
@@ -92,5 +95,4 @@ public class SecurityConfig {
 
         return source;
     }
-
 }
