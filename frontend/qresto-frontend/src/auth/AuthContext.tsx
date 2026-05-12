@@ -8,7 +8,7 @@ interface AuthContextValue {
     user: AuthUser | null;
     isAuthenticated: boolean;
     login: (email: string, password: string) => Promise<AuthUser>;
-    logout: () => Promise<void>;
+    logout: (options?: { redirect?: boolean }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -43,7 +43,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return nextUser;
     };
 
-    const logout = async () => {
+    const logout = async (options: { redirect?: boolean } = {}) => {
+        const shouldRedirect = options.redirect ?? true;
         const refreshToken = authStorage.getRefreshToken();
 
         try {
@@ -55,7 +56,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } finally {
             authStorage.clearSession();
             setUser(null);
-            window.location.href = "/login";
+            if (shouldRedirect) {
+                window.location.href = "/login";
+            }
         }
     };
 

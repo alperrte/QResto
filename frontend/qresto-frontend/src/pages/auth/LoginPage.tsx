@@ -82,7 +82,7 @@ function LoginPage() {
             const loggedInUser = await login(email, password);
 
             if (!selectedRole || loggedInUser.role !== selectedRole) {
-                await logout();
+                await logout({ redirect: false });
                 setErrorMessage(
                     `${getRoleName(selectedRole ?? "ADMIN")} paneline ${getRoleName(loggedInUser.role)} olarak giriş yapmaya çalışıyorsunuz. Lütfen doğru paneli seçtiğinizden emin olun.`
                 );
