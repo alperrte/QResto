@@ -49,14 +49,14 @@ export type OrderItemResponse = {
     productPrice: number;
     vatIncluded: boolean;
     quantity: number;
-    removedIngredients?: string;
-    addedIngredients?: string;
-    note?: string;
+    removedIngredients?: string | null;
+    addedIngredients?: string | null;
+    note?: string | null;
     lineTotal: number;
-    status: "ACTIVE" | "CANCELLED";
+    status?: string;
     cancelReason?: string | null;
     cancelledAt?: string | null;
-    createdAt: string;
+    createdAt?: string;
     updatedAt?: string | null;
 };
 
@@ -96,4 +96,5 @@ export type OrderResponse = {
 
 export type DemoPaymentRequest = {
     guestSessionId: number;
+    items: OrderItemResponse[];
 };

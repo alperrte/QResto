@@ -127,4 +127,14 @@ export const createOrderFromCart = async (
     return response.data;
 };
 
+export const getOrdersByTableSession = async (
+    tableSessionId: number
+): Promise<OrderResponse[]> => {
+    const response = await orderApi.get<OrderResponse[]>(
+        `/orders/table-session/${tableSessionId}`
+    );
+
+    return response.data;
+};
+
 export default orderApi;

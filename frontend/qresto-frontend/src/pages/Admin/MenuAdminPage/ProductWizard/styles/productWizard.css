@@ -1,0 +1,10 @@
+/* Ürün sihirbazına özel stiller; adım çubuğu WizardStepper.css içinde, genel admin ../styles/menuAdmin.css. */
+
+.wizard-product-preview-hero {
+  border-radius: 0;
+}
+
+.wizard-product-preview-card > .wizard-product-preview-hero {
+  border-top-left-radius: 1.75rem;
+  border-top-right-radius: 1.75rem;
+}

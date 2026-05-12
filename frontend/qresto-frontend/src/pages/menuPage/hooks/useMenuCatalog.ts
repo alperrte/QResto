@@ -17,8 +17,12 @@ type UseMenuCatalogResult = {
 /**
  * Menü ana sayfası için kategori + ürün listesini yükler.
  * `restaurantId` backend hazır olunca route veya context’ten geçirilebilir.
+ * `includeInactiveProducts`: admin gibi senaryolarda `true` (varsayılan `false`, müşteri menüsü).
  */
-export const useMenuCatalog = (restaurantId?: string): UseMenuCatalogResult => {
+export const useMenuCatalog = (
+    restaurantId?: string,
+    includeInactiveProducts = false
+): UseMenuCatalogResult => {
     const [data, setData] = useState<MenuCatalogData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
@@ -29,7 +33,7 @@ export const useMenuCatalog = (restaurantId?: string): UseMenuCatalogResult => {
         setLoading(true);
         setError(null);
 
-        fetchMenuCatalog(restaurantId)
+        fetchMenuCatalog(restaurantId, includeInactiveProducts, includeInactiveProducts)
             .then((res) => {
                 if (!cancelled) setData(res);
             })
@@ -46,7 +50,7 @@ export const useMenuCatalog = (restaurantId?: string): UseMenuCatalogResult => {
         return () => {
             cancelled = true;
         };
-    }, [restaurantId, version]);
+    }, [restaurantId, version, includeInactiveProducts]);
 
     const refetch = () => setVersion((v) => v + 1);
 

@@ -1,3 +1,14 @@
+/* Dar ekranda üst/orta odak; geniş ekranda merkez (restoran fotoğrafı yatay kompozisyon). */
+.welcome-hero-photo {
+  object-position: center 38%;
+}
+
+@media (min-width: 768px) {
+  .welcome-hero-photo {
+    object-position: center center;
+  }
+}
+
 .welcome-topbar {
   background: color-mix(in oklab, var(--color-surface) 94%, transparent);
   backdrop-filter: blur(12px);
@@ -11,14 +22,15 @@
   border: 1px solid color-mix(in oklab, var(--color-outline-variant) 45%, transparent);
 }
 
+/* Mobil: altta hafif açılım; surface oranı düşük tutulur (beyazlama az). */
 .welcome-hero-overlay {
   background: linear-gradient(
     to bottom,
-    color-mix(in oklab, #000 62%, transparent) 0%,
-    color-mix(in oklab, #000 58%, transparent) 34%,
-    color-mix(in oklab, #000 70%, transparent) 68%,
-    color-mix(in oklab, var(--color-surface) 92%, transparent) 86%,
-    var(--color-surface) 100%
+    color-mix(in oklab, #000 42%, transparent) 0%,
+    color-mix(in oklab, #000 28%, transparent) 45%,
+    color-mix(in oklab, #000 38%, transparent) 72%,
+    color-mix(in oklab, var(--color-surface) 22%, transparent) 90%,
+    color-mix(in oklab, var(--color-surface) 34%, transparent) 100%
   );
 }
 
@@ -26,10 +38,10 @@
   .welcome-hero-overlay {
     background: linear-gradient(
       to right,
-      color-mix(in oklab, #000 66%, transparent) 0%,
-      color-mix(in oklab, #000 56%, transparent) 30%,
-      color-mix(in oklab, var(--color-surface) 90%, transparent) 64%,
-      var(--color-surface) 100%
+      color-mix(in oklab, #000 48%, transparent) 0%,
+      color-mix(in oklab, #000 34%, transparent) 32%,
+      color-mix(in oklab, var(--color-surface) 20%, transparent) 58%,
+      color-mix(in oklab, var(--color-surface) 32%, transparent) 100%
     );
   }
 }
