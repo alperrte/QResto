@@ -120,17 +120,6 @@ function ProductRatingsPage() {
         return new Date(hasTimezone ? value : `${value}Z`);
     };
 
-    const formatTurkeyDate = (value?: string | null) => {
-        if (!value) return "-";
-
-        return new Intl.DateTimeFormat("tr-TR", {
-            timeZone: "Europe/Istanbul",
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-        }).format(parseBackendDate(value));
-    };
-
     const formatTurkeyDateTime = (value?: string | null) => {
         if (!value) return "-";
 
