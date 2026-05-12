@@ -4,6 +4,7 @@ import com.qresto.order_service.client.MenuServiceClient;
 import com.qresto.order_service.client.QrServiceClient;
 import com.qresto.order_service.dto.client.MenuProductOrderInfoResponse;
 import com.qresto.order_service.dto.client.QrOrderContextResponse;
+import com.qresto.order_service.dto.request.DemoPaymentRequest;
 import com.qresto.order_service.dto.request.OrderCancelRequest;
 import com.qresto.order_service.dto.request.OrderStatusUpdateRequest;
 import com.qresto.order_service.dto.response.OrderItemResponse;
@@ -43,7 +44,6 @@ public class OrderService {
 
     private final CartRepository cartRepository;
     private final CustomerOrderRepository customerOrderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final QrServiceClient qrServiceClient;
     private final MenuServiceClient menuServiceClient;
 
@@ -329,5 +329,35 @@ public class OrderService {
             rest.postForEntity(url, entity, Void.class);
         } catch (Exception ignored) {
         }
+    }
+
+    /* Fake Payment Demo */
+    public OrderResponse demoPayment(Long orderId, DemoPaymentRequest request) {
+        CustomerOrder order = customerOrderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Sipariş bulunamadı: " + orderId));
+
+        if (!order.getGuestSessionId().equals(request.getGuestSessionId())) {
+            throw new IllegalArgumentException("Bu sipariş bu kullanıcı oturumuna ait değil");
+        }
+
+        if (order.getStatus() == OrderStatus.CANCELLED) {
+            throw new IllegalArgumentException("İptal edilmiş sipariş ödenemez");
+        }
+
+        if (order.getStatus() == OrderStatus.PAID) {
+            throw new IllegalArgumentException("Bu sipariş zaten ödenmiş");
+        }
+
+        order.setStatus(OrderStatus.PAID);
+        order.setPaidAt(LocalDateTime.now());
+
+        CustomerOrder savedOrder = customerOrderRepository.save(order);
+
+        try {
+            sendOrderEvent(savedOrder);
+        } catch (Exception ignored) {
+        }
+
+        return toResponse(savedOrder);
     }
 }

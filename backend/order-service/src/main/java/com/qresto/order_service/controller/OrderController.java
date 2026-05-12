@@ -1,5 +1,6 @@
 package com.qresto.order_service.controller;
 
+import com.qresto.order_service.dto.request.DemoPaymentRequest;
 import com.qresto.order_service.dto.request.OrderCancelRequest;
 import com.qresto.order_service.dto.request.OrderStatusUpdateRequest;
 import com.qresto.order_service.dto.response.OrderResponse;
@@ -53,5 +54,11 @@ public class OrderController {
     public ResponseEntity<OrderResponse> cancelOrder(@PathVariable Long orderId,
                                                      @Valid @RequestBody OrderCancelRequest request) {
         return ResponseEntity.ok(orderService.cancelOrder(orderId, request));
+    }
+
+    @PatchMapping("/{orderId}/demo-payment")
+    public ResponseEntity<OrderResponse> demoPayment(@PathVariable Long orderId,
+                                                     @Valid @RequestBody DemoPaymentRequest request) {
+        return ResponseEntity.ok(orderService.demoPayment(orderId, request));
     }
 }
