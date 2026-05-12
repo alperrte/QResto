@@ -401,6 +401,7 @@ public class ProductService {
         response.setId(product.getId());
         response.setName(product.getName());
         response.setPrice(product.getPrice());
+        response.setImageUrl(product.getImageUrl());
         response.setVatIncluded(product.getVatIncluded());
         response.setActive(product.getActive());
         response.setInStock(product.getInStock());
