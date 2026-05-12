@@ -13,6 +13,8 @@ import WelcomeServiceModal, {
 } from "./components/WelcomeServiceModal";
 import { createTableCall } from "../../services/waiterService";
 import { getOrdersByTableSession } from "../../services/orderService";
+import { getRatingSettings } from "../../services/ratingService";
+import { isOrderRatingFlowEnabled } from "../../components/rating/orderRatingFlowGate";
 import type { OrderResponse } from "../../types/cartTypes";
 import {
   DEV_PREVIEW_TABLE,
@@ -137,7 +139,11 @@ const WelcomePage = () => {
     if (closedType === "bill" && closedStep === "success") {
       void (async () => {
         try {
-          const order = await fetchOrderForRatingOnly();
+          const [settings, order] = await Promise.all([
+            getRatingSettings(),
+            fetchOrderForRatingOnly(),
+          ]);
+          if (!isOrderRatingFlowEnabled(settings)) return;
           if (order) setRatingOnlyOrder(order);
         } catch (e) {
           console.error(e);
