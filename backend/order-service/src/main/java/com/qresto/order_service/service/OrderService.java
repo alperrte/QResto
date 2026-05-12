@@ -363,10 +363,19 @@ public class OrderService {
             throw new IllegalArgumentException("Bu sipariş zaten ödenmiş");
         }
 
+        LocalDateTime now = LocalDateTime.now();
+
         order.setStatus(OrderStatus.PAID);
-        order.setPaidAt(LocalDateTime.now());
+        order.setPaidAt(now);
+        order.setCompletedAt(now);
 
         CustomerOrder savedOrder = customerOrderRepository.save(order);
+
+        try {
+            qrServiceClient.closeTableSessionAfterPayment(savedOrder.getTableSessionId());
+        } catch (Exception exception) {
+            throw new RuntimeException("Ödeme alındı fakat masa oturumu kapatılamadı", exception);
+        }
 
         try {
             sendOrderEvent(savedOrder);
@@ -480,5 +489,45 @@ public class OrderService {
         response.setOperationDensity(operationDensity);
 
         return response;
+    }
+
+    public List<OrderResponse> markTableSessionOrdersPaid(Long tableSessionId) {
+        List<CustomerOrder> orders = customerOrderRepository.findByTableSessionId(tableSessionId);
+
+        if (orders.isEmpty()) {
+            throw new IllegalArgumentException("Bu masa oturumuna ait sipariş bulunamadı: " + tableSessionId);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        List<CustomerOrder> payableOrders = orders.stream()
+                .filter(order -> order.getStatus() != OrderStatus.CANCELLED)
+                .filter(order -> order.getStatus() != OrderStatus.PAID)
+                .toList();
+
+        for (CustomerOrder order : payableOrders) {
+            order.setStatus(OrderStatus.PAID);
+            order.setPaidAt(now);
+            order.setCompletedAt(now);
+        }
+
+        List<CustomerOrder> savedOrders = customerOrderRepository.saveAll(payableOrders);
+
+        try {
+            qrServiceClient.closeTableSessionAfterPayment(tableSessionId);
+        } catch (Exception exception) {
+            throw new RuntimeException("Siparişler ödendi fakat masa oturumu kapatılamadı", exception);
+        }
+
+        for (CustomerOrder order : savedOrders) {
+            try {
+                sendOrderEvent(order);
+            } catch (Exception ignored) {
+            }
+        }
+
+        return savedOrders.stream()
+                .map(this::toResponse)
+                .toList();
     }
 }

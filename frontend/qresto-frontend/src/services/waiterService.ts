@@ -175,3 +175,17 @@ export async function getActiveTableSession(tableId: number) {
         return null;
     }
 }
+
+export async function markBillPaid(callId: number, resolvedBy: string) {
+    const response = await axios.patch<TableCallResponse>(
+        `${WAITER_API_URL}/waiter/calls/${callId}/mark-paid`,
+        {
+            resolvedBy,
+        },
+        {
+            headers: getAuthHeader(),
+        }
+    );
+
+    return response.data;
+}

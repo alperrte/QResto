@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.qresto.waiter_service.dto.response.QrValidationResponse;
 import com.qresto.waiter_service.dto.response.TableQrCodeResponse;
-
+import com.qresto.waiter_service.client.OrderClient;
+import com.qresto.waiter_service.dto.response.TableSessionResponse;
+import com.qresto.waiter_service.enums.TableCallType;
 import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -27,6 +29,7 @@ public class WaiterService {
     private final QrClient qrClient;
     private final KitchenClient kitchenClient;
     private final SimpMessagingTemplate messagingTemplate;
+    private final OrderClient orderClient;
 
     public TableCallResponse createTableCall(CreateTableCallRequest request) {
 
@@ -185,5 +188,45 @@ public class WaiterService {
     public TableQrCodeResponse getActiveQrCodeByTableId(Long tableId, String authHeader) {
         String token = extractToken(authHeader);
         return qrClient.getActiveQrCodeByTableId(tableId, token);
+    }
+
+    public TableCallResponse markBillPaid(Long callId, ResolveTableCallRequest request, String authHeader) {
+
+        String token = extractToken(authHeader);
+
+        TableCall tableCall = tableCallRepository.findById(callId)
+                .orElseThrow(() -> new RuntimeException("Çağrı bulunamadı"));
+
+        if (Boolean.TRUE.equals(tableCall.getIsDeleted())) {
+            throw new RuntimeException("Çağrı silinmiş");
+        }
+
+        if (tableCall.getCallType() != TableCallType.BILL_REQUEST) {
+            throw new RuntimeException("Bu çağrı hesap isteği değil");
+        }
+
+        if (tableCall.getStatus() == TableCallStatus.RESOLVED) {
+            throw new RuntimeException("Hesap isteği zaten tamamlandı");
+        }
+
+        TableSessionResponse activeSession =
+                qrClient.getActiveSessionByTableId(tableCall.getTableId(), token);
+
+        orderClient.markTableSessionOrdersPaid(activeSession.getId(), token);
+
+        tableCall.setStatus(TableCallStatus.RESOLVED);
+        tableCall.setResolvedAt(LocalDateTime.now());
+        tableCall.setResolvedBy(request.getResolvedBy());
+
+        TableCall savedTableCall = tableCallRepository.save(tableCall);
+
+        TableCallResponse response = mapToResponse(savedTableCall);
+
+        try {
+            messagingTemplate.convertAndSend("/topic/waiter/calls", response);
+        } catch (Exception ignored) {
+        }
+
+        return response;
     }
 }
