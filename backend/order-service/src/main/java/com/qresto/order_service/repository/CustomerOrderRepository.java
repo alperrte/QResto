@@ -25,6 +25,7 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
     List<CustomerOrder> findByStatus(OrderStatus status);
 
     List<CustomerOrder> findByStatusIn(List<OrderStatus> statuses);
+    List<CustomerOrder> findByStatusInOrderByCreatedAtDesc(List<OrderStatus> statuses);
 
     List<CustomerOrder> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
 

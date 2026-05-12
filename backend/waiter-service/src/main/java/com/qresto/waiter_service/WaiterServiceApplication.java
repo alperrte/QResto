@@ -22,6 +22,7 @@ public class WaiterServiceApplication {
 		System.setProperty("AUTH_SERVICE_URL", dotenv.get("AUTH_SERVICE_URL"));
 		System.setProperty("QR_SERVICE_URL", dotenv.get("QR_SERVICE_URL"));
 		System.setProperty("KITCHEN_SERVICE_URL", dotenv.get("KITCHEN_SERVICE_URL"));
+		System.setProperty("ORDER_SERVICE_URL", dotenv.get("ORDER_SERVICE_URL"));
 
 		SpringApplication.run(WaiterServiceApplication.class, args);
 	}
