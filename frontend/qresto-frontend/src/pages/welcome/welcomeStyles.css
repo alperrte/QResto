@@ -16,6 +16,43 @@
   border-bottom: 1px solid color-mix(in oklab, var(--color-outline-variant) 36%, transparent);
 }
 
+/* Sağ üst: yalnızca Siparişlerim — yuvarlak cam + ince çerçeve */
+.welcome-orders-fab-shell {
+  border-radius: 9999px;
+  padding: 2px;
+  background: color-mix(in oklab, var(--color-surface) 52%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in oklab, white 42%, transparent);
+  box-shadow:
+    0 2px 12px rgb(0 0 0 / 0.14),
+    inset 0 1px 0 color-mix(in oklab, white 22%, transparent);
+}
+
+/* Masa satırının altındaki Siparişlerim (FAB ile aynı dil) */
+.welcome-orders-inline-shell {
+  border-radius: 9999px;
+  padding: 2px;
+  background: color-mix(in oklab, var(--color-surface) 52%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid color-mix(in oklab, white 42%, transparent);
+  box-shadow:
+    0 2px 12px rgb(0 0 0 / 0.14),
+    inset 0 1px 0 color-mix(in oklab, white 22%, transparent);
+}
+
+/* Kartın üstü ile ekran tepesi arası logo — kutu gibi değil, yumuşak drop-shadow */
+.welcome-brand-logo {
+  width: auto;
+  max-width: min(90vw, 22rem);
+  height: auto;
+  max-height: clamp(5.5rem, 28vw, 10.5rem);
+  object-fit: contain;
+  filter: drop-shadow(0 14px 36px rgb(0 0 0 / 0.22))
+    drop-shadow(0 6px 18px rgb(0 0 0 / 0.12));
+}
+
 .welcome-card {
   background: var(--color-surface-container-lowest);
   color: var(--color-on-surface);

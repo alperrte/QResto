@@ -26,12 +26,12 @@ const HeaderIconButton = ({
             type="button"
             onClick={onClick}
             disabled={disabled}
-            className={className}
+            className={`relative inline-flex items-center justify-center ${className}`}
             aria-label={label}
         >
             <MaterialIcon name={icon} fill={fill} className={iconClassName} />
             {badge !== undefined ? (
-                <span className="absolute top-1 right-1 bg-secondary text-on-secondary text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                <span className="absolute -right-1 -top-1 flex min-h-[1.125rem] min-w-[1.125rem] items-center justify-center rounded-full bg-secondary px-1 text-[10px] font-bold leading-none text-on-secondary">
                     {badge}
                 </span>
             ) : null}
