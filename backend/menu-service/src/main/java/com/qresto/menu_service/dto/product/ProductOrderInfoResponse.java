@@ -32,4 +32,6 @@ public class ProductOrderInfoResponse {
     private Long categoryId;
 
     private Long subCategoryId;
+
+    private String imageUrl;
 }

@@ -3,6 +3,7 @@ package com.qresto.order_service.controller;
 import com.qresto.order_service.dto.request.DemoPaymentRequest;
 import com.qresto.order_service.dto.request.OrderCancelRequest;
 import com.qresto.order_service.dto.request.OrderStatusUpdateRequest;
+import com.qresto.order_service.dto.response.OrderAdminSummaryResponse;
 import com.qresto.order_service.dto.response.OrderResponse;
 import com.qresto.order_service.service.OrderService;
 import jakarta.validation.Valid;
@@ -60,5 +61,30 @@ public class OrderController {
     public ResponseEntity<OrderResponse> demoPayment(@PathVariable Long orderId,
                                                      @Valid @RequestBody DemoPaymentRequest request) {
         return ResponseEntity.ok(orderService.demoPayment(orderId, request));
+    }
+
+    @GetMapping("/admin/active")
+    public ResponseEntity<List<OrderResponse>> getAdminActiveOrders() {
+        return ResponseEntity.ok(orderService.getAdminActiveOrders());
+    }
+
+    @GetMapping("/admin/completed")
+    public ResponseEntity<List<OrderResponse>> getAdminCompletedOrders() {
+        return ResponseEntity.ok(orderService.getAdminCompletedOrders());
+    }
+
+    @GetMapping("/admin/cancelled")
+    public ResponseEntity<List<OrderResponse>> getAdminCancelledOrders() {
+        return ResponseEntity.ok(orderService.getAdminCancelledOrders());
+    }
+
+    @GetMapping("/admin/today")
+    public ResponseEntity<List<OrderResponse>> getTodayOrders() {
+        return ResponseEntity.ok(orderService.getTodayOrders());
+    }
+
+    @GetMapping("/admin/summary")
+    public ResponseEntity<OrderAdminSummaryResponse> getAdminSummary() {
+        return ResponseEntity.ok(orderService.getAdminSummary());
     }
 }

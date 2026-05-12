@@ -58,6 +58,7 @@ export type OrderItemResponse = {
     cancelledAt?: string | null;
     createdAt?: string;
     updatedAt?: string | null;
+    productImageUrl?: string | null;
 };
 
 export type OrderResponse = {
@@ -98,3 +99,13 @@ export type DemoPaymentRequest = {
     guestSessionId: number;
     items: OrderItemResponse[];
 };
+
+export type OrderAdminSummaryResponse = {
+    activeOrderCount: number;
+    completedOrderCount: number;
+    cancelledOrderCount: number;
+    totalOrderCount: number;
+    todayRevenue: number;
+    operationDensity: number;
+};
+

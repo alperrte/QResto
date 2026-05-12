@@ -39,4 +39,6 @@ public class OrderItemResponse {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    private String productImageUrl;
 }
