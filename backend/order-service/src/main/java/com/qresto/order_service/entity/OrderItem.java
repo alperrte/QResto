@@ -33,6 +33,9 @@ public class OrderItem {
     @Column(name = "product_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal productPrice;
 
+    @Column(name = "product_image_url", length = 1000)
+    private String productImageUrl;
+
     @Column(name = "vat_included", nullable = false)
     private Boolean vatIncluded;
 

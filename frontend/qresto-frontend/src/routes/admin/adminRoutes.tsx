@@ -14,6 +14,7 @@ import KitchenDashboardPage from "../../pages/kitchen/KitchenDashboardPage";
 import RatingSettingsPage from "../../pages/rating/RatingSettingsPage";
 import RestaurantRatingsPage from "../../pages/rating/RestaurantRatingsPage";
 import ProductRatingsPage from "../../pages/rating/ProductRatingsPage";
+import OrdersAdminPage from "../../pages/Admin/OrdersAdminPage";
 
 const adminRoutes: React.ReactNode = (
     <Route path="/app" element={<AdminLayout />}>
@@ -21,7 +22,7 @@ const adminRoutes: React.ReactNode = (
 
         <Route element={<RoleRoute allowedRoles={["ADMIN"]} />}>
             <Route path="admin/dashboard" element={<DashboardPage />} />
-
+            <Route path="admin/orders" element={<OrdersAdminPage />} />
             <Route path="admin/menu-categories" element={<MenuCategoriesAdminPage />} />
             <Route path="admin/menu-products" element={<MenuAdminPage />} />
             <Route path="admin/menu-products/:productId/edit" element={<ProductSetupWizardPage />} />

@@ -4,6 +4,7 @@ import com.qresto.order_service.entity.CustomerOrder;
 import com.qresto.order_service.entity.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -24,4 +25,16 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
     List<CustomerOrder> findByStatus(OrderStatus status);
 
     List<CustomerOrder> findByStatusIn(List<OrderStatus> statuses);
+
+    List<CustomerOrder> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);
+
+    List<CustomerOrder> findByStatusInAndCreatedAtBetween(
+            List<OrderStatus> statuses,
+            LocalDateTime start,
+            LocalDateTime end
+    );
+
+    Long countByStatusIn(List<OrderStatus> statuses);
+
+    Long countByStatus(OrderStatus status);
 }

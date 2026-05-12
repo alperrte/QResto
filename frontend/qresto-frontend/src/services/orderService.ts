@@ -4,6 +4,7 @@ import type {
     AddCartItemRequest,
     CartResponse,
     DemoPaymentRequest,
+    OrderAdminSummaryResponse,
     OrderResponse,
     UpdateCartItemQuantityRequest,
 } from "../types/cartTypes";
@@ -133,6 +134,42 @@ export const getOrdersByTableSession = async (
     const response = await orderApi.get<OrderResponse[]>(
         `/orders/table-session/${tableSessionId}`
     );
+
+    return response.data;
+};
+
+export const getAdminOrderSummary = async (): Promise<OrderAdminSummaryResponse> => {
+    const response = await orderApi.get<OrderAdminSummaryResponse>("/orders/admin/summary");
+
+    return response.data;
+};
+
+export const getAdminActiveOrders = async (): Promise<OrderResponse[]> => {
+    const response = await orderApi.get<OrderResponse[]>("/orders/admin/active");
+
+    return response.data;
+};
+
+export const getAdminCompletedOrders = async (): Promise<OrderResponse[]> => {
+    const response = await orderApi.get<OrderResponse[]>("/orders/admin/completed");
+
+    return response.data;
+};
+
+export const getAdminCancelledOrders = async (): Promise<OrderResponse[]> => {
+    const response = await orderApi.get<OrderResponse[]>("/orders/admin/cancelled");
+
+    return response.data;
+};
+
+export const getAdminTodayOrders = async (): Promise<OrderResponse[]> => {
+    const response = await orderApi.get<OrderResponse[]>("/orders/admin/today");
+
+    return response.data;
+};
+
+export const getOrderById = async (orderId: number): Promise<OrderResponse> => {
+    const response = await orderApi.get<OrderResponse>(`/orders/${orderId}`);
 
     return response.data;
 };

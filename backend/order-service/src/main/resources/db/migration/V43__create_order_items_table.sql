@@ -22,6 +22,8 @@ IF NOT EXISTS (
                                             added_ingredients NVARCHAR(1500) NULL,
                                             note NVARCHAR(500) NULL,
 
+                                            product_image_url NVARCHAR(1000) NULL,
+
                                             line_total DECIMAL(10,2) NOT NULL CONSTRAINT DF_order_items_line_total DEFAULT (0),
 
                                             status NVARCHAR(50) NOT NULL CONSTRAINT DF_order_items_status DEFAULT ('ACTIVE'),

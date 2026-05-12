@@ -6,6 +6,7 @@ import {
   LogOut,
   MessageSquareText,
   QrCode,
+  ShoppingBag,
   Star,
   Store,
   UtensilsCrossed,
@@ -168,6 +169,11 @@ function MainSidebar() {
             >
               <QrCode size={19} />
               Masalar & QR Kodlar
+            </NavLink>
+
+            <NavLink to="/app/admin/orders" className={navLinkClass}>
+              <ShoppingBag size={19} />
+              Siparişler
             </NavLink>
 
             <div className="space-y-2">
