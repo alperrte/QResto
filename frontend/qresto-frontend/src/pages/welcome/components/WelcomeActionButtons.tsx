@@ -1,14 +1,14 @@
 type WelcomeActionButtonsProps = {
   onGoToMenu: () => void;
   onCallWaiter: () => void;
-  onRequestBill: () => void;
+  onOpenPayMenu: () => void;
   isLeavingToMenu: boolean;
 };
 
 const WelcomeActionButtons = ({
   onGoToMenu,
   onCallWaiter,
-  onRequestBill,
+  onOpenPayMenu,
   isLeavingToMenu,
 }: WelcomeActionButtonsProps) => {
   return (
@@ -39,11 +39,11 @@ const WelcomeActionButtons = ({
 
       <button
         type="button"
-        onClick={onRequestBill}
+        onClick={onOpenPayMenu}
         className="welcome-secondary-action rounded-xl p-4 flex flex-col items-center justify-center gap-2 shadow-sm border transition-colors active:scale-[0.98]"
       >
-        <span className="material-symbols-outlined text-primary text-3xl">receipt_long</span>
-        <span className="font-bold text-label-bold">Hesap İste</span>
+        <span className="material-symbols-outlined text-primary text-3xl">payments</span>
+        <span className="font-bold text-label-bold">Öde</span>
       </button>
     </div>
   );
