@@ -3,6 +3,7 @@ import axios from "axios";
 import type {
     AddCartItemRequest,
     CartResponse,
+    DemoPaymentRequest,
     OrderResponse,
     UpdateCartItemQuantityRequest,
 } from "../types/cartTypes";
@@ -16,6 +17,23 @@ const orderApi = axios.create({
         "Content-Type": "application/json",
     },
 });
+
+export const demoPayment = async (
+    orderId: number,
+    guestSessionId: number
+): Promise<OrderResponse> => {
+    const body: DemoPaymentRequest = {
+        guestSessionId,
+    };
+
+    const response = await orderApi.patch<OrderResponse>(
+        `/orders/${orderId}/demo-payment`,
+        body
+    );
+
+    return response.data;
+};
+
 
 export const createCart = async (
     tableSessionId: number,

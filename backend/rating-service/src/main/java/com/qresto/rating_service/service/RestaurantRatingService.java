@@ -19,8 +19,11 @@ public class RestaurantRatingService {
 
     private final RestaurantRatingRepository restaurantRatingRepository;
     private final OrderClientService orderClientService;
+    private final RatingSettingService ratingSettingService;
 
     public RestaurantRatingResponse createRestaurantRating(RestaurantRatingCreateRequest request) {
+        ratingSettingService.validateRestaurantRatingAllowed(request.getComment());
+
         OrderResponse order = orderClientService.getOrderById(request.getOrderId());
 
         validateOrderForRating(order, request.getGuestSessionId());

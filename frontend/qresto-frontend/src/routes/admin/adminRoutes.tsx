@@ -11,12 +11,17 @@ import QrGeneratorPage from "../../pages/qrPage/QrGeneratorPage";
 import WaiterDashboardPage from "../../pages/waiter/WaiterDashboard";
 import KitchenDashboardPage from "../../pages/kitchen/KitchenDashboardPage";
 
+import RatingSettingsPage from "../../pages/rating/RatingSettingsPage";
+import RestaurantRatingsPage from "../../pages/rating/RestaurantRatingsPage";
+import ProductRatingsPage from "../../pages/rating/ProductRatingsPage";
+
 const adminRoutes: React.ReactNode = (
     <Route path="/app" element={<AdminLayout />}>
         <Route index element={<RoleHomeRedirect />} />
 
         <Route element={<RoleRoute allowedRoles={["ADMIN"]} />}>
             <Route path="admin/dashboard" element={<DashboardPage />} />
+
             <Route path="admin/menu-categories" element={<MenuCategoriesAdminPage />} />
             <Route path="admin/menu-products" element={<MenuAdminPage />} />
             <Route path="admin/menu-products/:productId/edit" element={<ProductSetupWizardPage />} />
@@ -24,6 +29,21 @@ const adminRoutes: React.ReactNode = (
             <Route
                 path="tables-qr"
                 element={<QrGeneratorPage />}
+            />
+
+            <Route
+                path="rating-service"
+                element={<RatingSettingsPage />}
+            />
+
+            <Route
+                path="rating-service/restaurant-ratings"
+                element={<RestaurantRatingsPage />}
+            />
+
+            <Route
+                path="rating-service/product-ratings"
+                element={<ProductRatingsPage />}
             />
         </Route>
 

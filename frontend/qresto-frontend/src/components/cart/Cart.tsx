@@ -3,7 +3,9 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Minus, Plus, ShoppingBasket, ShoppingCart, Trash2, X } from "lucide-react";
 
-import type { CartResponse } from "../../types/cartTypes";
+import type { CartResponse, OrderResponse } from "../../types/cartTypes";
+import OrderPaymentRatingModal from "../rating/OrderPaymentRatingModal";
+
 
 import {
     clearCart,
@@ -23,6 +25,7 @@ const Cart = () => {
     const [cartOpen, setCartOpen] = useState(false);
     const [isCartVisible, setIsCartVisible] = useState(false);
     const [cart, setCart] = useState<CartResponse | null>(null);
+    const [createdOrder, setCreatedOrder] = useState<OrderResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isOrdering, setIsOrdering] = useState(false);
     const [orderCelebration, setOrderCelebration] = useState<{ orderNo: string } | null>(null);
@@ -189,11 +192,12 @@ const Cart = () => {
         try {
             const order = await createOrderFromCart(cartId);
 
-            alert(`Siparişiniz oluşturuldu.\nSipariş No: ${order.orderNo}`);
-
+          //ORDER CONFLICT OLABILIR KONTROL ET 
+          
             sessionStorage.removeItem("qresto_cart_id");
             setCart(null);
             setOrderCelebration({ orderNo: order.orderNo });
+            setCreatedOrder(order);
         } catch (error) {
             console.error("Sipariş oluşturulurken hata oluştu:", error);
             setOrderErrorMessage(
@@ -459,6 +463,13 @@ const Cart = () => {
                         </div>
                     </aside>
                 </div>
+            )}
+
+            {createdOrder && (
+                <OrderPaymentRatingModal
+                    order={createdOrder}
+                    onClose={() => setCreatedOrder(null)}
+                />
             )}
         </>
     );

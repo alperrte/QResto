@@ -20,8 +20,11 @@ public class ProductRatingService {
 
     private final ProductRatingRepository productRatingRepository;
     private final OrderClientService orderClientService;
+    private final RatingSettingService ratingSettingService;
 
     public ProductRatingResponse createProductRating(ProductRatingCreateRequest request) {
+        ratingSettingService.validateProductRatingAllowed(request.getComment());
+
         OrderResponse order = orderClientService.getOrderById(request.getOrderId());
 
         validateOrderForRating(order, request.getGuestSessionId());
@@ -131,4 +134,6 @@ public class ProductRatingService {
                 .updatedAt(productRating.getUpdatedAt())
                 .build();
     }
+
+
 }
