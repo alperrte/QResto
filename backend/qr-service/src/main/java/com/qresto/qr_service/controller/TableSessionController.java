@@ -22,4 +22,14 @@ public class TableSessionController {
     public TableSessionResponse getActiveSessionByTable(@PathVariable Long tableId) {
         return tableSessionService.getActiveSessionByTable(tableId);
     }
+
+    @PatchMapping("/{tableSessionId}/payment-pending")
+    public TableSessionResponse markPaymentPending(@PathVariable Long tableSessionId) {
+        return tableSessionService.markPaymentPending(tableSessionId);
+    }
+
+    @PatchMapping("/{tableSessionId}/close-after-payment")
+    public TableSessionResponse closeAfterPayment(@PathVariable Long tableSessionId) {
+        return tableSessionService.closeAfterPayment(tableSessionId);
+    }
 }

@@ -87,4 +87,10 @@ public class OrderController {
     public ResponseEntity<OrderAdminSummaryResponse> getAdminSummary() {
         return ResponseEntity.ok(orderService.getAdminSummary());
     }
+
+    @PatchMapping("/table-session/{tableSessionId}/mark-paid")
+    public ResponseEntity<List<OrderResponse>> markTableSessionOrdersPaid(@PathVariable Long tableSessionId) {
+        return ResponseEntity.ok(orderService.markTableSessionOrdersPaid(tableSessionId));
+    }
+
 }

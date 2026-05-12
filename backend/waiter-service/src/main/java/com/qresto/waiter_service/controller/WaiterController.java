@@ -135,4 +135,13 @@ public class WaiterController {
         waiterService.publishOrderEvent(event);
         return ResponseEntity.ok("ok");
     }
+
+    @PatchMapping("/calls/{callId}/mark-paid")
+    public ResponseEntity<TableCallResponse> markBillPaid(
+            @PathVariable Long callId,
+            @RequestBody ResolveTableCallRequest request,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        return ResponseEntity.ok(waiterService.markBillPaid(callId, request, authHeader));
+    }
 }

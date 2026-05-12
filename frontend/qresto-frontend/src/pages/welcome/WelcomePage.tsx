@@ -13,8 +13,6 @@ import WelcomeServiceModal, {
 } from "./components/WelcomeServiceModal";
 import { createTableCall } from "../../services/waiterService";
 import { getOrdersByTableSession } from "../../services/orderService";
-import { getRatingSettings } from "../../services/ratingService";
-import { isOrderRatingFlowEnabled } from "../../components/rating/orderRatingFlowGate";
 import type { OrderResponse } from "../../types/cartTypes";
 import {
   DEV_PREVIEW_TABLE,
@@ -40,24 +38,6 @@ const pickOrderForOnlinePay = (orders: OrderResponse[]): OrderResponse | null =>
   return [...eligible].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   )[0];
-};
-
-const pickOrderForRatingOnly = (orders: OrderResponse[]): OrderResponse | null => {
-  const unpaid = pickOrderForOnlinePay(orders);
-  if (unpaid) return unpaid;
-  const nonCancelled = orders.filter((o) => o.status !== "CANCELLED");
-  if (nonCancelled.length === 0) return null;
-  return [...nonCancelled].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  )[0];
-};
-
-/** Hesap talebinden sonra: önce ödenmemiş sipariş, yoksa değerlendirme için son sipariş. */
-const fetchOrderForRatingOnly = async (): Promise<OrderResponse | null> => {
-  const sessionId = readTableSessionId();
-  if (!sessionId) return null;
-  const list = await getOrdersByTableSession(sessionId);
-  return pickOrderForRatingOnly(list);
 };
 
 /** Oturumdaki ödenmemiş en yeni siparişi bulur; online ödeme modalı için. */
@@ -130,26 +110,10 @@ const WelcomePage = () => {
 
   const handleCloseServiceModal = () => {
     if (serviceModalStep === "loading") return;
-    const closedType = activeServiceModal;
-    const closedStep = serviceModalStep;
+
     setActiveServiceModal(null);
     setServiceModalStep("confirm");
     setServiceModalError(null);
-    /* Hesap talebi onayı tamamlandıktan sonra değerlendirme (ödeme) modalı */
-    if (closedType === "bill" && closedStep === "success") {
-      void (async () => {
-        try {
-          const [settings, order] = await Promise.all([
-            getRatingSettings(),
-            fetchOrderForRatingOnly(),
-          ]);
-          if (!isOrderRatingFlowEnabled(settings)) return;
-          if (order) setRatingOnlyOrder(order);
-        } catch (e) {
-          console.error(e);
-        }
-      })();
-    }
   };
 
   const handleOpenPayChoice = () => {
