@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import adminRoutes from "./routes/admin/adminRoutes";
 import { guestRoutes } from "./routes/guest/guestRoutes";
 import { waiterRoutes } from "./routes/waiter/waiterRoutes";
+import { kitchenRoutes } from "./routes/kitchen/kitchenRoutes";
 import { RoleRoute, getRoleHomePath } from "./auth/routeGuards";
 
 import { useAuth } from "./auth/AuthContext";
@@ -40,8 +41,11 @@ function App() {
                     {waiterRoutes}
                 </Route>
 
-                {adminRoutes}
+                <Route element={<RoleRoute allowedRoles={["KITCHEN", "ADMIN"]} />}>
+                    {kitchenRoutes}
+                </Route>
 
+                {adminRoutes}
 
             </Routes>
         </BrowserRouter>

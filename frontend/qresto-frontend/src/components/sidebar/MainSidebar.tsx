@@ -1,14 +1,21 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
+  ArchiveX,
   ChevronDown,
+  ChefHat,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   MessageSquareText,
+  PackageCheck,
   QrCode,
+  Settings,
   ShoppingBag,
   Star,
   Store,
+  ToggleLeft,
+  ToggleRight,
   UtensilsCrossed,
 } from "lucide-react";
 
@@ -22,6 +29,7 @@ function MainSidebar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [ratingMenuOpen, setRatingMenuOpen] = useState(false);
   const [menuDropdownOpen, setMenuDropdownOpen] = useState(true);
+  const [kitchenOpen, setKitchenOpen] = useState(true);
   const { user, logout } = useAuth();
   const location = useLocation();
   const isMenuProductsSection =
@@ -91,11 +99,12 @@ function MainSidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-6">
-        <NavLink to={getRoleHomePath(user.role)} className={navLinkClass}>
-          <LayoutDashboard size={19} />
-          Kontrol Paneli
-        </NavLink>
-
+        {user.role !== "KITCHEN" ? (
+            <NavLink to={getRoleHomePath(user.role)} className={navLinkClass}>
+              <LayoutDashboard size={19} />
+              Kontrol Paneli
+            </NavLink>
+        ) : null}
         {user.role === "ADMIN" ? (
           <>
             <NavLink
@@ -259,21 +268,107 @@ function MainSidebar() {
             </div>
           </>
         ) : null}
+        {user.role === "KITCHEN" ? (
+            <>
+              <NavLink to="/app/kitchen/dashboard" className={navLinkClass}>
+                <ChefHat size={19} />
+                Mutfak Paneli
+              </NavLink>
+
+              <NavLink to="/app/kitchen/orders" className={navLinkClass}>
+                <ShoppingBag size={19} />
+                Siparişler
+              </NavLink>
+
+              <NavLink to="/app/kitchen/products" className={navLinkClass}>
+                <PackageCheck size={19} />
+                Ürün Yönetimi
+              </NavLink>
+
+              <NavLink to="/app/kitchen/stock" className={navLinkClass}>
+                <ClipboardList size={19} />
+                Stok Yönetimi
+              </NavLink>
+
+              <NavLink to="/app/kitchen/cancelled-orders" className={navLinkClass}>
+                <ArchiveX size={19} />
+                İptal Edilen Siparişler
+              </NavLink>
+
+              <NavLink to="/app/kitchen/settings" className={navLinkClass}>
+                <Settings size={19} />
+                Ayarlar
+              </NavLink>
+            </>
+        ) : null}
       </nav>
 
-      <div className="border-t border-[var(--qresto-border)] p-4">
+      <div className="space-y-4 border-t border-[var(--qresto-border)] p-4">
+        {user.role === "KITCHEN" ? (
+            <div
+                className={`rounded-2xl border p-4 transition-all duration-200 ${
+                    kitchenOpen
+                        ? "border-emerald-500/25 bg-emerald-500/10"
+                        : "border-red-500/25 bg-red-500/10"
+                }`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-[var(--qresto-primary)]">
+                    Mutfak Durumu
+                  </p>
+
+                  <div className="mt-2 flex items-center gap-2">
+                        <span
+                            className={`h-2.5 w-2.5 rounded-full ${
+                                kitchenOpen ? "bg-emerald-500" : "bg-red-500"
+                            }`}
+                        />
+
+                    <p
+                        className={`text-sm font-black ${
+                            kitchenOpen ? "text-emerald-600" : "text-red-600"
+                        }`}
+                    >
+                      {kitchenOpen ? "Mutfak açık" : "Mutfak kapalı"}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                    type="button"
+                    onClick={() => setKitchenOpen((prev) => !prev)}
+                    className={`transition-transform duration-200 hover:scale-105 ${
+                        kitchenOpen ? "text-emerald-500" : "text-red-500"
+                    }`}
+                    aria-label={kitchenOpen ? "Mutfağı kapat" : "Mutfağı aç"}
+                >
+                  {kitchenOpen ? <ToggleRight size={34} /> : <ToggleLeft size={34} />}
+                </button>
+              </div>
+
+              <p className="mt-2 text-xs font-medium text-[var(--qresto-muted)]">
+                {kitchenOpen
+                    ? "Yeni siparişler alınıyor."
+                    : "Yeni siparişler alınmıyor."}
+              </p>
+            </div>
+        ) : null}
+
         <button
-          type="button"
-          onClick={() => {
-            void logout();
-          }}
-          className="flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-red-200 transition-all duration-200 hover:-translate-y-[2px] hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:shadow-red-300 active:translate-y-0"
+            type="button"
+            onClick={() => {
+              void logout();
+            }}
+            className="flex w-full items-center gap-3 rounded-xl bg-gradient-to-r from-red-500 to-red-600 px-4 py-3 text-sm font-bold text-white shadow-md shadow-red-200 transition-all duration-200 hover:-translate-y-[2px] hover:from-red-600 hover:to-red-700 hover:shadow-lg hover:shadow-red-300 active:translate-y-0"
         >
           <LogOut size={19} />
           Çıkış Yap
         </button>
       </div>
     </aside>
+
+
   );
 }
 
