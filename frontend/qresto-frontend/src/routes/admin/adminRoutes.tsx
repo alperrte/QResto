@@ -3,7 +3,7 @@ import { Route } from "react-router-dom";
 import AdminLayout from "../../layout/AdminLayout/AdminLayout";
 import { RoleHomeRedirect, RoleRoute } from "../../auth/routeGuards";
 
-import DashboardPage from "../../pages/Admin/DashboardPage";
+import DashboardPage from "../../pages/Admin/DashboardPage/DashboardPage";
 import MenuCategoriesAdminPage from "../../pages/Admin/MenuCategoriesAdminPage";
 import MenuAdminPage from "../../pages/Admin/MenuAdminPage/MenuAdminPage";
 import ProductSetupWizardPage from "../../pages/Admin/MenuAdminPage/ProductWizard/ProductSetupWizardPage";

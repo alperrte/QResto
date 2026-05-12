@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import type { CSSProperties } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   ChevronDown,
@@ -18,20 +19,65 @@ import { getRoleHomePath } from "../../auth/routeGuards";
 import lightLogo from "../../assets/qresto_logo_light.png";
 import darkLogo from "../../assets/qresto_logo_dark.png";
 
+import "./MainSidebar.css";
+
+const RATING_PATH = "/app/rating-service";
+
+function inMenuProductsSection(pathname: string) {
+  return (
+    pathname.startsWith("/app/admin/menu-products") ||
+    pathname.startsWith("/app/admin/menu-categories")
+  );
+}
+
+function inRatingSection(pathname: string) {
+  return pathname.startsWith(RATING_PATH);
+}
+
+function staggerStyle(ms: number): CSSProperties {
+  return { "--sidebar-stagger": `${ms}ms` } as CSSProperties;
+}
+
 function MainSidebar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [ratingMenuOpen, setRatingMenuOpen] = useState(false);
-  const [menuDropdownOpen, setMenuDropdownOpen] = useState(true);
+  const [menuDropdownOpen, setMenuDropdownOpen] = useState(false);
   const { user, logout } = useAuth();
   const location = useLocation();
-  const isMenuProductsSection =
-    location.pathname.startsWith("/app/admin/menu-products") ||
-    location.pathname.startsWith("/app/admin/menu-categories");
+  const prevPathRef = useRef<string | null>(null);
+
+  const isMenuProductsSection = inMenuProductsSection(location.pathname);
 
   const normalizedPath =
     location.pathname.replace(/\/+$/, "") || "/";
   const isGeneralMenuListPath =
     normalizedPath === "/app/admin/menu-products";
+
+  /** Başka bir ana sekmeye geçince akordeonları kapat; ilgili bölüme ilk girişte aç. */
+  useEffect(() => {
+    const path = location.pathname;
+    const prev = prevPathRef.current;
+    prevPathRef.current = path;
+
+    const nowMenu = inMenuProductsSection(path);
+    const prevMenu =
+      prev !== null && inMenuProductsSection(prev);
+
+    if (!nowMenu) {
+      setMenuDropdownOpen(false);
+    } else if (prev === null || !prevMenu) {
+      setMenuDropdownOpen(true);
+    }
+
+    const nowRating = inRatingSection(path);
+    const prevRating = prev !== null && inRatingSection(prev);
+
+    if (!nowRating) {
+      setRatingMenuOpen(false);
+    } else if (prev === null || !prevRating) {
+      setRatingMenuOpen(true);
+    }
+  }, [location.pathname]);
 
   useEffect(() => {
     const checkTheme = () => {
@@ -91,7 +137,13 @@ function MainSidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-6">
-        <NavLink to={getRoleHomePath(user.role)} className={navLinkClass}>
+        <NavLink
+          to={getRoleHomePath(user.role)}
+          className={({ isActive }) =>
+            `${navLinkClass({ isActive })} main-sidebar-nav-item`
+          }
+          style={staggerStyle(0)}
+        >
           <LayoutDashboard size={19} />
           Kontrol Paneli
         </NavLink>
@@ -109,12 +161,13 @@ function MainSidebar() {
                 setMenuDropdownOpen(true);
               }}
               className={({ isActive }) =>
-                `flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
+                `main-sidebar-nav-item flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
                   isActive || isMenuProductsSection
                     ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
                     : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
                 }`
               }
+              style={staggerStyle(55)}
             >
               <span className="flex min-w-0 items-center gap-3">
                 <UtensilsCrossed size={19} className="shrink-0" />
@@ -192,23 +245,32 @@ function MainSidebar() {
               onClick={() => {
                 window.dispatchEvent(new Event("qresto-qr-page-reset"));
               }}
-              className={navLinkClass}
+              className={({ isActive }) =>
+                `${navLinkClass({ isActive })} main-sidebar-nav-item`
+              }
+              style={staggerStyle(110)}
             >
               <QrCode size={19} />
               Masalar & QR Kodlar
             </NavLink>
 
-            <NavLink to="/app/admin/orders" className={navLinkClass}>
+            <NavLink
+              to="/app/admin/orders"
+              className={({ isActive }) =>
+                `${navLinkClass({ isActive })} main-sidebar-nav-item`
+              }
+              style={staggerStyle(165)}
+            >
               <ShoppingBag size={19} />
               Siparişler
             </NavLink>
 
-            <div className="space-y-2">
+            <div className="main-sidebar-nav-item space-y-2" style={staggerStyle(220)}>
               <NavLink
                 to="/app/rating-service"
                 className={({ isActive }) =>
                   `flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
-                    isActive || ratingMenuOpen
+                    isActive
                       ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
                       : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
                   }`
@@ -227,6 +289,12 @@ function MainSidebar() {
                     setRatingMenuOpen((prev) => !prev);
                   }}
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition hover:bg-white/15"
+                  aria-expanded={ratingMenuOpen}
+                  aria-label={
+                    ratingMenuOpen
+                      ? "Değerlendirme alt menüsünü gizle"
+                      : "Değerlendirme alt menüsünü göster"
+                  }
                 >
                   <ChevronDown
                     size={17}

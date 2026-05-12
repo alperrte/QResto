@@ -72,6 +72,13 @@ export const getRecentProductRatings = async (): Promise<ProductRatingResponse[]
     return response.data;
 };
 
+/** Tüm ürünler için genel ortalama ve toplam değerlendirme sayısı. */
+export const getAllProductRatingsSummary = async (): Promise<RatingSummaryResponse> => {
+    const response = await ratingApi.get<RatingSummaryResponse>("/product-ratings/summary");
+
+    return response.data;
+};
+
 export const getRestaurantRatings = async (): Promise<RestaurantRatingResponse[]> => {
     const response = await ratingApi.get<RestaurantRatingResponse[]>(
         "/restaurant-ratings"

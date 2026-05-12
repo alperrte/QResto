@@ -1,8 +1,11 @@
 package com.qresto.order_service.repository;
 
+import com.qresto.order_service.dto.response.OrderAdminTableHeatmapAggregateResponse;
 import com.qresto.order_service.entity.CustomerOrder;
 import com.qresto.order_service.entity.enums.OrderStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,4 +40,23 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
     Long countByStatusIn(List<OrderStatus> statuses);
 
     Long countByStatus(OrderStatus status);
+
+    @Query("""
+            select new com.qresto.order_service.dto.response.OrderAdminTableHeatmapAggregateResponse(
+                o.tableId,
+                o.tableName,
+                count(o.id)
+            )
+            from CustomerOrder o
+            where o.status in :orderStatuses
+              and o.createdAt >= :start
+              and o.createdAt < :end
+            group by o.tableId, o.tableName
+            order by count(o.id) desc
+            """)
+    List<OrderAdminTableHeatmapAggregateResponse> findTableHeatmapAggregates(
+            @Param("start") LocalDateTime start,
+            @Param("end") LocalDateTime end,
+            @Param("orderStatuses") List<OrderStatus> orderStatuses
+    );
 }
