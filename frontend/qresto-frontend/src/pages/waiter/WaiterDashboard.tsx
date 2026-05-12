@@ -397,7 +397,7 @@ export default function WaiterDashboard() {
                                         });
                                         return next;
                                     });
-                                }, 15000);
+                                }, 5000);
                     }
                 },
                 onWebSocketError: (event) => {
