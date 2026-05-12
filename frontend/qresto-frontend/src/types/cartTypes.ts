@@ -30,6 +30,7 @@ export type CartResponse = {
 export type AddCartItemRequest = {
     productId: number;
     productName: string;
+    /** Birim fiyat (taban + seçilen opsiyon ekleri); satır toplamı = productPrice × quantity */
     productPrice: number;
     vatIncluded: boolean;
     quantity: number;

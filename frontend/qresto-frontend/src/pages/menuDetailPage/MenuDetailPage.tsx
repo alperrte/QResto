@@ -62,8 +62,10 @@ const MenuDetailPage = () => {
             setApiOptionSelection({ radioByGroupId: {}, multiByGroupId: {} });
             return;
         }
-        setApiOptionSelection(buildDefaultOptionSelection(apiGroups));
-    }, [itemId, apiGroups]);
+        setApiOptionSelection(
+            buildDefaultOptionSelection(apiGroups, { productName: data?.name })
+        );
+    }, [itemId, apiGroups, data?.name]);
 
     const basePrice = Number(data?.price ?? 0);
     const portionExtra = !hasApiOptions && portion === "large" ? 180 : 0;
@@ -73,10 +75,11 @@ const MenuDetailPage = () => {
     const apiOptionsExtra = hasApiOptions && apiGroups
         ? sumSelectedOptionExtrasTry(apiGroups, apiOptionSelection)
         : 0;
-    const totalPrice = useMemo(
-        () => (basePrice + portionExtra + extrasTotal + apiOptionsExtra) * quantity,
-        [basePrice, portionExtra, extrasTotal, apiOptionsExtra, quantity]
+    const unitPrice = useMemo(
+        () => basePrice + portionExtra + extrasTotal + apiOptionsExtra,
+        [basePrice, portionExtra, extrasTotal, apiOptionsExtra]
     );
+    const totalPrice = useMemo(() => unitPrice * quantity, [unitPrice, quantity]);
 
     const formatTry = (value: number) => `₺${value}`;
 
@@ -150,6 +153,7 @@ const MenuDetailPage = () => {
                         basePriceFormatted={formatTry(basePrice)}
                         prepMinutes={item.prepMinutes}
                         kcal={item.kcal}
+                        gram={item.gram}
                         ratingSummary={ratingSummary}
                         ratingLoading={ratingSummaryLoading}
                     />
@@ -188,7 +192,7 @@ const MenuDetailPage = () => {
                         cartItem={{
                             productId: Number(item.id),
                             productName: item.name,
-                            productPrice: totalPrice,
+                            productPrice: unitPrice,
                             vatIncluded: true,
                             quantity: quantity,
                             addedIngredients: addedIngredientsSummary,

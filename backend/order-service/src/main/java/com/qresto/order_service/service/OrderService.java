@@ -95,15 +95,25 @@ public class OrderService {
                 throw new IllegalArgumentException("Product is not available: " + cartItem.getProductId());
             }
 
-            BigDecimal currentPrice = productInfo.getPrice();
-            BigDecimal lineTotal = currentPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            BigDecimal catalogBase = productInfo.getPrice();
+            BigDecimal unitPrice = cartItem.getProductPrice();
+            if (unitPrice.compareTo(catalogBase) < 0) {
+                throw new IllegalArgumentException("Cart line unit price below catalog base for product: " + cartItem.getProductId());
+            }
+            BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
             orderItem.setProductId(productInfo.getId());
             orderItem.setProductName(productInfo.getName());
-            orderItem.setProductImageUrl(productInfo.getImageUrl());
-            orderItem.setProductPrice(currentPrice);
+
+              //  CONFLİCT OLABİLİR --->> silinen satır
+              //  orderItem.setProductPrice(currentPrice);
+
+              // eklenen -->>   orderItem.setProductPrice(unitPrice);
+
+
+            orderItem.setProductPrice(unitPrice);
             orderItem.setVatIncluded(productInfo.getVatIncluded());
             orderItem.setQuantity(cartItem.getQuantity());
             orderItem.setRemovedIngredients(cartItem.getRemovedIngredients());

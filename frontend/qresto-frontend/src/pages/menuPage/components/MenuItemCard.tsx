@@ -47,29 +47,39 @@ const MenuItemCard = ({
                     {item.description}
                 </p>
                 <div className="flex items-center justify-between mt-auto pt-4 border-t border-outline-variant/30">
-                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-on-surface-variant/70 font-sans text-[12px]">
-                        <div className="flex items-center gap-1">
-                            <MaterialIcon
-                                name="schedule"
-                                className="text-[16px]"
-                            />
-                            <span>{item.prepMinutes} dk</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                            <MaterialIcon
-                                name="local_fire_department"
-                                className="text-[16px]"
-                            />
-                            <span>{item.kcal} kcal</span>
-                        </div>
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-sans text-[12px]">
+                        {item.prepMinutes != null ? (
+                            <div className="flex items-center gap-1">
+                                <MaterialIcon
+                                    name="schedule"
+                                    className="text-[16px] text-primary"
+                                />
+                                <span className="text-on-surface font-medium">{item.prepMinutes} dk</span>
+                            </div>
+                        ) : null}
+                        {item.kcal != null ? (
+                            <div className="flex items-center gap-1">
+                                <MaterialIcon
+                                    name="local_fire_department"
+                                    className="text-[16px] text-primary"
+                                />
+                                <span className="text-on-surface font-medium">{item.kcal} kcal</span>
+                            </div>
+                        ) : null}
+                        {item.gram != null ? (
+                            <div className="flex items-center gap-1">
+                                <MaterialIcon name="scale" className="text-[16px] text-primary" />
+                                <span className="text-on-surface font-medium">{item.gram} g</span>
+                            </div>
+                        ) : null}
                         {ratingLoading ? (
                             <div className="flex items-center gap-1 text-on-surface-variant/45">
                                 <MaterialIcon name="star" fill className="text-[16px]" />
                             </div>
                         ) : hasRatings ? (
-                            <div className="flex items-center gap-1 text-primary">
-                                <MaterialIcon name="star" fill className="text-[16px]" />
-                                <span className="font-bold">
+                            <div className="flex items-center gap-1">
+                                <MaterialIcon name="star" fill className="text-[16px] text-primary" />
+                                <span className="font-bold text-on-surface">
                                     {ratingSummary!.averageRating.toFixed(1)}
                                 </span>
                             </div>
