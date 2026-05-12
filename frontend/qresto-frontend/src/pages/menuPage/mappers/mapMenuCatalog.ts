@@ -1,3 +1,4 @@
+import { MENU_ITEM_FALLBACK_IMAGE } from "../../../constants/defaultMedia";
 import type { MenuCategoryFilterId } from "../menuItems";
 import type { MenuItem } from "../menuItems";
 import type { MenuCategoryDto, MenuItemListItemDto } from "../types/menu.types";
@@ -63,7 +64,7 @@ export const mapListItemToMenuItem = (dto: MenuItemListItemDto): MenuItem => {
         name: dto.name,
         description: dto.description ?? "Açıklama bulunmuyor.",
         priceLabel: `₺${price.toFixed(2)}`,
-        imageUrl: dto.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=900&q=80",
+        imageUrl: dto.imageUrl || MENU_ITEM_FALLBACK_IMAGE,
         prepMinutes: optionalPositiveMeta(dto.prepTimeMin),
         kcal: optionalPositiveMeta(dto.calorie),
         gram: optionalPositiveMeta(dto.gram),

@@ -33,9 +33,9 @@
   z-index: 2;
   transform-origin: center;
   transition:
-    border-color 0.35s ease,
-    color 0.35s ease,
-    background 0.35s ease;
+    border-color 0.2s ease,
+    color 0.2s ease,
+    background 0.2s ease;
 }
 
 .wizard-step-dot-active {
@@ -80,7 +80,7 @@
 }
 
 .wizard-step-dot-balloon {
-  animation: wizard-step-dot-balloon 0.58s cubic-bezier(0.34, 1.45, 0.52, 1);
+  animation: wizard-step-dot-balloon 0.28s cubic-bezier(0.34, 1.45, 0.52, 1);
 }
 
 .wizard-stepper-line-base {
@@ -105,7 +105,7 @@
   z-index: 1;
   border-radius: 9999px;
   transform-origin: left center;
-  transition: width 0.72s cubic-bezier(0.33, 0.83, 0.32, 1);
+  transition: width 0.28s cubic-bezier(0.33, 0.83, 0.32, 1);
   box-shadow: 0 0 10px rgb(242 101 34 / 0.35);
 }
 
@@ -117,7 +117,7 @@
   text-align: center;
   white-space: normal;
   max-width: 120px;
-  transition: color 0.35s ease;
+  transition: color 0.2s ease;
 }
 
 .wizard-step-label-active {

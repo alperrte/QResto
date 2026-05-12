@@ -108,13 +108,39 @@
   }
 }
 
+/* Sipariş varken: hafif, yavaş sallanma (dikkat çekmek için) */
+.welcome-orders-nudge {
+  animation: welcome-orders-gentle-wobble 3.2s ease-in-out infinite;
+  transform-origin: 50% 60%;
+}
+
+@keyframes welcome-orders-gentle-wobble {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  20% {
+    transform: rotate(-2.2deg);
+  }
+  40% {
+    transform: rotate(2.2deg);
+  }
+  60% {
+    transform: rotate(-1.6deg);
+  }
+  80% {
+    transform: rotate(1.6deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .welcome-hero-entrance,
   .welcome-hero-photo,
   .welcome-topbar-reveal,
   .welcome-card-rise,
   .welcome-actions-stagger > *,
-  .welcome-redirect-hint {
+  .welcome-redirect-hint,
+  .welcome-orders-nudge {
     animation: none !important;
   }
 }

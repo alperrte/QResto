@@ -35,6 +35,11 @@ function resolveProductImageUrl(raw: string | null | undefined): string | null {
     if (t.startsWith("http://") || t.startsWith("https://")) return t;
 
     const path = t.startsWith("/") ? t : `/${t}`;
+    /* public/seed — Vite kökü; menü API host’unda dosya yok */
+    if (path.startsWith("/seed/") && typeof window !== "undefined" && window.location?.origin) {
+        return `${window.location.origin}${path}`;
+    }
+
     return `${menuPublicOrigin()}${path}`;
 }
 
