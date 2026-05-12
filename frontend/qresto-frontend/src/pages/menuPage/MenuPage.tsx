@@ -13,6 +13,7 @@ import {
   mapCatalogItemsToMenuItems,
   mapCategoriesToRows,
 } from "./mappers/mapMenuCatalog";
+import { useProductRatingSummaries } from "./hooks/useProductRatingSummaries";
 import "./styles/menuAnimations.css";
 
 const MenuPage = () => {
@@ -32,6 +33,17 @@ const MenuPage = () => {
     () => mapCatalogItemsToMenuItems(data?.items ?? []),
     [data?.items]
   );
+
+  const productIdsForRatings = useMemo(
+    () =>
+      catalogItems
+        .map((item) => Number(item.id))
+        .filter((n) => Number.isFinite(n)),
+    [catalogItems]
+  );
+
+  const { summaries: ratingSummaries, loading: ratingsLoading } =
+    useProductRatingSummaries(productIdsForRatings);
 
   const filteredItems = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -190,6 +202,8 @@ const MenuPage = () => {
                     item.id
                   }`}
                   item={item}
+                  ratingSummary={ratingSummaries[item.id] ?? null}
+                  ratingLoading={ratingsLoading}
                   animationDelay={
                     shouldAnimateCardStagger
                       ? `${cardBaseDelayMs + idx * CARD_STEP_MS}ms`

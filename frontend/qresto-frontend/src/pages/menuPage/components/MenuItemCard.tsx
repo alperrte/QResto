@@ -1,18 +1,26 @@
 import { Link } from "react-router-dom";
 import MaterialIcon from "../../../components/ui/MaterialIcon";
+import type { RatingSummaryResponse } from "../../../types/ratingTypes";
 import { type MenuItem } from "../menuItems";
 
 type MenuItemCardProps = {
     item: MenuItem;
     animationDelay: string;
     animationClassName: string;
+    ratingSummary?: RatingSummaryResponse | null;
+    ratingLoading?: boolean;
 };
 
 const MenuItemCard = ({
     item,
     animationDelay,
     animationClassName,
+    ratingSummary,
+    ratingLoading = false,
 }: MenuItemCardProps) => {
+    const hasRatings =
+        ratingSummary != null && Number(ratingSummary.totalRatingCount ?? 0) > 0;
+
     return (
         <Link
             to={`/menu/${item.id}`}
@@ -54,16 +62,27 @@ const MenuItemCard = ({
                             />
                             <span>{item.kcal} kcal</span>
                         </div>
-                        <div className="flex items-center gap-1 text-primary">
-                            <MaterialIcon
-                                name="star"
-                                fill
-                                className="text-[16px]"
-                            />
-                            <span className="font-bold">{item.rating}</span>
-                        </div>
+                        {ratingLoading ? (
+                            <div className="flex items-center gap-1 text-on-surface-variant/45">
+                                <MaterialIcon name="star" fill className="text-[16px]" />
+                            </div>
+                        ) : hasRatings ? (
+                            <div className="flex items-center gap-1 text-primary">
+                                <MaterialIcon name="star" fill className="text-[16px]" />
+                                <span className="font-bold">
+                                    {ratingSummary!.averageRating.toFixed(1)}
+                                </span>
+                            </div>
+                        ) : (
+                            <div
+                                className="flex items-center gap-1 text-on-surface-variant/40"
+                                aria-hidden
+                            >
+                                <MaterialIcon name="star" fill className="text-[16px]" />
+                            </div>
+                        )}
                     </div>
-                    <span className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-sm">
+                    <span className="w-8 h-8 shrink-0 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shadow-sm">
                         <MaterialIcon
                             name="add"
                             className="text-[20px]"

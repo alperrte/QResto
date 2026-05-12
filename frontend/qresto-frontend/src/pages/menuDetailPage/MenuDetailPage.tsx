@@ -20,6 +20,7 @@ import MenuDetailPortionSection from "./components/MenuDetailPortionSection";
 import MenuDetailQuantityStepper from "./components/MenuDetailQuantityStepper";
 import MenuDetailSummary from "./components/MenuDetailSummary";
 import { useMenuItemDetail } from "./hooks/useMenuItemDetail";
+import { useProductRatingSummary } from "./hooks/useProductRatingSummary";
 import { mapDetailResponseToMenuItem } from "./mappers/mapMenuItemDetail";
 import type { MenuProductOptionGroupDto } from "./types/menuDetail.types";
 import "./styles/menuDetailAnimations.css";
@@ -31,6 +32,9 @@ const MenuDetailPage = () => {
     const navigate = useNavigate();
     const { data, loading, error } = useMenuItemDetail(itemId);
     const item = data ? mapDetailResponseToMenuItem(data) : undefined;
+    const productIdNum = itemId != null ? Number(itemId) : undefined;
+    const { summary: ratingSummary, loading: ratingSummaryLoading } =
+        useProductRatingSummary(Number.isFinite(productIdNum) ? productIdNum : undefined);
     const [quantity, setQuantity] = useState(1);
     const [orderNote, setOrderNote] = useState("");
     const [isLeavingToMenu, setIsLeavingToMenu] = useState(false);
@@ -146,7 +150,8 @@ const MenuDetailPage = () => {
                         basePriceFormatted={formatTry(basePrice)}
                         prepMinutes={item.prepMinutes}
                         kcal={item.kcal}
-                        rating={item.rating}
+                        ratingSummary={ratingSummary}
+                        ratingLoading={ratingSummaryLoading}
                     />
 
                     {hasApiOptions && apiGroups ? (
