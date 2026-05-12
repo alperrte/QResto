@@ -84,8 +84,11 @@ services:
       DB_NAME: ${DB_NAME}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
+      QRESTO_MENU_PRODUCT_IMAGES_DIR: /data/menu-product-images
     ports:
       - "${SERVER_PORT_MENU}:${SERVER_PORT_MENU}"
+    volumes:
+      - menu_product_images:/data/menu-product-images
     restart: unless-stopped
 
   qr-service:
@@ -140,3 +143,4 @@ services:
 
 volumes:
   mssql_data:
+  menu_product_images:

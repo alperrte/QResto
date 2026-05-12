@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { Minus, Plus, ShoppingBasket, ShoppingCart, Trash2, X } from "lucide-react";
 
 import type { CartResponse } from "../../types/cartTypes";
@@ -10,14 +12,21 @@ import {
     removeCartItem,
     updateCartItemQuantity,
 } from "../../services/orderService";
+import OrderPlacedCelebrationModal from "./OrderPlacedCelebrationModal";
 import "./cartAnimations.css";
 
+/** `window.dispatchEvent(new CustomEvent(QRESTO_OPEN_CART_EVENT))` ile çekmeceyi aç */
+export const QRESTO_OPEN_CART_EVENT = "qresto-open-cart";
+
 const Cart = () => {
+    const navigate = useNavigate();
     const [cartOpen, setCartOpen] = useState(false);
     const [isCartVisible, setIsCartVisible] = useState(false);
     const [cart, setCart] = useState<CartResponse | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [isOrdering, setIsOrdering] = useState(false);
+    const [orderCelebration, setOrderCelebration] = useState<{ orderNo: string } | null>(null);
+    const [orderErrorMessage, setOrderErrorMessage] = useState<string | null>(null);
 
     const storedCartId = localStorage.getItem("qresto_cart_id");
     const cartId = storedCartId ? Number(storedCartId) : null;
@@ -63,27 +72,54 @@ const Cart = () => {
         return `₺${price.toFixed(2)}`;
     };
 
-    const loadCart = async () => {
-        if (!cartId) return;
-
-        setIsLoading(true);
-
-        try {
-            const response = await getCartById(cartId);
-            setCart(response);
-        } catch (error) {
-            console.error("Sepet getirilirken hata oluştu:", error);
+    useEffect(() => {
+        if (!cartId) {
             setCart(null);
-        } finally {
-            setIsLoading(false);
+            return;
         }
-    };
+
+        let cancelled = false;
+
+        const fetchCart = async () => {
+            if (cartOpen) {
+                setIsLoading(true);
+            }
+
+            try {
+                const response = await getCartById(cartId);
+                if (!cancelled) {
+                    setCart(response);
+                }
+            } catch (error) {
+                console.error("Sepet getirilirken hata oluştu:", error);
+                if (!cancelled) {
+                    setCart(null);
+                }
+            } finally {
+                if (!cancelled && cartOpen) {
+                    setIsLoading(false);
+                }
+            }
+        };
+
+        void fetchCart();
+
+        return () => {
+            cancelled = true;
+            setIsLoading(false);
+        };
+    }, [cartId, cartOpen]);
 
     useEffect(() => {
-        if (cartOpen) {
-            loadCart();
-        }
-    }, [cartOpen]);
+        const openFromEvent = () => {
+            setCartOpen(true);
+            window.requestAnimationFrame(() => {
+                setIsCartVisible(true);
+            });
+        };
+        window.addEventListener(QRESTO_OPEN_CART_EVENT, openFromEvent);
+        return () => window.removeEventListener(QRESTO_OPEN_CART_EVENT, openFromEvent);
+    }, []);
 
     const handleDecrease = async (itemId: number | undefined, quantity: number) => {
         if (!cartId || !itemId) return;
@@ -153,14 +189,14 @@ const Cart = () => {
         try {
             const order = await createOrderFromCart(cartId);
 
-            alert(`Siparişiniz oluşturuldu.\nSipariş No: ${order.orderNo}`);
-
             localStorage.removeItem("qresto_cart_id");
             setCart(null);
-            setCartOpen(false);
+            setOrderCelebration({ orderNo: order.orderNo });
         } catch (error) {
             console.error("Sipariş oluşturulurken hata oluştu:", error);
-            alert("Sipariş oluşturulurken hata oluştu.");
+            setOrderErrorMessage(
+                "Sipariş oluşturulurken bir hata oluştu. Bağlantınızı kontrol edip tekrar deneyin."
+            );
         } finally {
             setIsOrdering(false);
         }
@@ -168,6 +204,47 @@ const Cart = () => {
 
     return (
         <>
+            <OrderPlacedCelebrationModal
+                isOpen={orderCelebration !== null}
+                orderNo={orderCelebration?.orderNo ?? ""}
+                onClose={() => setOrderCelebration(null)}
+                onGoToOrders={() => {
+                    setOrderCelebration(null);
+                    navigate("/orders");
+                }}
+            />
+
+            {orderErrorMessage && typeof document !== "undefined"
+                ? createPortal(
+                      <div
+                          className="fixed inset-0 z-[80] flex items-center justify-center px-4 py-8"
+                          role="alertdialog"
+                          aria-modal="true"
+                          aria-live="assertive"
+                      >
+                          <button
+                              type="button"
+                              className="absolute inset-0 bg-black/45 backdrop-blur-sm"
+                              aria-label="Kapat"
+                              onClick={() => setOrderErrorMessage(null)}
+                          />
+                          <div className="relative z-[1] w-full max-w-sm rounded-2xl border border-red-200/80 bg-[var(--color-surface-container-lowest)] p-6 shadow-2xl">
+                              <p className="text-center text-body-sm leading-relaxed text-on-surface">
+                                  {orderErrorMessage}
+                              </p>
+                              <button
+                                  type="button"
+                                  onClick={() => setOrderErrorMessage(null)}
+                                  className="mt-6 w-full rounded-full bg-[var(--color-surface-container-high)] py-3 font-sans text-label-bold text-on-surface transition hover:bg-[var(--color-surface-container-highest)]"
+                              >
+                                  Tamam
+                              </button>
+                          </div>
+                      </div>,
+                      document.body
+                  )
+                : null}
+
             <button
                 type="button"
                 onClick={toggleCart}
@@ -183,7 +260,7 @@ const Cart = () => {
             </button>
 
             {cartOpen && (
-                <div className="fixed inset-0 z-50 flex justify-end">
+                <div className="fixed inset-0 z-[55] flex justify-end">
                     <button
                         type="button"
                         aria-label="Sepeti kapat"
@@ -236,6 +313,17 @@ const Cart = () => {
                                     <p className="mt-2 max-w-[260px] text-sm text-[var(--qresto-muted)]">
                                         Menüden ürün eklediğinizde burada görünecek.
                                     </p>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            closeCart();
+                                            navigate("/orders");
+                                        }}
+                                        className="mt-5 min-h-11 rounded-full border border-[var(--qresto-primary)] px-6 text-sm font-bold text-[var(--qresto-primary)] transition hover:bg-[var(--qresto-hover)] active:scale-[0.99]"
+                                    >
+                                        Siparişlerime git
+                                    </button>
                                 </div>
                             ) : (
                                 <div className="space-y-4">

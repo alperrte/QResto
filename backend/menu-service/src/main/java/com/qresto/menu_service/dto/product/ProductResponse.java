@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -26,6 +27,12 @@ public class ProductResponse {
     private BigDecimal avgRating;
     private Boolean active;
     private Boolean inStock;
+
+    private Boolean orderNoteEnabled;
+    private String orderNoteTitle;
+
+    private List<ProductOptionGroupResponse> optionGroups;
+
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

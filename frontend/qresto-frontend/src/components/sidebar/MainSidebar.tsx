@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
-import { LayoutDashboard, QrCode, LogOut } from "lucide-react";
+import { NavLink, useLocation } from "react-router-dom";
+import { LayoutDashboard, QrCode, LogOut, UtensilsCrossed, ChevronDown } from "lucide-react";
 
 import { useAuth } from "../../auth/AuthContext";
 import { getRoleHomePath } from "../../auth/routeGuards";
@@ -10,7 +10,12 @@ import darkLogo from "../../assets/qresto_logo_dark.png";
 
 function MainSidebar() {
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [menuDropdownOpen, setMenuDropdownOpen] = useState(true);
     const { user, logout } = useAuth();
+    const location = useLocation();
+    const isMenuProductsSection =
+        location.pathname.startsWith("/app/admin/menu-products") ||
+        location.pathname.startsWith("/app/admin/menu-categories");
 
     useEffect(() => {
         const checkTheme = () => {
@@ -69,16 +74,81 @@ function MainSidebar() {
                 </NavLink>
 
                 {user.role === "ADMIN" ? (
-                    <NavLink
-                        to="/app/tables-qr"
-                        onClick={() => {
-                            window.dispatchEvent(new Event("qresto-qr-page-reset"));
-                        }}
-                        className={navLinkClass}
-                    >
-                        <QrCode size={19} />
-                        Masalar & QR Kodlar
-                    </NavLink>
+                    <>
+                        <button
+                            type="button"
+                            onClick={() => setMenuDropdownOpen((prev) => !prev)}
+                            className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
+                                isMenuProductsSection
+                                    ? "border border-[var(--qresto-primary)]/30 bg-[var(--qresto-hover)] text-[var(--qresto-primary)] shadow-sm"
+                                    : "text-[var(--qresto-muted)] hover:-translate-y-[2px] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
+                            }`}
+                        >
+                            <span className="flex items-center gap-3">
+                                <UtensilsCrossed size={19} />
+                                Menü & Ürün
+                            </span>
+                            <ChevronDown
+                                size={16}
+                                className={`shrink-0 transition-transform ${
+                                    menuDropdownOpen ? "rotate-180" : ""
+                                } ${isMenuProductsSection ? "text-[var(--qresto-primary)]" : "text-[var(--qresto-muted)]"}`}
+                            />
+                        </button>
+
+                        {menuDropdownOpen ? (
+                            <div className="ml-4 flex flex-col gap-1">
+                                <NavLink
+                                    to="/app/admin/menu-products"
+                                    end
+                                    className={({ isActive }) =>
+                                        `rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 ${
+                                            isActive
+                                                ? "bg-[var(--qresto-primary)] text-white shadow-md shadow-orange-200/50"
+                                                : "text-[var(--qresto-muted)] hover:-translate-y-[2px] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-md hover:shadow-orange-200/20"
+                                        }`
+                                    }
+                                >
+                                    Genel Menü
+                                </NavLink>
+                                <NavLink
+                                    to="/app/admin/menu-categories"
+                                    className={({ isActive }) =>
+                                        `rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 ${
+                                            isActive
+                                                ? "bg-[var(--qresto-primary)] text-white shadow-md shadow-orange-200/50"
+                                                : "text-[var(--qresto-muted)] hover:-translate-y-[2px] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-md hover:shadow-orange-200/20"
+                                        }`
+                                    }
+                                >
+                                    Kategoriler
+                                </NavLink>
+                                <NavLink
+                                    to="/app/admin/menu-products/create"
+                                    className={({ isActive }) =>
+                                        `rounded-lg px-3 py-2 text-sm font-semibold transition-all duration-200 ${
+                                            isActive
+                                                ? "bg-[var(--qresto-primary)] text-white shadow-md shadow-orange-200/50"
+                                                : "text-[var(--qresto-muted)] hover:-translate-y-[2px] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-md hover:shadow-orange-200/20"
+                                        }`
+                                    }
+                                >
+                                    Ürün Ekle
+                                </NavLink>
+                            </div>
+                        ) : null}
+
+                        <NavLink
+                            to="/app/tables-qr"
+                            onClick={() => {
+                                window.dispatchEvent(new Event("qresto-qr-page-reset"));
+                            }}
+                            className={navLinkClass}
+                        >
+                            <QrCode size={19} />
+                            Masalar & QR Kodlar
+                        </NavLink>
+                    </>
                 ) : null}
             </nav>
 

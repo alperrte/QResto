@@ -20,6 +20,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -57,7 +59,7 @@ public class CartService {
         return toResponse(saved);
     }
 
-    // Sepete ürün ekle
+    // Sepete ürün ekle — aynı ürün ve birebir aynı opsiyon/not ise miktar birleştirilir
     public CartResponse addItem(Long cartId, CartItemCreateRequest request) {
         Cart cart = cartRepository.findById(cartId)
                 .orElseThrow(() -> new IllegalArgumentException("Cart not found: " + cartId));
@@ -66,11 +68,26 @@ public class CartService {
             throw new IllegalArgumentException("Cannot add item to a non-active cart");
         }
 
-        // Menu-Service ile ürün doğrula
         MenuProductOrderInfoResponse productInfo = menuServiceClient.getProductOrderInfo(request.getProductId());
 
         if (!productInfo.getActive() || !productInfo.getInStock()) {
             throw new IllegalArgumentException("Product is not available");
+        }
+
+        Optional<CartItem> mergeTarget = cartItemRepository.findByCartId(cartId).stream()
+                .filter(row -> sameCartLine(row, request))
+                .findFirst();
+
+        if (mergeTarget.isPresent()) {
+            CartItem existing = mergeTarget.get();
+            int newQty = existing.getQuantity() + request.getQuantity();
+            existing.setQuantity(newQty);
+            existing.setLineTotal(
+                    existing.getProductPrice().multiply(BigDecimal.valueOf(newQty))
+            );
+            cartItemRepository.save(existing);
+            recalcCartTotals(cartId);
+            return toResponse(cartRepository.findById(cartId).orElseThrow());
         }
 
         CartItem item = new CartItem();
@@ -85,21 +102,39 @@ public class CartService {
         item.setNote(request.getNote());
         item.setLineTotal(productInfo.getPrice().multiply(BigDecimal.valueOf(request.getQuantity())));
 
-        cart.getItems().add(item);
-        recalcCartTotals(cart);
+        cartItemRepository.save(item);
+        recalcCartTotals(cartId);
 
-        cartRepository.save(cart);
-        return toResponse(cart);
+        return toResponse(cartRepository.findById(cartId).orElseThrow());
     }
 
-    // Sepet toplamını hesapla
-    private void recalcCartTotals(Cart cart) {
-        BigDecimal subtotal = cart.getItems().stream()
+    private static String normalizeOptionField(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        return value.trim();
+    }
+
+    private boolean sameCartLine(CartItem row, CartItemCreateRequest request) {
+        return row.getProductId().equals(request.getProductId())
+                && normalizeOptionField(row.getRemovedIngredients())
+                .equals(normalizeOptionField(request.getRemovedIngredients()))
+                && normalizeOptionField(row.getAddedIngredients())
+                .equals(normalizeOptionField(request.getAddedIngredients()))
+                && normalizeOptionField(row.getNote()).equals(normalizeOptionField(request.getNote()));
+    }
+
+    private void recalcCartTotals(Long cartId) {
+        List<CartItem> items = cartItemRepository.findByCartId(cartId);
+        BigDecimal subtotal = items.stream()
                 .map(CartItem::getLineTotal)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
+        Cart cart = cartRepository.findById(cartId)
+                .orElseThrow(() -> new IllegalArgumentException("Cart not found: " + cartId));
         cart.setSubtotalAmount(subtotal);
-        cart.setTotalAmount(subtotal); // Şimdilik vergisiz = subtotal
+        cart.setTotalAmount(subtotal);
+        cartRepository.save(cart);
     }
 
     // Sepeti döndür
@@ -126,7 +161,8 @@ public class CartService {
         response.setOrderedAt(cart.getOrderedAt());
         response.setClearedAt(cart.getClearedAt());
 
-        response.setItems(cart.getItems().stream().map(item -> {
+        List<CartItem> itemRows = cartItemRepository.findByCartId(cart.getId());
+        response.setItems(itemRows.stream().map(item -> {
             CartItemResponse i = new CartItemResponse();
             i.setId(item.getId());
             i.setProductId(item.getProductId());
@@ -154,7 +190,7 @@ public class CartService {
         return toResponse(cart);
     }
     public CartResponse updateItemQuantity(Long cartId, Long itemId, CartItemQuantityUpdateRequest request) {
-        Cart cart = findActiveCart(cartId);
+        findActiveCart(cartId);
 
         CartItem item = cartItemRepository.findByIdAndCartId(itemId, cartId)
                 .orElseThrow(() -> new IllegalArgumentException("Cart item not found: " + itemId));
@@ -164,31 +200,26 @@ public class CartService {
 
         cartItemRepository.save(item);
 
-        recalcCartTotals(cart);
+        recalcCartTotals(cartId);
 
-        return toResponse(cartRepository.save(cart));
+        return toResponse(cartRepository.findById(cartId).orElseThrow());
     }
     public CartResponse removeItem(Long cartId, Long itemId) {
-        Cart cart = findActiveCart(cartId);
+        findActiveCart(cartId);
 
         CartItem item = cartItemRepository.findByIdAndCartId(itemId, cartId)
                 .orElseThrow(() -> new IllegalArgumentException("Cart item not found: " + itemId));
 
-        cart.getItems().removeIf(cartItem -> cartItem.getId().equals(item.getId()));
         cartItemRepository.delete(item);
 
-        recalcCartTotals(cart);
+        recalcCartTotals(cartId);
 
-        return toResponse(cartRepository.save(cart));
+        return toResponse(cartRepository.findById(cartId).orElseThrow());
     }
     public CartResponse clearCart(Long cartId) {
         Cart cart = findActiveCart(cartId);
 
         cartItemRepository.deleteByCartId(cartId);
-
-        if (cart.getItems() != null) {
-            cart.getItems().clear();
-        }
 
         cart.setSubtotalAmount(BigDecimal.ZERO);
         cart.setTotalAmount(BigDecimal.ZERO);

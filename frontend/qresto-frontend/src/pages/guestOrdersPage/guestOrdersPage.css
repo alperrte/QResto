@@ -1,0 +1,30 @@
+/**
+ * Siparişlerim: sipariş kartları yüklenirken üstten alta kademeli giriş.
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes guest-orders-card-fall {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -32px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .guest-orders-card-enter {
+    --go-idx: 0;
+    animation: guest-orders-card-fall 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(0.06s + var(--go-idx) * 0.085s);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guest-orders-card-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

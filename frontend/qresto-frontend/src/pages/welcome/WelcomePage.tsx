@@ -70,9 +70,10 @@ const WelcomePage = () => {
           className="sticky top-0 z-40 shadow-sm"
           rightAction={
             <HeaderIconButton
-              icon="shopping_basket"
-              label="Sepet"
-              className="text-primary hover:opacity-80 transition-opacity active:scale-95"
+              icon="receipt_long"
+              label="Siparişlerim"
+              onClick={() => navigate("/orders")}
+              className="text-primary hover:opacity-80 transition-opacity active:scale-95 flex h-10 w-10 items-center justify-center rounded-full"
             />
           }
         />
@@ -90,12 +91,14 @@ const WelcomePage = () => {
       }`}
     >
       <div className="welcome-hero-bg welcome-hero-entrance absolute inset-0 z-0 h-full w-full">
-        <div className="welcome-hero-overlay absolute inset-0 z-10" />
         <img
-          alt="QResto hero"
-          className="welcome-hero-photo w-full h-full object-cover"
+          alt="Restoran ortamı"
+          className="welcome-hero-photo absolute inset-0 z-0 h-full w-full object-cover"
           src={HERO_IMAGE_URL}
+          decoding="async"
+          fetchPriority="high"
         />
+        <div className="welcome-hero-overlay absolute inset-0 z-10 pointer-events-none" />
       </div>
 
       <AppHeader
@@ -103,9 +106,10 @@ const WelcomePage = () => {
         titleClassName="tracking-tight"
         rightAction={
           <HeaderIconButton
-            icon="shopping_basket"
-            label="Sepet"
-            className="text-primary hover:opacity-80 transition-opacity active:scale-95"
+            icon="receipt_long"
+            label="Siparişlerim"
+            onClick={() => navigate("/orders")}
+            className="text-primary hover:opacity-80 transition-opacity active:scale-95 flex h-10 w-10 items-center justify-center rounded-full"
           />
         }
       />
