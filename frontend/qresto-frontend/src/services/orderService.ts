@@ -135,7 +135,8 @@ export const getOrdersByTableSession = async (
     tableSessionId: number
 ): Promise<OrderResponse[]> => {
     const response = await orderApi.get<OrderResponse[]>(
-        `/orders/table-session/${tableSessionId}`
+        `/orders/table-session/${tableSessionId}`,
+        { params: { _t: Date.now() } }
     );
 
     return response.data;

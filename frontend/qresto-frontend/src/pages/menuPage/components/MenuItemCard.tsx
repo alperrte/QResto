@@ -32,6 +32,8 @@ const MenuItemCard = ({
                     alt=""
                     src={item.imageUrl}
                     className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
                 />
             </div>
             <div className="p-4 flex flex-col flex-1">

@@ -1,3 +1,4 @@
+import { MENU_ITEM_FALLBACK_IMAGE } from "../../../../constants/defaultMedia";
 import type { MenuCategoryDto, MenuItemListItemDto } from "../../../menuPage/types/menu.types";
 import type {
     MenuProductCreatePayload,
@@ -101,9 +102,7 @@ export const mapItemsToRows = (
             categoryId: cid == null ? "" : String(cid),
             categoryLabel: cid == null ? "Kategorisiz" : (meta?.label ?? "Kategori"),
             categoryActive: cid == null ? null : meta?.active ?? null,
-            imageUrl:
-                item.imageUrl ||
-                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=900&q=80",
+            imageUrl: item.imageUrl || MENU_ITEM_FALLBACK_IMAGE,
             description: item.description ?? "Açıklama bulunmuyor.",
             price,
             priceLabel: `₺${price.toFixed(2)}`,

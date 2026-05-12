@@ -25,12 +25,10 @@
   0% {
     opacity: 0;
     transform: translateX(-38px);
-    filter: blur(1.5px);
   }
   100% {
     opacity: 1;
     transform: translateX(0);
-    filter: blur(0);
   }
 }
 
@@ -38,12 +36,10 @@
   0% {
     opacity: 1;
     transform: translateX(0);
-    filter: blur(0);
   }
   100% {
     opacity: 0.94;
     transform: translateX(-32px);
-    filter: blur(1.2px);
   }
 }
 
@@ -51,12 +47,10 @@
   0% {
     opacity: 0;
     transform: translateX(38px);
-    filter: blur(1.5px);
   }
   100% {
     opacity: 1;
     transform: translateX(0);
-    filter: blur(0);
   }
 }
 
@@ -64,12 +58,10 @@
   0% {
     opacity: 1;
     transform: translateX(0);
-    filter: blur(0);
   }
   100% {
     opacity: 0.94;
     transform: translateX(32px);
-    filter: blur(1.2px);
   }
 }
 

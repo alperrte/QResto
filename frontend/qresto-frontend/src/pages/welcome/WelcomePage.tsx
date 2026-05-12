@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import AppHeader from "../../components/layout/AppHeader";
-import HeaderIconButton from "../../components/ui/HeaderIconButton";
+import qrestoLogoDark from "../../assets/qresto_logo_dark.png";
 import OrderPaymentRatingModal from "../../components/rating/OrderPaymentRatingModal";
 import WelcomeActionButtons from "./components/WelcomeActionButtons";
 import WelcomeInfoCard from "./components/WelcomeInfoCard";
@@ -34,6 +33,13 @@ const readTableSessionId = (): number | null => {
 
 
 
+const countSessionOrdersForListButton = (orders: OrderResponse[]): number =>
+  orders.filter((o) => o.status !== "CANCELLED").length;
+
+/** Bildirim + sallanma: ödendi (PAID) ve iptal hariç */
+const countSessionOrdersNeedingAttention = (orders: OrderResponse[]): number =>
+  orders.filter((o) => o.status !== "CANCELLED" && o.status !== "PAID").length;
+
 const WelcomePage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,6 +51,12 @@ const WelcomePage = () => {
   const onlinePayLoading = false;
   const [payChoiceError, setPayChoiceError] = useState<string | null>(null);
   const [paymentRatingTableSessionId, setPaymentRatingTableSessionId] = useState<number | null>(null);
+  const [paymentRatingOrder, setPaymentRatingOrder] = useState<OrderResponse | null>(null);
+  const [ratingOnlyOrder, setRatingOnlyOrder] = useState<OrderResponse | null>(null);
+  const [sessionOrdersListCount, setSessionOrdersListCount] = useState(0);
+  const [sessionOrdersAttentionCount, setSessionOrdersAttentionCount] = useState(0);
+  const [sessionOrdersFetched, setSessionOrdersFetched] = useState(false);
+
   let tableName =
       sessionStorage.getItem("tableName") ||
       localStorage.getItem("tableName");
@@ -78,6 +90,51 @@ const WelcomePage = () => {
       navigate("/welcome", { replace: true, state: {} });
     }
   }, [location.state, navigate]);
+
+  const refreshSessionOrderCount = useCallback(async () => {
+    const sessionId = readTableSessionId();
+    if (!sessionId) {
+      setSessionOrdersListCount(0);
+      setSessionOrdersAttentionCount(0);
+      setSessionOrdersFetched(true);
+      return;
+    }
+    try {
+      const list = await getOrdersByTableSession(sessionId);
+      setSessionOrdersListCount(countSessionOrdersForListButton(list));
+      setSessionOrdersAttentionCount(countSessionOrdersNeedingAttention(list));
+    } catch (e) {
+      console.error(e);
+      setSessionOrdersListCount(0);
+      setSessionOrdersAttentionCount(0);
+    } finally {
+      setSessionOrdersFetched(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshSessionOrderCount();
+  }, [refreshSessionOrderCount, location.key]);
+
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === "visible") {
+        void refreshSessionOrderCount();
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [refreshSessionOrderCount]);
+
+  useEffect(() => {
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        void refreshSessionOrderCount();
+      }
+    };
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, [refreshSessionOrderCount]);
 
   const handleGoToMenu = () => {
     if (isLeavingToMenu) return;
@@ -132,10 +189,20 @@ const WelcomePage = () => {
     setPaymentRatingTableSessionId(sessionId);
   };
 
-
+  
+  //CONFLICT ÇÖZÜLDÜ HATA BURADA OLABİLİR
+  const handleCloseRatingOnlyModal = () => {
+    setRatingOnlyOrder(null);
+    void refreshSessionOrderCount();
+  };
 
   const handleClosePaymentRatingModal = () => {
-    setPaymentRatingTableSessionId(null);
+    setPaymentRatingTableSessionId(null);    
+    setPaymentRatingOrder(null);
+    void refreshSessionOrderCount();
+    window.setTimeout(() => {
+      void refreshSessionOrderCount();
+    }, 500);
   };
 
   const handleConfirmServiceCall = async () => {
@@ -207,18 +274,7 @@ const WelcomePage = () => {
       !localStorage.getItem("tableId")
   ) {
     return (
-      <div className="app-surface-page route-enter-from-left min-h-screen">
-        <AppHeader
-          className="sticky top-0 z-40 shadow-sm"
-          rightAction={
-            <HeaderIconButton
-              icon="receipt_long"
-              label="Siparişlerim"
-              onClick={() => navigate("/orders")}
-              className="text-primary hover:opacity-80 transition-opacity active:scale-95 flex h-10 w-10 items-center justify-center rounded-full"
-            />
-          }
-        />
+      <div className="app-surface-page route-enter-from-left relative min-h-screen">
         <div className="flex items-center justify-center p-6">
           <p className="text-lg welcome-redirect-hint">Yönlendiriliyorsunuz…</p>
         </div>
@@ -243,28 +299,31 @@ const WelcomePage = () => {
         <div className="welcome-hero-overlay absolute inset-0 z-10 pointer-events-none" />
       </div>
 
-      <AppHeader
-        className="welcome-topbar welcome-topbar-reveal sticky top-0 z-50 shadow-sm"
-        titleClassName="tracking-tight"
-        rightAction={
-          <HeaderIconButton
-            icon="receipt_long"
-            label="Siparişlerim"
-            onClick={() => navigate("/orders")}
-            className="text-primary hover:opacity-80 transition-opacity active:scale-95 flex h-10 w-10 items-center justify-center rounded-full"
+      <main className="z-20 mx-auto flex min-h-0 w-full max-w-4xl flex-grow flex-col items-center justify-center px-container-margin pb-10 pt-[max(1.25rem,calc(env(safe-area-inset-top,0px)+0.75rem))] md:pb-16 md:pt-10">
+        <div className="flex w-full max-w-lg flex-col items-center">
+          <img
+            src={qrestoLogoDark}
+            alt="QResto"
+            className="welcome-brand-logo welcome-topbar-reveal mx-auto mb-4 block max-w-full select-none md:mb-5"
+            draggable={false}
+            decoding="async"
           />
-        }
-      />
-
-      <main className="flex-grow z-20 flex flex-col justify-center items-center px-container-margin py-10 md:py-16 max-w-4xl mx-auto w-full">
-        <div className="w-full max-w-lg flex flex-col gap-stack-md">
-          <WelcomeInfoCard useDevPreview={useDevPreview} tableName={tableName} />
-          <WelcomeActionButtons
-            onGoToMenu={handleGoToMenu}
-            onCallWaiter={() => handleOpenServiceModal("waiter")}
-            onOpenPayMenu={handleOpenPayChoice}
-            isLeavingToMenu={isLeavingToMenu}
-          />
+          <div className="flex w-full flex-col gap-stack-md">
+            <WelcomeInfoCard
+              useDevPreview={useDevPreview}
+              tableName={tableName}
+              sessionOrdersListCount={sessionOrdersListCount}
+              sessionOrdersAttentionCount={sessionOrdersAttentionCount}
+              sessionOrdersFetched={sessionOrdersFetched}
+              onOpenOrders={() => navigate("/orders")}
+            />
+            <WelcomeActionButtons
+              onGoToMenu={handleGoToMenu}
+              onCallWaiter={() => handleOpenServiceModal("waiter")}
+              onOpenPayMenu={handleOpenPayChoice}
+              isLeavingToMenu={isLeavingToMenu}
+            />
+          </div>
         </div>
       </main>
       <WelcomeServiceModal
