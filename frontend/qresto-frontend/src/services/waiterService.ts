@@ -1,14 +1,52 @@
 import axios from "axios";
+import { refreshTokenRequest } from "../auth/authService";
+import { authStorage } from "../auth/authStorage";
 
 export const WAITER_API_URL = "http://localhost:7074";
 const QR_API_URL =
     import.meta.env.VITE_QR_SERVICE_URL || "http://localhost:7072/api";
 
-function getAuthHeader() {
+let refreshPromise: Promise<string | null> | null = null;
+
+function getTokenExpMs(token: string | null) {
+    if (!token) return 0;
+
+    try {
+        const payload = JSON.parse(atob(token.split(".")[1])) as { exp?: number };
+        return payload.exp ? payload.exp * 1000 : 0;
+    } catch {
+        return 0;
+    }
+}
+
+async function getValidAccessToken() {
     const token =
-        localStorage.getItem("qresto-access-token") ||
+        authStorage.getAccessToken() ||
         localStorage.getItem("token") ||
         localStorage.getItem("accessToken");
+
+    const expMs = getTokenExpMs(token);
+    const shouldRefresh = token && expMs > 0 && expMs - Date.now() < 90_000;
+
+    if (!shouldRefresh) return token;
+
+    if (!refreshPromise) {
+        refreshPromise = refreshTokenRequest(authStorage.getRefreshToken() || "")
+            .then((response) => {
+                authStorage.setTokens(response);
+                return response.accessToken;
+            })
+            .catch(() => token)
+            .finally(() => {
+                refreshPromise = null;
+            });
+    }
+
+    return refreshPromise;
+}
+
+async function getAuthHeader() {
+    const token = await getValidAccessToken();
 
     return {
         Authorization: token ? `Bearer ${token}` : "",
@@ -120,7 +158,7 @@ export const getOrderDetail = async (
     const response = await axios.get<OrderDetailResponse>(
         `${WAITER_API_URL}/waiter/orders/${orderId}/detail`,
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -130,7 +168,7 @@ export async function getAllCalls() {
     const response = await axios.get<TableCallResponse[]>(
         `${WAITER_API_URL}/waiter/calls`,
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -141,7 +179,7 @@ export async function getActiveCalls() {
     const response = await axios.get<TableCallResponse[]>(
         `${WAITER_API_URL}/waiter/calls/active`,
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -164,7 +202,7 @@ export async function resolveCall(callId: number, resolvedBy: string) {
             resolvedBy,
         },
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -175,7 +213,7 @@ export async function getTables() {
     const response = await axios.get<QrTableResponse[]>(
         `${WAITER_API_URL}/waiter/tables`,
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -186,7 +224,7 @@ export async function getReadyOrders() {
     const response = await axios.get<KitchenOrderResponse[]>(
         `${WAITER_API_URL}/waiter/orders/ready`,
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -197,7 +235,7 @@ export async function getCancelledOrders() {
     const response = await axios.get<KitchenOrderResponse[]>(
         `${WAITER_API_URL}/waiter/orders/cancelled`,
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -209,7 +247,7 @@ export async function markOrderServed(orderId: number) {
         `${WAITER_API_URL}/waiter/orders/${orderId}/served`,
         {},
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -220,7 +258,7 @@ export async function getActiveTableSession(tableId: number): Promise<TableSessi
         const response = await axios.get<TableSessionResponse>(
             `${QR_API_URL}/table-sessions/active/table/${tableId}`,
             {
-                headers: getAuthHeader(),
+                headers: await getAuthHeader(),
             }
         );
 
@@ -237,7 +275,7 @@ export async function getActiveOrders() {
     const response = await axios.get<KitchenOrderResponse[]>(
         `${WAITER_API_URL}/waiter/orders/active`,
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -251,7 +289,7 @@ export async function refreshTableSession(
         const response = await axios.get<TableSessionResponse | "">(
             `${WAITER_API_URL}/waiter/tables/${tableId}/session/refresh`,
             {
-                headers: getAuthHeader(),
+                headers: await getAuthHeader(),
             }
         );
 
@@ -265,7 +303,7 @@ export async function closeTableSession(tableId: number) {
         `${WAITER_API_URL}/waiter/tables/${tableId}/session/close`,
         {},
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
@@ -276,7 +314,7 @@ export async function closeTableSessionByWaiter(tableSessionId: number) {
         `${WAITER_API_URL}/waiter/table-sessions/${tableSessionId}/close-by-waiter`,
         {},
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
     return response.data;
@@ -288,7 +326,7 @@ export async function markBillPaid(callId: number, resolvedBy: string) {
             resolvedBy,
         },
         {
-            headers: getAuthHeader(),
+            headers: await getAuthHeader(),
         }
     );
 
