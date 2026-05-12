@@ -29,5 +29,14 @@ public class TableSessionController {
     @PatchMapping("/{tableSessionId}/close-by-waiter")
     public void closeSessionByWaiter(@PathVariable Long tableSessionId) {
         tableSessionService.closeSessionByWaiter(tableSessionId);
+
+    @PatchMapping("/{tableSessionId}/payment-pending")
+    public TableSessionResponse markPaymentPending(@PathVariable Long tableSessionId) {
+        return tableSessionService.markPaymentPending(tableSessionId);
+    }
+
+    @PatchMapping("/{tableSessionId}/close-after-payment")
+    public TableSessionResponse closeAfterPayment(@PathVariable Long tableSessionId) {
+        return tableSessionService.closeAfterPayment(tableSessionId);
     }
 }

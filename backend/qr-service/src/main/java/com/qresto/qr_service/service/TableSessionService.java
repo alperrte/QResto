@@ -14,7 +14,9 @@ import com.qresto.qr_service.repository.TableQrCodeRepository;
 import com.qresto.qr_service.repository.TableSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -182,5 +184,60 @@ public class TableSessionService {
                 .orderAllowed(orderAllowed)
                 .message(message)
                 .build();
+    }
+
+    @Transactional
+    public TableSessionResponse markPaymentPending(Long tableSessionId) {
+        TableSession tableSession = tableSessionRepository.findById(tableSessionId)
+                .orElseThrow(() -> new RuntimeException("Table session not found: " + tableSessionId));
+
+        if (
+                tableSession.getStatus() == TableSessionStatus.COMPLETED ||
+                        tableSession.getStatus() == TableSessionStatus.CANCELLED ||
+                        tableSession.getStatus() == TableSessionStatus.EXPIRED ||
+                        tableSession.getStatus() == TableSessionStatus.CLOSED_BY_WAITER ||
+                        tableSession.getStatus() == TableSessionStatus.CLOSED_BY_ADMIN
+        ) {
+            throw new RuntimeException("Kapalı masa oturumu ödeme bekleniyor durumuna alınamaz");
+        }
+
+        tableSession.setStatus(TableSessionStatus.PAYMENT_PENDING);
+        tableSession.setLastActivityAt(LocalDateTime.now());
+
+        TableSession savedSession = tableSessionRepository.save(tableSession);
+
+        return mapToResponse(savedSession);
+    }
+
+    @Transactional
+    public TableSessionResponse closeAfterPayment(Long tableSessionId) {
+        TableSession tableSession = tableSessionRepository.findById(tableSessionId)
+                .orElseThrow(() -> new RuntimeException("Table session not found: " + tableSessionId));
+
+        LocalDateTime now = LocalDateTime.now();
+
+        tableSession.setStatus(TableSessionStatus.COMPLETED);
+        tableSession.setClosedAt(now);
+        tableSession.setCloseReason("PAYMENT_COMPLETED");
+        tableSession.setLastActivityAt(now);
+
+        List<GuestSession> guestSessions =
+                guestSessionRepository.findByTableSessionIdAndStatus(
+                        tableSessionId,
+                        GuestSessionStatus.ACTIVE
+                );
+
+        for (GuestSession guestSession : guestSessions) {
+            guestSession.setStatus(GuestSessionStatus.CLOSED);
+            guestSession.setClosedAt(now);
+            guestSession.setCloseReason("PAYMENT_COMPLETED");
+            guestSession.setLastActivityAt(now);
+        }
+
+        guestSessionRepository.saveAll(guestSessions);
+
+        TableSession savedSession = tableSessionRepository.save(tableSession);
+
+        return mapToResponse(savedSession);
     }
 }

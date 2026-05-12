@@ -275,6 +275,13 @@ export async function closeTableSessionByWaiter(tableSessionId: number) {
     const response = await axios.patch(
         `${WAITER_API_URL}/waiter/table-sessions/${tableSessionId}/close-by-waiter`,
         {},
+
+export async function markBillPaid(callId: number, resolvedBy: string) {
+    const response = await axios.patch<TableCallResponse>(
+        `${WAITER_API_URL}/waiter/calls/${callId}/mark-paid`,
+        {
+            resolvedBy,
+        },
         {
             headers: getAuthHeader(),
         }

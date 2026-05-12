@@ -3,7 +3,7 @@ IF EXISTS (
     SELECT 1
     FROM sys.foreign_keys fk
     INNER JOIN sys.tables t ON t.object_id = fk.parent_object_id
-    INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
+    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
     WHERE fk.name = N'FK_product_category'
       AND t.name = N'product'
       AND s.name = N'menu'
@@ -16,7 +16,7 @@ IF EXISTS (
     SELECT 1
     FROM sys.columns c
     INNER JOIN sys.tables t ON t.object_id = c.object_id
-    INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
+    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
     WHERE t.name = N'product'
       AND s.name = N'menu'
       AND c.name = N'category_id'
@@ -30,7 +30,7 @@ IF NOT EXISTS (
     SELECT 1
     FROM sys.foreign_keys fk
     INNER JOIN sys.tables t ON t.object_id = fk.parent_object_id
-    INNER JOIN sys.schemas s ON s.schema_id = t.schema_id
+    INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
     WHERE fk.name = N'FK_product_category'
       AND t.name = N'product'
       AND s.name = N'menu'

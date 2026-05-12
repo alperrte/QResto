@@ -7,6 +7,7 @@ import com.qresto.order_service.dto.client.QrOrderContextResponse;
 import com.qresto.order_service.dto.request.DemoPaymentRequest;
 import com.qresto.order_service.dto.request.OrderCancelRequest;
 import com.qresto.order_service.dto.request.OrderStatusUpdateRequest;
+import com.qresto.order_service.dto.response.OrderAdminSummaryResponse;
 import com.qresto.order_service.dto.response.OrderItemResponse;
 import com.qresto.order_service.dto.response.OrderResponse;
 import com.qresto.order_service.entity.Cart;
@@ -25,6 +26,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.RestTemplate;
+
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.stereotype.Service;
@@ -92,14 +95,25 @@ public class OrderService {
                 throw new IllegalArgumentException("Product is not available: " + cartItem.getProductId());
             }
 
-            BigDecimal currentPrice = productInfo.getPrice();
-            BigDecimal lineTotal = currentPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
+            BigDecimal catalogBase = productInfo.getPrice();
+            BigDecimal unitPrice = cartItem.getProductPrice();
+            if (unitPrice.compareTo(catalogBase) < 0) {
+                throw new IllegalArgumentException("Cart line unit price below catalog base for product: " + cartItem.getProductId());
+            }
+            BigDecimal lineTotal = unitPrice.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
             orderItem.setProductId(productInfo.getId());
             orderItem.setProductName(productInfo.getName());
-            orderItem.setProductPrice(currentPrice);
+
+              //  CONFLİCT OLABİLİR --->> silinen satır
+              //  orderItem.setProductPrice(currentPrice);
+
+              // eklenen -->>   orderItem.setProductPrice(unitPrice);
+
+
+            orderItem.setProductPrice(unitPrice);
             orderItem.setVatIncluded(productInfo.getVatIncluded());
             orderItem.setQuantity(cartItem.getQuantity());
             orderItem.setRemovedIngredients(cartItem.getRemovedIngredients());
@@ -291,6 +305,7 @@ public class OrderService {
         response.setProductId(item.getProductId());
         response.setProductName(item.getProductName());
         response.setProductPrice(item.getProductPrice());
+        response.setProductImageUrl(item.getProductImageUrl());
         response.setVatIncluded(item.getVatIncluded());
         response.setQuantity(item.getQuantity());
         response.setRemovedIngredients(item.getRemovedIngredients());
@@ -348,10 +363,19 @@ public class OrderService {
             throw new IllegalArgumentException("Bu sipariş zaten ödenmiş");
         }
 
+        LocalDateTime now = LocalDateTime.now();
+
         order.setStatus(OrderStatus.PAID);
-        order.setPaidAt(LocalDateTime.now());
+        order.setPaidAt(now);
+        order.setCompletedAt(now);
 
         CustomerOrder savedOrder = customerOrderRepository.save(order);
+
+        try {
+            qrServiceClient.closeTableSessionAfterPayment(savedOrder.getTableSessionId());
+        } catch (Exception exception) {
+            throw new RuntimeException("Ödeme alındı fakat masa oturumu kapatılamadı", exception);
+        }
 
         try {
             sendOrderEvent(savedOrder);
@@ -360,8 +384,9 @@ public class OrderService {
 
         return toResponse(savedOrder);
     }
+
     @Transactional(readOnly = true)
-    public List<OrderResponse> getActiveOrders() {
+    public List<OrderResponse> getAdminActiveOrders() {
         List<OrderStatus> activeStatuses = List.of(
                 OrderStatus.RECEIVED,
                 OrderStatus.PREPARING,
@@ -370,10 +395,139 @@ public class OrderService {
                 OrderStatus.PAYMENT_PENDING
         );
 
-        return customerOrderRepository.findByStatusInOrderByCreatedAtDesc(activeStatuses)
+        return customerOrderRepository.findByStatusIn(activeStatuses)
                 .stream()
                 .map(this::toResponse)
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getAdminCompletedOrders() {
+        List<OrderStatus> completedStatuses = List.of(
+                OrderStatus.PAID,
+                OrderStatus.COMPLETED
+        );
+
+        return customerOrderRepository.findByStatusIn(completedStatuses)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getAdminCancelledOrders() {
+        return customerOrderRepository.findByStatus(OrderStatus.CANCELLED)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getTodayOrders() {
+        LocalDate today = LocalDate.now();
+
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = today.plusDays(1).atStartOfDay();
+
+        return customerOrderRepository.findByCreatedAtBetween(start, end)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public OrderAdminSummaryResponse getAdminSummary() {
+        LocalDate today = LocalDate.now();
+
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = today.plusDays(1).atStartOfDay();
+
+        List<OrderStatus> activeStatuses = List.of(
+                OrderStatus.RECEIVED,
+                OrderStatus.PREPARING,
+                OrderStatus.READY,
+                OrderStatus.SERVED,
+                OrderStatus.PAYMENT_PENDING
+        );
+
+        List<OrderStatus> completedStatuses = List.of(
+                OrderStatus.PAID,
+                OrderStatus.COMPLETED
+        );
+
+        List<CustomerOrder> todayOrders = customerOrderRepository.findByCreatedAtBetween(start, end);
+
+        long activeCount = todayOrders.stream()
+                .filter(order -> activeStatuses.contains(order.getStatus()))
+                .count();
+
+        long completedCount = todayOrders.stream()
+                .filter(order -> completedStatuses.contains(order.getStatus()))
+                .count();
+
+        long cancelledCount = todayOrders.stream()
+                .filter(order -> order.getStatus() == OrderStatus.CANCELLED)
+                .count();
+
+        BigDecimal todayRevenue = todayOrders.stream()
+                .filter(order -> completedStatuses.contains(order.getStatus()))
+                .map(CustomerOrder::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        int totalCount = todayOrders.size();
+
+        int operationDensity = totalCount == 0
+                ? 0
+                : Math.min(100, (int) Math.round((activeCount * 100.0) / totalCount));
+
+        OrderAdminSummaryResponse response = new OrderAdminSummaryResponse();
+        response.setActiveOrderCount(activeCount);
+        response.setCompletedOrderCount(completedCount);
+        response.setCancelledOrderCount(cancelledCount);
+        response.setTotalOrderCount((long) totalCount);
+        response.setTodayRevenue(todayRevenue);
+        response.setOperationDensity(operationDensity);
+
+        return response;
+    }
+
+    public List<OrderResponse> markTableSessionOrdersPaid(Long tableSessionId) {
+        List<CustomerOrder> orders = customerOrderRepository.findByTableSessionId(tableSessionId);
+
+        if (orders.isEmpty()) {
+            throw new IllegalArgumentException("Bu masa oturumuna ait sipariş bulunamadı: " + tableSessionId);
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        List<CustomerOrder> payableOrders = orders.stream()
+                .filter(order -> order.getStatus() != OrderStatus.CANCELLED)
+                .filter(order -> order.getStatus() != OrderStatus.PAID)
+                .toList();
+
+        for (CustomerOrder order : payableOrders) {
+            order.setStatus(OrderStatus.PAID);
+            order.setPaidAt(now);
+            order.setCompletedAt(now);
+        }
+
+        List<CustomerOrder> savedOrders = customerOrderRepository.saveAll(payableOrders);
+
+        try {
+            qrServiceClient.closeTableSessionAfterPayment(tableSessionId);
+        } catch (Exception exception) {
+            throw new RuntimeException("Siparişler ödendi fakat masa oturumu kapatılamadı", exception);
+        }
+
+        for (CustomerOrder order : savedOrders) {
+            try {
+                sendOrderEvent(order);
+            } catch (Exception ignored) {
+            }
+        }
+
+        return savedOrders.stream()
+                .map(this::toResponse)
+                .toList();
+    }
 }

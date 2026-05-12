@@ -14,7 +14,7 @@ const parsePositiveInt = (raw: string) => {
     const t = raw.trim();
     if (!t) return null;
     const n = Number(t);
-    if (Number.isNaN(n) || n < 0) return null;
+    if (Number.isNaN(n) || n <= 0) return null;
     return Math.round(n);
 };
 
@@ -141,39 +141,33 @@ const WizardProductPreview = ({
 
                         <div
                             {...rev(
-                                "mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 font-sans text-[0.8125rem] text-on-surface-variant"
+                                "mt-4 flex flex-wrap items-center gap-x-6 gap-y-2 font-sans text-[0.8125rem]"
                             )}
                         >
-                            <span
-                                className={`inline-flex items-center gap-1.5 ${
-                                    prep === null ? "opacity-40" : ""
-                                }`}
-                            >
-                                <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
-                                    schedule
+                            {prep !== null ? (
+                                <span className="inline-flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[18px] text-primary">
+                                        schedule
+                                    </span>
+                                    <span className="font-medium text-on-surface">{prep} dk</span>
                                 </span>
-                                {prep !== null ? `${prep} dk` : "—"}
-                            </span>
-                            <span
-                                className={`inline-flex items-center gap-1.5 ${
-                                    kcal === null ? "opacity-40" : ""
-                                }`}
-                            >
-                                <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
-                                    local_fire_department
+                            ) : null}
+                            {kcal !== null ? (
+                                <span className="inline-flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[18px] text-primary">
+                                        local_fire_department
+                                    </span>
+                                    <span className="font-medium text-on-surface">{kcal} kcal</span>
                                 </span>
-                                {kcal !== null ? `${kcal} kcal` : "—"}
-                            </span>
-                            <span
-                                className={`inline-flex items-center gap-1.5 ${
-                                    gr === null ? "opacity-40" : ""
-                                }`}
-                            >
-                                <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
-                                    scale
+                            ) : null}
+                            {gr !== null ? (
+                                <span className="inline-flex items-center gap-1.5">
+                                    <span className="material-symbols-outlined text-[18px] text-primary">
+                                        scale
+                                    </span>
+                                    <span className="font-medium text-on-surface">{gr} g</span>
                                 </span>
-                                {gr !== null ? `${gr} gr` : "—"}
-                            </span>
+                            ) : null}
                             <span
                                 className={`inline-flex items-center gap-1.5 text-primary transition-opacity ${
                                     ratingActive ? "" : "opacity-40"

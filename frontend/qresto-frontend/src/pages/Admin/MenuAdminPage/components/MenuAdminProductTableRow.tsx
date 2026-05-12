@@ -44,7 +44,9 @@ function MenuAdminProductTableRow({
         <tr
             onClick={onRowClick}
             style={ladderStyle}
-            className={`${ladderClass} cursor-pointer border-l-4 transition-[background-color,box-shadow] ${
+            className={`${ladderClass} relative cursor-pointer border-l-4 transition-[background-color,box-shadow] ${
+                rowMenuOpen ? "z-30" : "z-0"
+            } ${
                 rowSelected
                     ? `border-l-primary ${
                           rowPassive
@@ -129,20 +131,20 @@ function MenuAdminProductTableRow({
                 <AdminStatusBadge active={isEffectivelyActive} />
             </td>
             <td className="p-3 text-right">
-                <div className="relative inline-block">
+                <div className="relative z-[80] inline-block">
                     <button
                         type="button"
                         onClick={(event) => {
                             event.stopPropagation();
                             onToggleRowMenu();
                         }}
-                        className="h-8 w-8 rounded-full hover:bg-surface-container flex items-center justify-center"
+                        className="relative z-[1] h-8 w-8 rounded-full hover:bg-surface-container flex items-center justify-center"
                     >
                         <span className="material-symbols-outlined text-[20px] text-secondary">more_vert</span>
                     </button>
 
                     {rowMenuOpen ? (
-                        <div className="absolute right-0 mt-1 w-36 bg-surface-container-lowest border border-outline-variant rounded-lg shadow-lg z-20 overflow-hidden">
+                        <div className="absolute right-0 top-full z-[100] mt-1 w-36 rounded-lg border border-outline-variant bg-surface-container-lowest py-0.5 shadow-lg ring-1 ring-black/5 dark:ring-white/10">
                             <button
                                 type="button"
                                 onClick={(event) => {

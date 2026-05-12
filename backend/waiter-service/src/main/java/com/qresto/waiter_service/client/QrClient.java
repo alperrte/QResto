@@ -140,3 +140,20 @@ public class QrClient {
     }
 
 }
+
+    public TableSessionResponse markPaymentPending(Long tableSessionId, String token) {
+
+        String url = qrServiceUrl + "/api/table-sessions/" + tableSessionId + "/payment-pending";
+
+        HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
+
+        ResponseEntity<TableSessionResponse> response = restTemplate.exchange(
+                url,
+                HttpMethod.PATCH,
+                entity,
+                TableSessionResponse.class
+        );
+
+        return response.getBody();
+    }
+}

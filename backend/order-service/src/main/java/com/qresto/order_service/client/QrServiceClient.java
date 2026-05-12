@@ -24,4 +24,22 @@ public class QrServiceClient {
                 .retrieve()
                 .body(QrOrderContextResponse.class);
     }
+
+    public void markTableSessionPaymentPending(Long tableSessionId) {
+        restClientBuilder.build()
+                .patch()
+                .uri(qrServiceUrl + "/api/table-sessions/{tableSessionId}/payment-pending",
+                        tableSessionId)
+                .retrieve()
+                .toBodilessEntity();
+    }
+
+    public void closeTableSessionAfterPayment(Long tableSessionId) {
+        restClientBuilder.build()
+                .patch()
+                .uri(qrServiceUrl + "/api/table-sessions/{tableSessionId}/close-after-payment",
+                        tableSessionId)
+                .retrieve()
+                .toBodilessEntity();
+    }
 }

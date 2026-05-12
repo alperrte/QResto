@@ -80,3 +80,5 @@ BEGIN
     CREATE INDEX IX_poc_group_sort
         ON menu.product_option_choice(option_group_id, sort_order);
 END;
+
+-- Ürün başına seçenek verisi: V26__Seed_v23_product_options.sql (V23 demo ürünleri).

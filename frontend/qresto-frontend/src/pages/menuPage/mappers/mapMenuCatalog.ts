@@ -10,6 +10,13 @@ export type MenuCategoryRow = {
     defaultFill?: boolean;
 };
 
+/** Sıfır / null / geçersiz → müşteri arayüzünde gösterme. */
+const optionalPositiveMeta = (value: number | null | undefined): number | null => {
+    if (value == null) return null;
+    const n = Number(value);
+    return Number.isFinite(n) && n > 0 ? n : null;
+};
+
 const ALL_ROW: MenuCategoryRow = {
     id: "all",
     label: "Tümü",
@@ -57,11 +64,49 @@ export const mapListItemToMenuItem = (dto: MenuItemListItemDto): MenuItem => {
         description: dto.description ?? "Açıklama bulunmuyor.",
         priceLabel: `₺${price.toFixed(2)}`,
         imageUrl: dto.imageUrl || "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=900&q=80",
-        prepMinutes: dto.prepTimeMin ?? 0,
-        kcal: dto.calorie ?? 0,
+        prepMinutes: optionalPositiveMeta(dto.prepTimeMin),
+        kcal: optionalPositiveMeta(dto.calorie),
+        gram: optionalPositiveMeta(dto.gram),
         rating: Number(dto.avgRating ?? 0),
         categoryId: dto.categoryId == null ? "" : String(dto.categoryId),
     };
+};
+
+/**
+ * Ham `categoryId` (liste/detay) + seçilen chip id’si.
+ * Boş / kategorisiz → yalnızca `all` iken true.
+ */
+export const categoryIdMatchesMenuFilter = (
+    categoryIdRaw: string,
+    selectedCategory: MenuCategoryFilterId | string
+): boolean => {
+    if (selectedCategory === "all") return true;
+    const cid = categoryIdRaw?.trim() ?? "";
+    if (cid === "") return false;
+    return cid === selectedCategory;
+};
+
+/**
+ * Kategorisiz ürünler (API’de categoryId null) yalnızca «Tümü» seçiliyken gösterilir;
+ * belirli bir kategori seçiliyken listede yer almazlar.
+ */
+export const menuItemMatchesCategoryFilter = (
+    item: MenuItem,
+    selectedCategory: MenuCategoryFilterId
+): boolean => {
+    return categoryIdMatchesMenuFilter(item.categoryId, selectedCategory);
+};
+
+/**
+ * Müşteri menüsü listesi: yalnızca açıkça pasif veya stokta değil olanları ele.
+ * `onlyActive=true` ile gelen satırlarda `active` bazen omit edilebilir; `undefined` → görünür kabul.
+ */
+const isCatalogItemVisibleToCustomer = (i: unknown): i is MenuItemListItemDto => {
+    if (!i || typeof i !== "object") return false;
+    const row = i as MenuItemListItemDto;
+    if (row.active === false) return false;
+    if (row.inStock === false) return false;
+    return true;
 };
 
 export const mapCatalogItemsToMenuItems = (
@@ -71,7 +116,5 @@ export const mapCatalogItemsToMenuItems = (
         return [];
     }
 
-    return items
-        .filter((i) => Boolean(i && i.active && i.inStock))
-        .map((i) => mapListItemToMenuItem(i));
+    return items.filter(isCatalogItemVisibleToCustomer).map((i) => mapListItemToMenuItem(i));
 };

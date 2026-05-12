@@ -78,6 +78,12 @@ public class CartService {
                 .filter(row -> sameCartLine(row, request))
                 .findFirst();
 
+        BigDecimal catalogBase = productInfo.getPrice();
+        BigDecimal requestedUnit = request.getProductPrice();
+        if (requestedUnit.compareTo(catalogBase) < 0) {
+            throw new IllegalArgumentException("Unit price cannot be below catalog base price");
+        }
+
         if (mergeTarget.isPresent()) {
             CartItem existing = mergeTarget.get();
             int newQty = existing.getQuantity() + request.getQuantity();
@@ -94,13 +100,13 @@ public class CartService {
         item.setCart(cart);
         item.setProductId(productInfo.getId());
         item.setProductName(productInfo.getName());
-        item.setProductPrice(productInfo.getPrice());
+        item.setProductPrice(requestedUnit);
         item.setVatIncluded(productInfo.getVatIncluded());
         item.setQuantity(request.getQuantity());
         item.setRemovedIngredients(request.getRemovedIngredients());
         item.setAddedIngredients(request.getAddedIngredients());
         item.setNote(request.getNote());
-        item.setLineTotal(productInfo.getPrice().multiply(BigDecimal.valueOf(request.getQuantity())));
+        item.setLineTotal(requestedUnit.multiply(BigDecimal.valueOf(request.getQuantity())));
 
         cartItemRepository.save(item);
         recalcCartTotals(cartId);

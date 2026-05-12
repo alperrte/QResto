@@ -6,6 +6,7 @@ import {
   LogOut,
   MessageSquareText,
   QrCode,
+  ShoppingBag,
   Star,
   Store,
   UtensilsCrossed,
@@ -26,6 +27,11 @@ function MainSidebar() {
   const isMenuProductsSection =
     location.pathname.startsWith("/app/admin/menu-products") ||
     location.pathname.startsWith("/app/admin/menu-categories");
+
+  const normalizedPath =
+    location.pathname.replace(/\/+$/, "") || "/";
+  const isGeneralMenuListPath =
+    normalizedPath === "/app/admin/menu-products";
 
   useEffect(() => {
     const checkTheme = () => {
@@ -92,30 +98,52 @@ function MainSidebar() {
 
         {user.role === "ADMIN" ? (
           <>
-            <button
-              type="button"
-              onClick={() => setMenuDropdownOpen((prev) => !prev)}
-              className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
-                isMenuProductsSection
-                  ? "border border-[var(--qresto-primary)]/30 bg-[var(--qresto-hover)] text-[var(--qresto-primary)] shadow-sm"
-                  : "text-[var(--qresto-muted)] hover:-translate-y-[2px] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
-              }`}
+            <NavLink
+              to="/app/admin/menu-products"
+              onClick={(event) => {
+                if (menuDropdownOpen && isGeneralMenuListPath) {
+                  event.preventDefault();
+                  setMenuDropdownOpen(false);
+                  return;
+                }
+                setMenuDropdownOpen(true);
+              }}
+              className={({ isActive }) =>
+                `flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
+                  isActive || isMenuProductsSection
+                    ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
+                    : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
+                }`
+              }
             >
-              <span className="flex items-center gap-3">
-                <UtensilsCrossed size={19} />
-                Menü & Ürün
+              <span className="flex min-w-0 items-center gap-3">
+                <UtensilsCrossed size={19} className="shrink-0" />
+                <span className="leading-tight">Menü & Ürün</span>
               </span>
-              <ChevronDown
-                size={16}
-                className={`shrink-0 transition-transform ${
-                  menuDropdownOpen ? "rotate-180" : ""
-                } ${
-                  isMenuProductsSection
-                    ? "text-[var(--qresto-primary)]"
-                    : "text-[var(--qresto-muted)]"
-                }`}
-              />
-            </button>
+
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  setMenuDropdownOpen((prev) => !prev);
+                }}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition hover:bg-white/15"
+                aria-expanded={menuDropdownOpen}
+                aria-label={
+                  menuDropdownOpen
+                    ? "Menü alt öğelerini gizle"
+                    : "Menü alt öğelerini göster"
+                }
+              >
+                <ChevronDown
+                  size={16}
+                  className={`shrink-0 transition-transform ${
+                    menuDropdownOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
+            </NavLink>
 
             {menuDropdownOpen ? (
               <div className="ml-4 flex flex-col gap-1">
@@ -168,6 +196,11 @@ function MainSidebar() {
             >
               <QrCode size={19} />
               Masalar & QR Kodlar
+            </NavLink>
+
+            <NavLink to="/app/admin/orders" className={navLinkClass}>
+              <ShoppingBag size={19} />
+              Siparişler
             </NavLink>
 
             <div className="space-y-2">

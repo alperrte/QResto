@@ -25,6 +25,7 @@ import {
     markOrderServed,
     resolveCall,
     closeTableSessionByWaiter,
+    markBillPaid,
     getActiveTableSession,
     getOrderDetail,
 
@@ -35,6 +36,8 @@ import {
     type TableCallType,
     type TableSessionResponse,
 } from "../../services/waiterService";
+
+
 
 function ensureArray<T>(value: unknown): T[] {
     if (Array.isArray(value)) return value;
@@ -410,7 +413,7 @@ export default function WaiterDashboard() {
                                         });
                                         return next;
                                     });
-                                }, 15000);
+                                }, 5000);
                     }
                 },
                 onWebSocketError: (event) => {
@@ -646,6 +649,31 @@ export default function WaiterDashboard() {
         setOrderDetailOpen(false);
         setSelectedOrder(null);
         setSelectedOrderDetail(null);
+    }
+
+    async function handleMarkBillPaid(callId: number) {
+        try {
+            setActionLoadingId(callId);
+
+            await markBillPaid(callId, userEmail);
+
+            const paidCall = calls.find((c) => c.id === callId);
+
+            if (paidCall?.tableId) {
+                setHeldTableTimestamps((prev) => {
+                    const next = new Map(prev);
+                    next.delete(paidCall.tableId!);
+                    return next;
+                });
+            }
+
+            await loadDashboard();
+        } catch (err) {
+            console.error(err);
+            setError("Hesap ödendi olarak işaretlenemedi.");
+        } finally {
+            setActionLoadingId(null);
+        }
     }
 
     async function handleMarkOrderServed(orderId: number) {
@@ -935,7 +963,14 @@ export default function WaiterDashboard() {
                                             </div>
 
                                             <button
-                                                onClick={() => handleResolveCall(call.id)}
+                                                onClick={() => {
+                                                    if (call.callType === "BILL_REQUEST") {
+                                                        void handleMarkBillPaid(call.id);
+                                                        return;
+                                                    }
+
+                                                    void handleResolveCall(call.id);
+                                                }}
                                                 disabled={actionLoadingId === call.id}
                                                 className="inline-flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:scale-[1.03] disabled:opacity-60"
                                                 style={{
@@ -948,7 +983,7 @@ export default function WaiterDashboard() {
                                                 ) : (
                                                     <CheckCircle2 size={15} />
                                                 )}
-                                                Tamamlandı
+                                                {call.callType === "BILL_REQUEST" ? "Hesap Ödendi" : "Tamamlandı"}
                                             </button>
                                         </div>
                                     </div>
