@@ -41,7 +41,9 @@ const Cart = () => {
     null
   );
 
-  const storedCartId = sessionStorage.getItem("qresto_cart_id");
+  const storedCartId =
+    sessionStorage.getItem("qresto_cart_id") ??
+    localStorage.getItem("qresto_cart_id");
   const cartId = storedCartId ? Number(storedCartId) : null;
 
   const cartItems = cart?.items ?? [];
@@ -209,6 +211,7 @@ const Cart = () => {
       //ORDER CONFLICT OLABILIR KONTROL ET
 
       sessionStorage.removeItem("qresto_cart_id");
+      localStorage.removeItem("qresto_cart_id");
       setCart(null);
 
       setOrderCelebration({ orderNo: order.orderNo });

@@ -32,8 +32,10 @@ const MenuDetailAddToCartButton = ({
         setFeedback({ open: true, variant, message });
     };
 
+    /** Önce session, yoksa local — QR verisi genelde session’da; sekme/yenileme senaryoları için local yedek. */
     const getStorageNumber = (key: string): number | null => {
-        const value = sessionStorage.getItem(key);
+        const value =
+            sessionStorage.getItem(key) ?? localStorage.getItem(key);
 
         if (!value) {
             return null;
@@ -86,7 +88,9 @@ const MenuDetailAddToCartButton = ({
             tableName
         );
 
-        sessionStorage.setItem("qresto_cart_id", String(createdCart.id));
+        const idStr = String(createdCart.id);
+        sessionStorage.setItem("qresto_cart_id", idStr);
+        localStorage.setItem("qresto_cart_id", idStr);
 
         return createdCart.id;
     };
@@ -106,7 +110,11 @@ const MenuDetailAddToCartButton = ({
             return false;
         }
 
-        if (item.productPrice === undefined || item.productPrice < 0) {
+        if (
+            item.productPrice === undefined ||
+            item.productPrice < 0 ||
+            !Number.isFinite(item.productPrice)
+        ) {
             return false;
         }
 
@@ -152,7 +160,8 @@ const MenuDetailAddToCartButton = ({
             try {
                 await tryAdd(cartId);
             } catch (firstError) {
-                /* Eski sipariş sonrası kalan sepet ID’si ORDERED olabilir — bir kez temizleyip yeni sepetle yeniden dene */
+                /* Sepet ID’si artık geçersiz / kapalı olabilir — önce saklamayı temizle (ID session’da tutuluyordu). */
+                sessionStorage.removeItem("qresto_cart_id");
                 localStorage.removeItem("qresto_cart_id");
                 const freshId = await getOrCreateCartId();
                 if (!freshId) {

@@ -1,10 +1,13 @@
+import type { RatingSummaryResponse } from "../../../types/ratingTypes";
+
 type MenuDetailSummaryProps = {
     name: string;
     description: string;
     basePriceFormatted: string;
     prepMinutes: number;
     kcal: number;
-    rating: number;
+    ratingSummary: RatingSummaryResponse | null;
+    ratingLoading: boolean;
     animationDelayMs?: string;
 };
 
@@ -14,9 +17,13 @@ const MenuDetailSummary = ({
     basePriceFormatted,
     prepMinutes,
     kcal,
-    rating,
+    ratingSummary,
+    ratingLoading,
     animationDelayMs = "140ms",
 }: MenuDetailSummaryProps) => {
+    const hasRatings =
+        ratingSummary != null && Number(ratingSummary.totalRatingCount ?? 0) > 0;
+
     return (
         <section
             className="flex flex-col gap-stack-sm menu-detail-fade-up"
@@ -29,7 +36,7 @@ const MenuDetailSummary = ({
                 </span>
             </div>
             <p className="font-sans text-body-lg text-on-surface-variant">{description}</p>
-            <div className="flex items-center gap-6 mt-2 pb-6 border-b border-outline-variant/30">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mt-2 pb-6 border-b border-outline-variant/30">
                 <div className="flex items-center gap-1.5 text-on-surface-variant">
                     <span className="material-symbols-outlined text-[20px]">schedule</span>
                     <span className="text-body-sm">{prepMinutes} dk</span>
@@ -40,12 +47,24 @@ const MenuDetailSummary = ({
                     </span>
                     <span className="text-body-sm">{kcal} kcal</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-primary">
-                    <span className="material-symbols-outlined text-[20px]" data-weight="fill">
-                        star
+                {ratingLoading ? (
+                    <span className="text-body-sm italic text-on-surface-variant/80">
+                        Puan yükleniyor…
                     </span>
-                    <span className="font-bold text-label-bold">{rating}</span>
-                </div>
+                ) : hasRatings ? (
+                    <div className="flex items-center gap-1.5 text-primary">
+                        <span className="material-symbols-outlined text-[20px]" data-weight="fill">
+                            star
+                        </span>
+                        <span className="font-bold text-label-bold">
+                            {ratingSummary!.averageRating.toFixed(1)}
+                        </span>
+                    </div>
+                ) : (
+                    <span className="text-body-sm italic text-on-surface-variant max-w-[min(100%,220px)] leading-snug">
+                        Henüz değerlendirme yok
+                    </span>
+                )}
             </div>
         </section>
     );
