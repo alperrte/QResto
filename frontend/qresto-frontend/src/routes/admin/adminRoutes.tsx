@@ -10,7 +10,7 @@ import ProductSetupWizardPage from "../../pages/Admin/MenuAdminPage/ProductWizar
 import QrGeneratorPage from "../../pages/qrPage/QrGeneratorPage";
 import WaiterDashboardPage from "../../pages/waiter/WaiterDashboard";
 import KitchenDashboardPage from "../../pages/kitchen/KitchenDashboardPage";
-
+import KitchenOrdersPage from "../../pages/kitchen/KitchenOrdersPage";
 import RatingSettingsPage from "../../pages/rating/RatingSettingsPage";
 import RestaurantRatingsPage from "../../pages/rating/RestaurantRatingsPage";
 import ProductRatingsPage from "../../pages/rating/ProductRatingsPage";
@@ -54,6 +54,7 @@ const adminRoutes: React.ReactNode = (
 
         <Route element={<RoleRoute allowedRoles={["KITCHEN"]} />}>
             <Route path="kitchen/dashboard" element={<KitchenDashboardPage />} />
+            <Route path="kitchen/orders" element={<KitchenOrdersPage />} />
         </Route>
     </Route>
 );
