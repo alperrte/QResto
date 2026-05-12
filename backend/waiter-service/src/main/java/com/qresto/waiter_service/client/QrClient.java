@@ -112,6 +112,22 @@ public class QrClient {
 
         return response.getBody();
     }
+
+    public TableSessionResponse markPaymentPending(Long tableSessionId, String token) {
+
+        String url = qrServiceUrl + "/api/table-sessions/" + tableSessionId + "/payment-pending";
+
+        HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
+
+        ResponseEntity<TableSessionResponse> response = restTemplate.exchange(
+                url,
+                HttpMethod.PATCH,
+                entity,
+                TableSessionResponse.class
+        );
+
+        return response.getBody();
+    }
     public void closeSessionByWaiter(Long tableSessionId, String token) {
 
         String url = qrServiceUrl + "/api/table-sessions/" + tableSessionId + "/close-by-waiter";
@@ -137,23 +153,5 @@ public class QrClient {
                 entity,
                 Void.class
         );
-    }
-
-}
-
-    public TableSessionResponse markPaymentPending(Long tableSessionId, String token) {
-
-        String url = qrServiceUrl + "/api/table-sessions/" + tableSessionId + "/payment-pending";
-
-        HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
-
-        ResponseEntity<TableSessionResponse> response = restTemplate.exchange(
-                url,
-                HttpMethod.PATCH,
-                entity,
-                TableSessionResponse.class
-        );
-
-        return response.getBody();
     }
 }

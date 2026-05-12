@@ -24,10 +24,6 @@ public class OrderController {
     public ResponseEntity<OrderResponse> createOrderFromCart(@PathVariable Long cartId) {
         return ResponseEntity.ok(orderService.createOrderFromCart(cartId));
     }
-    @GetMapping("/active")
-    public ResponseEntity<List<OrderResponse>> getActiveOrders() {
-        return ResponseEntity.ok(orderService.getActiveOrders());
-    }
 
     @GetMapping("/{orderId}")
     public ResponseEntity<OrderResponse> getOrderById(@PathVariable Long orderId) {

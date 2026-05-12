@@ -61,10 +61,13 @@ public class OrderClient {
                 url,
                 HttpMethod.GET,
                 entity,
-                new ParameterizedTypeReference<List<OrderDetailResponse>>() {}
+                new ParameterizedTypeReference<List<OrderDetailResponse>>() {
+                }
         );
 
         return response.getBody() != null ? response.getBody() : Collections.emptyList();
+    }
+
     public List<OrderResponse> markTableSessionOrdersPaid(Long tableSessionId, String token) {
 
         return restClientBuilder.build()
