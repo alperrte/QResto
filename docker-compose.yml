@@ -198,6 +198,40 @@ services:
 
     restart: unless-stopped
 
+  kitchen-service:
+    build: ./backend/kitchen-service
+    container_name: qresto-kitchen
+    env_file:
+      - .env
+  
+    depends_on:
+      mssql:
+        condition: service_healthy
+      database:
+        condition: service_completed_successfully
+  
+    environment:
+      SERVER_PORT: ${SERVER_PORT_KITCHEN}
+    
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+    
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: ${JWT_EXPIRATION}
+      REFRESH_TOKEN_EXPIRATION: ${REFRESH_TOKEN_EXPIRATION}
+    
+      AUTH_SERVICE_URL: ${AUTH_SERVICE_URL}
+      ORDER_SERVICE_URL: ${ORDER_SERVICE_URL}
+      MENU_SERVICE_URL: ${MENU_SERVICE_URL}
+  
+    ports:
+    - "${SERVER_PORT_KITCHEN}:${SERVER_PORT_KITCHEN}"
+  
+    restart: unless-stopped
+
 volumes:
   mssql_data:
   menu_product_images:
