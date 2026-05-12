@@ -60,7 +60,7 @@ export const mapListItemToMenuItem = (dto: MenuItemListItemDto): MenuItem => {
         prepMinutes: dto.prepTimeMin ?? 0,
         kcal: dto.calorie ?? 0,
         rating: Number(dto.avgRating ?? 0),
-        categoryId: String(dto.categoryId),
+        categoryId: dto.categoryId == null ? "" : String(dto.categoryId),
     };
 };
 

@@ -1,14 +1,21 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import AppHeader from "../../components/layout/AppHeader";
 import HeaderIconButton from "../../components/ui/HeaderIconButton";
+import OrderPaymentRatingModal from "../../components/rating/OrderPaymentRatingModal";
+import OrderRatingModal from "../../components/rating/OrderRatingModal";
 import WelcomeActionButtons from "./components/WelcomeActionButtons";
 import WelcomeInfoCard from "./components/WelcomeInfoCard";
+import WelcomePayChoiceModal from "./components/WelcomePayChoiceModal";
 import WelcomeServiceModal, {
   type ServiceModalStep,
   type ServiceModalType,
 } from "./components/WelcomeServiceModal";
 import { createTableCall } from "../../services/waiterService";
+import { getOrdersByTableSession } from "../../services/orderService";
+import { getRatingSettings } from "../../services/ratingService";
+import { isOrderRatingFlowEnabled } from "../../components/rating/orderRatingFlowGate";
+import type { OrderResponse } from "../../types/cartTypes";
 import {
   DEV_PREVIEW_TABLE,
   HERO_IMAGE_URL,
@@ -18,12 +25,61 @@ import {
 import "./welcomeStyles.css";
 import "./welcomeAnimations.css";
 
+const readTableSessionId = (): number | null => {
+  const raw =
+    sessionStorage.getItem("qresto_table_session_id") ||
+    localStorage.getItem("qresto_table_session_id");
+  if (!raw) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+};
+
+const pickOrderForOnlinePay = (orders: OrderResponse[]): OrderResponse | null => {
+  const eligible = orders.filter((o) => o.status !== "PAID" && o.status !== "CANCELLED");
+  if (eligible.length === 0) return null;
+  return [...eligible].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )[0];
+};
+
+const pickOrderForRatingOnly = (orders: OrderResponse[]): OrderResponse | null => {
+  const unpaid = pickOrderForOnlinePay(orders);
+  if (unpaid) return unpaid;
+  const nonCancelled = orders.filter((o) => o.status !== "CANCELLED");
+  if (nonCancelled.length === 0) return null;
+  return [...nonCancelled].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  )[0];
+};
+
+/** Hesap talebinden sonra: önce ödenmemiş sipariş, yoksa değerlendirme için son sipariş. */
+const fetchOrderForRatingOnly = async (): Promise<OrderResponse | null> => {
+  const sessionId = readTableSessionId();
+  if (!sessionId) return null;
+  const list = await getOrdersByTableSession(sessionId);
+  return pickOrderForRatingOnly(list);
+};
+
+/** Oturumdaki ödenmemiş en yeni siparişi bulur; online ödeme modalı için. */
+const fetchOrderForPaymentRating = async (): Promise<OrderResponse | null> => {
+  const sessionId = readTableSessionId();
+  if (!sessionId) return null;
+  const list = await getOrdersByTableSession(sessionId);
+  return pickOrderForOnlinePay(list);
+};
+
 const WelcomePage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLeavingToMenu, setIsLeavingToMenu] = useState(false);
   const [activeServiceModal, setActiveServiceModal] = useState<ServiceModalType | null>(null);
   const [serviceModalStep, setServiceModalStep] = useState<ServiceModalStep>("confirm");
   const [serviceModalError, setServiceModalError] = useState<string | null>(null);
+  const [payChoiceOpen, setPayChoiceOpen] = useState(false);
+  const [onlinePayLoading, setOnlinePayLoading] = useState(false);
+  const [payChoiceError, setPayChoiceError] = useState<string | null>(null);
+  const [paymentRatingOrder, setPaymentRatingOrder] = useState<OrderResponse | null>(null);
+  const [ratingOnlyOrder, setRatingOnlyOrder] = useState<OrderResponse | null>(null);
   let tableName =
       sessionStorage.getItem("tableName") ||
       localStorage.getItem("tableName");
@@ -49,6 +105,15 @@ const WelcomePage = () => {
     }
   }, [navigate]);
 
+  useEffect(() => {
+    const st = location.state as { openPayChoice?: boolean } | null;
+    if (st?.openPayChoice) {
+      setPayChoiceError(null);
+      setPayChoiceOpen(true);
+      navigate("/welcome", { replace: true, state: {} });
+    }
+  }, [location.state, navigate]);
+
   const handleGoToMenu = () => {
     if (isLeavingToMenu) return;
     setIsLeavingToMenu(true);
@@ -65,9 +130,77 @@ const WelcomePage = () => {
 
   const handleCloseServiceModal = () => {
     if (serviceModalStep === "loading") return;
+    const closedType = activeServiceModal;
+    const closedStep = serviceModalStep;
     setActiveServiceModal(null);
     setServiceModalStep("confirm");
     setServiceModalError(null);
+    /* Hesap talebi onayı tamamlandıktan sonra değerlendirme (ödeme) modalı */
+    if (closedType === "bill" && closedStep === "success") {
+      void (async () => {
+        try {
+          const [settings, order] = await Promise.all([
+            getRatingSettings(),
+            fetchOrderForRatingOnly(),
+          ]);
+          if (!isOrderRatingFlowEnabled(settings)) return;
+          if (order) setRatingOnlyOrder(order);
+        } catch (e) {
+          console.error(e);
+        }
+      })();
+    }
+  };
+
+  const handleOpenPayChoice = () => {
+    setPayChoiceError(null);
+    setPayChoiceOpen(true);
+  };
+
+  const handleClosePayChoice = () => {
+    if (onlinePayLoading) return;
+    setPayChoiceOpen(false);
+    setPayChoiceError(null);
+  };
+
+  const handlePayChoiceBillRequest = () => {
+    if (onlinePayLoading) return;
+    setPayChoiceOpen(false);
+    setPayChoiceError(null);
+    handleOpenServiceModal("bill");
+  };
+
+  const handlePayChoiceOnlinePay = async () => {
+    if (!readTableSessionId()) {
+      setPayChoiceError("Oturum bulunamadı. QR kodu tekrar okutun.");
+      return;
+    }
+    setOnlinePayLoading(true);
+    setPayChoiceError(null);
+    try {
+      const order = await fetchOrderForPaymentRating();
+      if (!order) {
+        setPayChoiceError(
+          "Ödenecek sipariş bulunamadı. Önce menüden sipariş verin veya Siparişlerim sayfasından kontrol edin."
+        );
+        return;
+      }
+      setPayChoiceOpen(false);
+      setPaymentRatingOrder(order);
+    } catch (e) {
+      console.error(e);
+      setPayChoiceError("Siparişler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.");
+    } finally {
+      setOnlinePayLoading(false);
+    }
+  };
+
+  const handleCloseRatingOnlyModal = () => {
+    setRatingOnlyOrder(null);
+  };
+
+  const handleClosePaymentRatingModal = () => {
+    setPaymentRatingOrder(null);
   };
 
   const handleConfirmServiceCall = async () => {
@@ -144,9 +277,10 @@ const WelcomePage = () => {
           className="sticky top-0 z-40 shadow-sm"
           rightAction={
             <HeaderIconButton
-              icon="shopping_basket"
-              label="Sepet"
-              className="text-primary hover:opacity-80 transition-opacity active:scale-95"
+              icon="receipt_long"
+              label="Siparişlerim"
+              onClick={() => navigate("/orders")}
+              className="text-primary hover:opacity-80 transition-opacity active:scale-95 flex h-10 w-10 items-center justify-center rounded-full"
             />
           }
         />
@@ -164,12 +298,14 @@ const WelcomePage = () => {
       }`}
     >
       <div className="welcome-hero-bg welcome-hero-entrance absolute inset-0 z-0 h-full w-full">
-        <div className="welcome-hero-overlay absolute inset-0 z-10" />
         <img
-          alt="QResto hero"
-          className="welcome-hero-photo w-full h-full object-cover"
+          alt="Restoran ortamı"
+          className="welcome-hero-photo absolute inset-0 z-0 h-full w-full object-cover"
           src={HERO_IMAGE_URL}
+          decoding="async"
+          fetchPriority="high"
         />
+        <div className="welcome-hero-overlay absolute inset-0 z-10 pointer-events-none" />
       </div>
 
       <AppHeader
@@ -177,9 +313,10 @@ const WelcomePage = () => {
         titleClassName="tracking-tight"
         rightAction={
           <HeaderIconButton
-            icon="shopping_basket"
-            label="Sepet"
-            className="text-primary hover:opacity-80 transition-opacity active:scale-95"
+            icon="receipt_long"
+            label="Siparişlerim"
+            onClick={() => navigate("/orders")}
+            className="text-primary hover:opacity-80 transition-opacity active:scale-95 flex h-10 w-10 items-center justify-center rounded-full"
           />
         }
       />
@@ -190,7 +327,7 @@ const WelcomePage = () => {
           <WelcomeActionButtons
             onGoToMenu={handleGoToMenu}
             onCallWaiter={() => handleOpenServiceModal("waiter")}
-            onRequestBill={() => handleOpenServiceModal("bill")}
+            onOpenPayMenu={handleOpenPayChoice}
             isLeavingToMenu={isLeavingToMenu}
           />
         </div>
@@ -203,6 +340,21 @@ const WelcomePage = () => {
         onClose={handleCloseServiceModal}
         onConfirm={handleConfirmServiceCall}
       />
+      <WelcomePayChoiceModal
+        isOpen={payChoiceOpen}
+        tableName={tableName}
+        loadingOnline={onlinePayLoading}
+        errorMessage={payChoiceError}
+        onClose={handleClosePayChoice}
+        onSelectOnlinePay={() => void handlePayChoiceOnlinePay()}
+        onSelectBillRequest={handlePayChoiceBillRequest}
+      />
+      {paymentRatingOrder ? (
+        <OrderPaymentRatingModal order={paymentRatingOrder} onClose={handleClosePaymentRatingModal} />
+      ) : null}
+      {ratingOnlyOrder ? (
+        <OrderRatingModal order={ratingOnlyOrder} onClose={handleCloseRatingOnlyModal} />
+      ) : null}
       {serviceModalError ? (
         <div className="fixed bottom-4 left-1/2 z-[110] -translate-x-1/2 rounded-xl bg-red-600 px-4 py-3 text-sm text-white shadow-lg">
           {serviceModalError}

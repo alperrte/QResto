@@ -1,14 +1,14 @@
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "./AuthContext";
-import type { UserRole } from "./auth.types";
+import type { AuthRole } from "./auth.types";
 
-const roleHomePathMap: Record<UserRole, string> = {
+const roleHomePathMap: Record<AuthRole, string> = {
     ADMIN: "/app/admin/dashboard",
     WAITER: "/app/waiter/dashboard",
     KITCHEN: "/app/kitchen/dashboard",
 };
 
-export const getRoleHomePath = (role: UserRole) => roleHomePathMap[role];
+export const getRoleHomePath = (role: AuthRole) => roleHomePathMap[role];
 
 export function RoleHomeRedirect() {
     const { user } = useAuth();
@@ -31,7 +31,7 @@ export function ProtectedRoute() {
     return <Outlet />;
 }
 
-export function RoleRoute({ allowedRoles }: { allowedRoles: UserRole[] }) {
+export function RoleRoute({ allowedRoles }: { allowedRoles: AuthRole[] }) {
     const { user } = useAuth();
 
     if (!user) {

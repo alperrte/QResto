@@ -42,6 +42,24 @@ export type UpdateCartItemQuantityRequest = {
     quantity: number;
 };
 
+export type OrderItemResponse = {
+    id: number;
+    productId: number;
+    productName: string;
+    productPrice: number;
+    vatIncluded: boolean;
+    quantity: number;
+    removedIngredients?: string | null;
+    addedIngredients?: string | null;
+    note?: string | null;
+    lineTotal: number;
+    status?: string;
+    cancelReason?: string | null;
+    cancelledAt?: string | null;
+    createdAt?: string;
+    updatedAt?: string | null;
+};
+
 export type OrderResponse = {
     id: number;
     orderNo: string;
@@ -50,11 +68,33 @@ export type OrderResponse = {
     guestSessionId: number;
     tableId: number;
     tableName: string;
-    status: string;
+    status:
+        | "RECEIVED"
+        | "PREPARING"
+        | "READY"
+        | "SERVED"
+        | "COMPLETED"
+        | "PAYMENT_PENDING"
+        | "PAID"
+        | "CANCELLED";
     subtotalAmount: number;
     vatAmount: number;
     totalAmount: number;
+    cancelReason?: string | null;
     createdAt: string;
     updatedAt: string | null;
-    items: unknown[];
+    receivedAt?: string | null;
+    preparingAt?: string | null;
+    readyAt?: string | null;
+    servedAt?: string | null;
+    completedAt?: string | null;
+    paymentPendingAt?: string | null;
+    paidAt?: string | null;
+    cancelledAt?: string | null;
+    items: OrderItemResponse[];
+};
+
+export type DemoPaymentRequest = {
+    guestSessionId: number;
+    items: OrderItemResponse[];
 };

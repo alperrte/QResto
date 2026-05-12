@@ -1,12 +1,14 @@
 type MenuDetailOrderNoteProps = {
     value: string;
     onChange: (value: string) => void;
+    heading?: string;
     animationDelayMs?: string;
 };
 
 const MenuDetailOrderNote = ({
     value,
     onChange,
+    heading = "Sipariş Notu",
     animationDelayMs = "470ms",
 }: MenuDetailOrderNoteProps) => {
     return (
@@ -15,7 +17,7 @@ const MenuDetailOrderNote = ({
             style={{ animationDelay: animationDelayMs }}
         >
             <label htmlFor="menu-detail-order-note" className="font-headline text-headline-md text-on-surface">
-                Sipariş Notu
+                {heading}
             </label>
             <textarea
                 id="menu-detail-order-note"

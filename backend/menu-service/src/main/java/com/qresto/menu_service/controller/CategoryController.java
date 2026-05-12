@@ -44,4 +44,10 @@ public class CategoryController {
                                                       @RequestParam boolean value) {
         return ResponseEntity.ok(categoryService.setActive(id, value));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        categoryService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
 }

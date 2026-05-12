@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestControllerAdvice
@@ -53,13 +54,46 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleUnexpectedException(Exception ex, HttpServletRequest request) {
+        // Cause zincirinden mesajları topla (FK/constraint hataları genelde alttadır).
+        List<String> messages = new ArrayList<>();
+        Throwable t = ex;
+        while (t != null) {
+            String m = t.getMessage();
+            if (m != null && !m.isBlank()) {
+                messages.add(m.trim());
+            }
+            t = t.getCause();
+        }
+
+        // "Unexpected server error" gibi anlamsız mesajları atlayıp en anlamlısını seç.
+        String msg = messages.stream()
+                .filter(m -> !m.equalsIgnoreCase("Unexpected server error"))
+                .findFirst()
+                .orElseGet(() -> (ex.getMessage() != null && !ex.getMessage().isBlank())
+                        ? ex.getMessage().trim()
+                        : ex.getClass().getSimpleName());
+
+        // details: hem mesajları hem de exception class zincirini ver.
+        List<String> details = new ArrayList<>();
+        details.add(ex.getClass().getSimpleName());
+        if (!messages.isEmpty()) {
+            details.addAll(messages);
+        }
+        if (ex.getCause() != null) {
+            Throwable c = ex.getCause();
+            while (c != null) {
+                details.add(c.getClass().getSimpleName());
+                c = c.getCause();
+            }
+        }
+
         ErrorResponse response = ErrorResponse.builder()
                 .timestamp(LocalDateTime.now())
                 .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                 .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
-                .message("Unexpected server error")
+                .message(msg)
                 .path(request.getRequestURI())
-                .details(List.of(ex.getClass().getSimpleName()))
+                .details(details)
                 .build();
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);

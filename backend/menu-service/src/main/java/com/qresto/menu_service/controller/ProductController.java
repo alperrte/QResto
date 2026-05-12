@@ -65,6 +65,21 @@ public class ProductController {
         return ResponseEntity.ok(productService.setInStock(id, value));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable Long id) {
+        productService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Bazı proxy / istemci ortamlarında DELETE engellenebildiği için silme işlemini POST ile de sunuyoruz.
+     */
+    @PostMapping("/{id}/delete")
+    public ResponseEntity<Void> deleteViaPost(@PathVariable Long id) {
+        productService.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}/order-info")
     public ResponseEntity<ProductOrderInfoResponse> getOrderInfoById(@PathVariable Long id) {
         return ResponseEntity.ok(productService.getOrderInfoById(id));
