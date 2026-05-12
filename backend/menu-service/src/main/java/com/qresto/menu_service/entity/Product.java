@@ -10,6 +10,8 @@ import lombok.ToString;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "product", schema = "menu")
@@ -23,8 +25,8 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "category_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "category_id", nullable = true)
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     private Category category;
@@ -76,6 +78,16 @@ public class Product {
 
     @Column(name = "in_stock", nullable = false)
     private Boolean inStock = true;
+
+    @Column(name = "order_note_enabled", nullable = false)
+    private Boolean orderNoteEnabled = false;
+
+    @Column(name = "order_note_title", length = 200)
+    private String orderNoteTitle;
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC")
+    private List<ProductOptionGroup> optionGroups = new ArrayList<>();
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;

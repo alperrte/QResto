@@ -4,7 +4,10 @@ import com.qresto.menu_service.dto.category.CategoryCreateRequest;
 import com.qresto.menu_service.dto.category.CategoryResponse;
 import com.qresto.menu_service.dto.category.CategoryUpdateRequest;
 import com.qresto.menu_service.entity.Category;
+import com.qresto.menu_service.entity.SubCategory;
 import com.qresto.menu_service.repository.CategoryRepository;
+import com.qresto.menu_service.repository.ProductRepository;
+import com.qresto.menu_service.repository.SubCategoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +20,8 @@ import java.util.List;
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final ProductRepository productRepository;
+    private final SubCategoryRepository subCategoryRepository;
 
     public CategoryResponse create(CategoryCreateRequest request) {
         if (categoryRepository.existsByNameIgnoreCase(request.getName().trim())) {
@@ -70,6 +75,28 @@ public class CategoryService {
                 .orElseThrow(() -> new IllegalArgumentException("Category not found: " + id));
         category.setActive(active);
         return toResponse(categoryRepository.save(category));
+    }
+
+    /**
+     * Alt kategorileri ve ürün alt kategori bağlarını temizler; ürünlerin kategori_id değeri
+     * veritabanı ON DELETE SET NULL ile kategorisiz kalır.
+     */
+    public void delete(Long id) {
+        Category category = categoryRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Category not found: " + id));
+
+        // Kategori silmeden önce ürünlerdeki category bağını NULL'la.
+        // Böylece ON DELETE davranışı DB'de beklenmedik şekilde kısıtlıysa bile silme çalışır.
+        productRepository.clearCategoryForCategoryId(id);
+
+        List<Long> subIds = subCategoryRepository.findByCategoryId(id).stream()
+                .map(SubCategory::getId)
+                .toList();
+        if (!subIds.isEmpty()) {
+            productRepository.clearSubCategoryForSubCategoryIds(subIds);
+            subCategoryRepository.deleteAllById(subIds);
+        }
+        categoryRepository.delete(category);
     }
 
     private CategoryResponse toResponse(Category category) {

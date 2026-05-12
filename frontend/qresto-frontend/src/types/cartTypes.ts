@@ -42,6 +42,24 @@ export type UpdateCartItemQuantityRequest = {
     quantity: number;
 };
 
+export type OrderItemResponse = {
+    id: number;
+    productId: number;
+    productName: string;
+    productPrice: number;
+    vatIncluded: boolean;
+    quantity: number;
+    removedIngredients?: string | null;
+    addedIngredients?: string | null;
+    note?: string | null;
+    lineTotal: number;
+    status?: string;
+    cancelReason?: string | null;
+    cancelledAt?: string | null;
+    createdAt?: string;
+    updatedAt?: string | null;
+};
+
 export type OrderResponse = {
     id: number;
     orderNo: string;
@@ -56,5 +74,5 @@ export type OrderResponse = {
     totalAmount: number;
     createdAt: string;
     updatedAt: string | null;
-    items: unknown[];
+    items: OrderItemResponse[];
 };

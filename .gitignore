@@ -11,6 +11,8 @@
 # -------------------------------
 
 target/
+# menu-service yerel ürün görseli yüklemeleri (qresto.menu.product-images-dir)
+backend/menu-service/data/
 *.log
 *.class
 *.jar
@@ -120,17 +122,17 @@ coverage/
 *.lcov
 
 # -------------------------------
+
 # 🗂 Uploads / Static Files
+
 # -------------------------------
 
 uploads/
 cvs/
-
-# sadece upload edilen dosyaları ignore et
-uploads/**/*.pdf
-uploads/**/*.png
-uploads/**/*.jpg
-uploads/**/*.jpeg
+*.pdf
+*.png
+*.jpg
+*.jpeg
 
 # -------------------------------
 
@@ -152,3 +154,15 @@ uploads/**/*.jpeg
 *.swo
 *.tmp
 *.bak
+
+# -------------------------------
+# Next.js
+# -------------------------------
+.next/
+pnpm-debug.log*
+
+# -------------------------------
+# Vite
+# -------------------------------
+.vite/
+vite-debug.log*
