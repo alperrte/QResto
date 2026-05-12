@@ -43,7 +43,8 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 "/api/rating/product-ratings/**",
-                                "/api/rating/restaurant-ratings/**"
+                                "/api/rating/restaurant-ratings/**",
+                                "/api/rating/settings/**"
                         ).permitAll()
 
                         .anyRequest().authenticated()

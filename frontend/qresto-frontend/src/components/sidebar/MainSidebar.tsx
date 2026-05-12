@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, QrCode, LogOut, Coffee } from "lucide-react";
+import {
+    ChevronDown,
+    LayoutDashboard,
+    LogOut,
+    MessageSquareText,
+    QrCode,
+    Star,
+    Store,
+} from "lucide-react";
 
 import { useAuth } from "../../auth/AuthContext";
 import { getRoleHomePath } from "../../auth/routeGuards";
@@ -10,6 +18,8 @@ import darkLogo from "../../assets/qresto_logo_dark.png";
 
 function MainSidebar() {
     const [isDarkMode, setIsDarkMode] = useState(false);
+    const [ratingMenuOpen, setRatingMenuOpen] = useState(false);
+
     const { user, logout } = useAuth();
 
     useEffect(() => {
@@ -51,6 +61,13 @@ function MainSidebar() {
                 : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
         }`;
 
+    const subNavLinkClass = ({ isActive }: { isActive: boolean }) =>
+        `flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] font-semibold leading-tight transition-all duration-200 ${
+            isActive
+                ? "bg-[var(--qresto-primary)] text-white shadow-md shadow-orange-200/60"
+                : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)]"
+        }`;
+
     return (
         <aside className="sticky left-0 top-0 flex h-screen w-[250px] shrink-0 flex-col bg-[var(--qresto-sidebar)]">
             <div className="flex h-[92px] w-[250px] shrink-0 items-center justify-center overflow-hidden border-b border-[var(--qresto-border-strong)] bg-[var(--qresto-sidebar)]">
@@ -62,23 +79,80 @@ function MainSidebar() {
                 />
             </div>
 
-            <nav className="flex flex-1 flex-col gap-2 px-4 py-6">
+            <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-6">
                 <NavLink to={getRoleHomePath(user.role)} className={navLinkClass}>
                     <LayoutDashboard size={19} />
                     Kontrol Paneli
                 </NavLink>
 
                 {user.role === "ADMIN" ? (
-                    <NavLink
-                        to="/app/tables-qr"
-                        onClick={() => {
-                            window.dispatchEvent(new Event("qresto-qr-page-reset"));
-                        }}
-                        className={navLinkClass}
-                    >
-                        <QrCode size={19} />
-                        Masalar & QR Kodlar
-                    </NavLink>
+                    <>
+                        <NavLink
+                            to="/app/tables-qr"
+                            onClick={() => {
+                                window.dispatchEvent(new Event("qresto-qr-page-reset"));
+                            }}
+                            className={navLinkClass}
+                        >
+                            <QrCode size={19} />
+                            Masalar & QR Kodlar
+                        </NavLink>
+
+                        <div className="space-y-2">
+                            <NavLink
+                                to="/app/rating-service"
+                                className={({ isActive }) =>
+                                    `flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
+                                        isActive || ratingMenuOpen
+                                            ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
+                                            : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
+                                    }`
+                                }
+                            >
+    <span className="flex min-w-0 items-center gap-3">
+        <Star size={19} className="shrink-0" />
+        <span className="leading-tight">Değerlendirme Servisi</span>
+    </span>
+
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        setRatingMenuOpen((prev) => !prev);
+                                    }}
+                                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition hover:bg-white/15"
+                                >
+                                    <ChevronDown
+                                        size={17}
+                                        className={`transition-transform duration-200 ${
+                                            ratingMenuOpen ? "rotate-180" : ""
+                                        }`}
+                                    />
+                                </button>
+                            </NavLink>
+
+                            {ratingMenuOpen && (
+                                <div className="ml-3 space-y-1.5 border-l border-[var(--qresto-border)] pl-3">
+                                    <NavLink
+                                        to="/app/rating-service/restaurant-ratings"
+                                        className={subNavLinkClass}
+                                    >
+                                        <Store size={16} className="shrink-0" />
+                                        <span>Restoran Değerlendirmeleri</span>
+                                    </NavLink>
+
+                                    <NavLink
+                                        to="/app/rating-service/product-ratings"
+                                        className={subNavLinkClass}
+                                    >
+                                        <MessageSquareText size={16} className="shrink-0" />
+                                        <span>Ürün Değerlendirmeleri</span>
+                                    </NavLink>
+                                </div>
+                            )}
+                        </div>
+                    </>
                 ) : null}
             </nav>
 
