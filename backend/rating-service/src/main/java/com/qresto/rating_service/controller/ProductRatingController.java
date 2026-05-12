@@ -32,6 +32,11 @@ public class ProductRatingController {
         return productRatingService.getProductRatingSummary(productId);
     }
 
+    @GetMapping("/summary")
+    public RatingSummaryResponse getAllProductRatingsSummary() {
+        return productRatingService.getAllProductRatingsSummary();
+    }
+
     @GetMapping("/recent")
     public List<ProductRatingResponse> getRecentProductRatings() {
         return productRatingService.getRecentProductRatings();

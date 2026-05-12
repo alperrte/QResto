@@ -86,6 +86,19 @@ public class ProductRatingService {
                 .build();
     }
 
+    /** Tüm ürün değerlendirmeleri için genel ortalama (restoran özeti ile aynı mantık). */
+    public RatingSummaryResponse getAllProductRatingsSummary() {
+        Double averageRating = productRatingRepository.calculateAverageRatingAll();
+        long total = productRatingRepository.count();
+
+        return RatingSummaryResponse.builder()
+                .targetId(null)
+                .targetType("PRODUCT")
+                .averageRating(averageRating != null ? averageRating : 0.0)
+                .totalRatingCount(total)
+                .build();
+    }
+
     private void validateOrderForRating(OrderResponse order, Long guestSessionId) {
         if (order == null) {
             throw new RatingException("Sipariş bulunamadı");

@@ -7,7 +7,6 @@ import {
     ImageOff,
     MessageSquareText,
     MoreHorizontal,
-    Package2,
     RotateCcw,
     Star,
     TrendingUp,
@@ -15,8 +14,11 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import type { ProductRatingResponse } from "../../types/ratingTypes";
-import { getRecentProductRatings } from "../../services/ratingService";
+import type { ProductRatingResponse, RatingSummaryResponse } from "../../types/ratingTypes";
+import {
+    getAllProductRatingsSummary,
+    getRecentProductRatings,
+} from "../../services/ratingService";
 import {
     getMenuProductById,
     type MenuProductInfo,
@@ -55,6 +57,9 @@ function ProductRatingsPage() {
         Record<number, MenuProductInfo | null>
     >({});
     const [loading, setLoading] = useState(true);
+    const [productSummary, setProductSummary] = useState<RatingSummaryResponse | null>(
+        null
+    );
     const [errorMessage, setErrorMessage] = useState("");
     const [sortOption, setSortOption] = useState<SortOption>("rating-desc");
     const [currentPage, setCurrentPage] = useState(1);
@@ -89,8 +94,12 @@ function ProductRatingsPage() {
             setErrorMessage("");
 
             try {
-                const response = await getRecentProductRatings();
+                const [response, summaryResponse] = await Promise.all([
+                    getRecentProductRatings(),
+                    getAllProductRatingsSummary().catch(() => null),
+                ]);
                 setRatings(response);
+                setProductSummary(summaryResponse);
 
                 const uniqueProductIds = Array.from(
                     new Set(response.map((rating) => rating.productId))
@@ -107,6 +116,7 @@ function ProductRatingsPage() {
             } catch (error) {
                 console.error("Ürün değerlendirmeleri alınırken hata oluştu:", error);
                 setErrorMessage("Ürün değerlendirmeleri alınamadı.");
+                setProductSummary(null);
             } finally {
                 setLoading(false);
             }
@@ -185,13 +195,10 @@ function ProductRatingsPage() {
         return `http://localhost:7073${cleanPath}`;
     };
 
-    const getRatingLabel = (rating: number) => {
-        if (rating >= 4.5) return "Mükemmel";
-        if (rating >= 3.5) return "İyi";
-        if (rating >= 2.5) return "İdare eder";
-        if (rating >= 1.5) return "Geliştirilmeli";
-        if (rating > 0) return "Zayıf";
-        return "Henüz puan yok";
+    const formatAverage = (value: number | undefined | null) => {
+        if (value === undefined || value === null || Number.isNaN(value)) return "0.0";
+
+        return value.toFixed(1);
     };
 
     const filteredRatings = useMemo(() => {
@@ -308,13 +315,6 @@ function ProductRatingsPage() {
         return sortedProducts.slice(start, start + itemsPerPage);
     }, [sortedProducts, currentPage]);
 
-    const generalAverage = useMemo(() => {
-        if (filteredRatings.length === 0) return 0;
-
-        const total = filteredRatings.reduce((sum, item) => sum + item.rating, 0);
-        return total / filteredRatings.length;
-    }, [filteredRatings]);
-
     const totalComments = useMemo(() => {
         return filteredRatings.filter(
             (item) => item.comment && item.comment.trim().length > 0
@@ -332,26 +332,29 @@ function ProductRatingsPage() {
             .slice(0, 10);
     }, [filteredRatings]);
 
-    const summaryCards = [
-        {
-            title: "Ortalama Ürün Puanı",
-            value: generalAverage.toFixed(1),
-            helper: getRatingLabel(generalAverage),
-            Icon: Star,
-        },
-        {
-            title: "Değerlendirilen Ürün",
-            value: String(groupedProducts.length),
-            helper: "Geri bildirim alan ürün",
-            Icon: Package2,
-        },
-        {
-            title: "Toplam Yorum",
-            value: String(totalComments),
-            helper: "Müşteri yorumu",
-            Icon: MessageSquareText,
-        },
-    ];
+    const summaryCards = useMemo(
+        () => [
+            {
+                title: "Ortalama Ürün Puanı",
+                value: formatAverage(productSummary?.averageRating),
+                helper: "5 üzerinden · Tüm ürünler",
+                Icon: Star,
+            },
+            {
+                title: "Toplam Değerlendirme",
+                value: String(productSummary?.totalRatingCount ?? 0),
+                helper: "Tüm zamanlar",
+                Icon: TrendingUp,
+            },
+            {
+                title: "Toplam Yorum",
+                value: String(totalComments),
+                helper: "Seçilen tarih aralığı (görüntülenen kayıtlar)",
+                Icon: MessageSquareText,
+            },
+        ],
+        [productSummary, totalComments]
+    );
 
     const renderStars = (rating: number, size = 16) => {
         return (
