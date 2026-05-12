@@ -23,7 +23,9 @@ const ORDER_STATUS_TR: Record<string, string> = {
 const formatPrice = (n: number) => `₺${n.toFixed(2)}`;
 
 const readTableSessionId = (): number | null => {
-    const raw = localStorage.getItem("qresto_table_session_id");
+    const raw =
+        sessionStorage.getItem("qresto_table_session_id") ||
+        localStorage.getItem("qresto_table_session_id");
     if (!raw) return null;
     const n = Number(raw);
     return Number.isFinite(n) ? n : null;
@@ -38,6 +40,10 @@ const GuestOrdersPage = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const sessionId = readTableSessionId();
+
+    const goToWelcomePaymentChoice = () => {
+        navigate("/welcome", { state: { openPayChoice: true } });
+    };
 
     const load = useCallback(async () => {
         if (!sessionId) {
@@ -92,6 +98,30 @@ const GuestOrdersPage = () => {
                         burada yer almaz; ürün eklemek için menüyü kullanın.
                     </p>
                 </header>
+
+                {sessionId && !loading && !error ? (
+                    <section className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-sm">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="min-w-0">
+                                <h2 className="text-title-md font-bold text-on-surface">
+                                    Ödeme ve hesap
+                                </h2>
+                                <p className="mt-1 text-body-sm text-on-surface-variant leading-relaxed">
+                                    Online ödeme veya hesap iste seçenekleri için karşılama
+                                    ekranındaki ödeme adımına yönlendirilirsiniz.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={goToWelcomePaymentChoice}
+                                className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-[var(--qresto-primary)] px-6 py-3 font-sans text-label-bold text-white shadow-sm transition hover:opacity-90 active:scale-[0.98]"
+                            >
+                                <span className="material-symbols-outlined text-[22px]">payments</span>
+                                Öde / hesap
+                            </button>
+                        </div>
+                    </section>
+                ) : null}
 
                 {!sessionId ? (
                     <section
