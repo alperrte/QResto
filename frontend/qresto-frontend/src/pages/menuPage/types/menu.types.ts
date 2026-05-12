@@ -8,7 +8,7 @@ export interface MenuCategoryDto {
 
 export interface MenuItemListItemDto {
     id: number;
-    categoryId: number;
+    categoryId: number | null;
     subCategoryId: number | null;
     name: string;
     description: string | null;
@@ -24,6 +24,8 @@ export interface MenuItemListItemDto {
     avgRating: number;
     active: boolean;
     inStock: boolean;
+    orderNoteEnabled?: boolean;
+    orderNoteTitle?: string | null;
     createdAt: string;
     updatedAt: string;
 }

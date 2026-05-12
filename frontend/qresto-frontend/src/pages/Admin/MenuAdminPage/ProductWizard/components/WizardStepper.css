@@ -1,0 +1,154 @@
+.wizard-stepper {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  width: 100%;
+  padding-top: 4px;
+}
+
+.wizard-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  flex: 1 1 0;
+  /* Çizgiler z-index: 0–1; adım sütunları üstte kalsın ki hat yuvarlakların içinden görünmesin */
+  position: relative;
+  z-index: 2;
+}
+
+.wizard-step-dot {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  border: 2px solid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  transform-origin: center;
+  transition:
+    border-color 0.35s ease,
+    color 0.35s ease,
+    background 0.35s ease;
+}
+
+.wizard-step-dot-active {
+  border-color: var(--color-primary, #a63b00);
+  color: var(--color-primary, #a63b00);
+  background: var(--color-surface, #fff8f5);
+}
+
+.wizard-step-dot-done {
+  border-color: #10b981;
+  color: #10b981;
+  background: var(--color-surface, #fff8f5);
+}
+
+.wizard-step-dot-pending {
+  border-color: var(--color-outline-variant, #e2e8f0);
+  color: var(--color-on-surface-variant, #94a3b8);
+  background: var(--color-surface, #fff8f5);
+}
+
+@keyframes wizard-step-dot-balloon {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgb(242 101 34 / 0);
+  }
+  28% {
+    transform: scale(1.24);
+    box-shadow: 0 6px 18px rgb(242 101 34 / 0.28);
+  }
+  48% {
+    transform: scale(0.94);
+    box-shadow: 0 2px 8px rgb(242 101 34 / 0.12);
+  }
+  68% {
+    transform: scale(1.08);
+    box-shadow: 0 4px 12px rgb(242 101 34 / 0.18);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgb(242 101 34 / 0);
+  }
+}
+
+.wizard-step-dot-balloon {
+  animation: wizard-step-dot-balloon 0.58s cubic-bezier(0.34, 1.45, 0.52, 1);
+}
+
+.wizard-stepper-line-base {
+  position: absolute;
+  top: 20px;
+  height: 2px;
+  background: var(--color-outline-variant, #e2e8f0);
+  z-index: 0;
+  border-radius: 9999px;
+}
+
+.wizard-stepper-line-progress {
+  position: absolute;
+  top: 20px;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--color-primary, #a63b00) 0%,
+    var(--color-primary-container, #f26522) 55%,
+    #ff8a4c 100%
+  );
+  z-index: 1;
+  border-radius: 9999px;
+  transform-origin: left center;
+  transition: width 0.72s cubic-bezier(0.33, 0.83, 0.32, 1);
+  box-shadow: 0 0 10px rgb(242 101 34 / 0.35);
+}
+
+.wizard-step-label {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  text-align: center;
+  white-space: normal;
+  max-width: 120px;
+  transition: color 0.35s ease;
+}
+
+.wizard-step-label-active {
+  color: var(--color-primary, #a63b00);
+}
+
+.wizard-step-label-passive {
+  color: var(--color-on-surface-variant, #565e74);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wizard-stepper-line-progress {
+    transition-duration: 0.01ms;
+  }
+
+  .wizard-step-dot-balloon {
+    animation: none;
+  }
+
+  .wizard-step-dot {
+    transition: none;
+  }
+
+  .wizard-step-label {
+    transition: none;
+  }
+
+  .wizard-step-item-enter,
+  .wizard-stepper-line-anim {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

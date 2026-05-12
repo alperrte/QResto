@@ -1,5 +1,6 @@
 package com.qresto.menu_service.dto.product;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -8,12 +9,13 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 @Getter
 @Setter
 public class ProductUpdateRequest {
 
-    @NotNull(message = "Category id is required")
+    /** Null: kategorisiz ürün (silinmiş kategori vb.). */
     private Long categoryId;
 
     private Long subCategoryId;
@@ -53,4 +55,12 @@ public class ProductUpdateRequest {
 
     @NotNull(message = "Stock status is required")
     private Boolean inStock;
+
+    private Boolean orderNoteEnabled;
+
+    @Size(max = 200, message = "Order note title can be max 200 characters")
+    private String orderNoteTitle;
+
+    @Valid
+    private List<ProductOptionGroupRequest> optionGroups;
 }

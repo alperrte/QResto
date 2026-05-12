@@ -1,0 +1,120 @@
+/**
+ * Menü yönetimi (Ürün listesi) giriş animasyonları.
+ * Gecikme: --menu-admin-chip-i, --menu-admin-row-i
+ */
+
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes menu-admin-slide-in-left {
+    from {
+      opacity: 0;
+      transform: translate3d(-28px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes menu-admin-slide-in-right {
+    from {
+      opacity: 0;
+      transform: translate3d(28px, 0, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes menu-admin-ladder-down {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -22px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  /** Önizleme paneli: alttan yukarı, hafif gecikmeyle */
+  @keyframes menu-admin-slide-in-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 36px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes menu-admin-table-head-in {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -12px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  .menu-admin-enter-slide-left {
+    animation: menu-admin-slide-in-left 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .menu-admin-enter-slide-left-soft {
+    animation: menu-admin-slide-in-left 0.5s cubic-bezier(0.22, 1, 0.36, 1) 0.08s both;
+  }
+
+  .menu-admin-enter-slide-right {
+    animation: menu-admin-slide-in-right 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .menu-admin-enter-slide-right-soft {
+    animation: menu-admin-slide-in-right 0.52s cubic-bezier(0.22, 1, 0.36, 1) 0.14s both;
+  }
+
+  .menu-admin-preview-enter-up {
+    animation: menu-admin-slide-in-up 0.72s cubic-bezier(0.22, 1, 0.36, 1) 0.36s both;
+  }
+
+  .menu-admin-chip-ladder {
+    --menu-admin-chip-i: 0;
+    animation: menu-admin-ladder-down 0.44s cubic-bezier(0.28, 0.9, 0.45, 1) both;
+    animation-delay: calc(0.14s + var(--menu-admin-chip-i) * 0.055s);
+  }
+
+  .menu-admin-table-row-ladder {
+    --menu-admin-row-i: 0;
+    /* Kısa süre + net aralık = “tık tık tık” merdiven (kategori + ürün: tüm satır birlikte) */
+    animation: menu-admin-ladder-down 0.34s cubic-bezier(0.33, 1.12, 0.55, 1) both;
+    animation-delay: calc(0.28s + min(var(--menu-admin-row-i, 0), 24) * 0.062s);
+  }
+
+  /** Ürün tablosu thead: tek <tr> — çizgilerle hücre hücre kayma olmaz */
+  .menu-admin-table-head-enter {
+    animation: menu-admin-table-head-in 0.34s cubic-bezier(0.28, 0.92, 0.48, 1) 0.06s both;
+  }
+
+  /** Ürün tablosu gövdesi: thead bittikten sonra (kategori sayfasındaki gibi tek satır animasyonu) */
+  .menu-admin-table-row-ladder.menu-admin-table-row-after-head {
+    animation-delay: calc(0.44s + min(var(--menu-admin-row-i, 0), 24) * 0.062s);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-admin-enter-slide-left,
+  .menu-admin-enter-slide-left-soft,
+  .menu-admin-enter-slide-right,
+  .menu-admin-enter-slide-right-soft,
+  .menu-admin-preview-enter-up,
+  .menu-admin-chip-ladder,
+  .menu-admin-table-row-ladder,
+  .menu-admin-table-head-enter {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

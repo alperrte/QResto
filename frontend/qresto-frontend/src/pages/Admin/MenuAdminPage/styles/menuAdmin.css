@@ -1,0 +1,17 @@
+@import "./menuAdminAnimations.css";
+
+.menu-admin-page {
+  min-height: calc(100vh - 120px);
+}
+
+.menu-admin-header {
+  margin-bottom: 8px;
+}
+
+.card-shadow {
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.08);
+}
+
+.dark .card-shadow {
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.45);
+}
