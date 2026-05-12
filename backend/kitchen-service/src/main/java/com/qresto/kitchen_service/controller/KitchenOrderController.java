@@ -1,5 +1,6 @@
 package com.qresto.kitchen_service.controller;
 
+import com.qresto.kitchen_service.dto.client.OrderResponse;
 import com.qresto.kitchen_service.dto.request.UpdateKitchenOrderStatusRequest;
 import com.qresto.kitchen_service.entity.KitchenOrder;
 import com.qresto.kitchen_service.entity.enums.KitchenOrderStatus;
@@ -17,8 +18,15 @@ public class KitchenOrderController {
     private final KitchenOrderService kitchenOrderService;
 
     @GetMapping
-    public List<KitchenOrder> getAllOrders() {
+    public List<OrderResponse> getAllOrders() {
         return kitchenOrderService.getAllOrders();
+    }
+
+    @GetMapping("/{orderId}")
+    public OrderResponse getOrderById(
+            @PathVariable Long orderId
+    ) {
+        return kitchenOrderService.getOrderById(orderId);
     }
 
     @GetMapping("/status/{status}")
@@ -35,5 +43,4 @@ public class KitchenOrderController {
     ) {
         return kitchenOrderService.updateOrderStatus(orderId, request);
     }
-
 }

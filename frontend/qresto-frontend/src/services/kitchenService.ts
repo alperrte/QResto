@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const kitchenApi = axios.create({
-    baseURL: "http://localhost:7074/api/v1",
+    baseURL: "http://localhost:7076/api",
 });
 
 kitchenApi.interceptors.request.use((config) => {
@@ -16,6 +16,11 @@ kitchenApi.interceptors.request.use((config) => {
 
 export const getKitchenOrders = async () => {
     const response = await kitchenApi.get("/kitchen/orders");
+    return response.data;
+};
+
+export const getKitchenOrderById = async (orderId: number) => {
+    const response = await kitchenApi.get(`/kitchen/orders/${orderId}`);
     return response.data;
 };
 

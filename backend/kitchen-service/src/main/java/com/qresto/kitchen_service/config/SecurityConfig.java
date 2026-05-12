@@ -50,6 +50,9 @@ public class SecurityConfig {
                         .requestMatchers("/api/test/**")
                         .permitAll()
 
+                        .requestMatchers(HttpMethod.GET, "/api/kitchen/**")
+                        .permitAll()
+
                         .anyRequest().authenticated()
                 )
 

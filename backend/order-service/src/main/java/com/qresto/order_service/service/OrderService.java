@@ -114,6 +114,7 @@ public class OrderService {
 
 
             orderItem.setProductPrice(unitPrice);
+            orderItem.setProductImageUrl(productInfo.getImageUrl());
             orderItem.setVatIncluded(productInfo.getVatIncluded());
             orderItem.setQuantity(cartItem.getQuantity());
             orderItem.setRemovedIngredients(cartItem.getRemovedIngredients());
