@@ -3,8 +3,10 @@ import { CheckCircle2, CreditCard, X } from "lucide-react";
 
 import type { OrderResponse } from "../../types/cartTypes";
 import { demoPayment } from "../../services/orderService";
+import { getRatingSettings } from "../../services/ratingService";
 
 import OrderRatingForm from "./OrderRatingForm";
+import { isOrderRatingFlowEnabled } from "./orderRatingFlowGate";
 
 type OrderPaymentRatingModalProps = {
     order: OrderResponse;
@@ -19,6 +21,9 @@ const OrderPaymentRatingModal = ({ order, onClose }: OrderPaymentRatingModalProp
     const [paymentDone, setPaymentDone] = useState(order.status === "PAID");
     const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
+    const [ratingGateResolved, setRatingGateResolved] = useState(false);
+    const [ratingFlowAllowed, setRatingFlowAllowed] = useState(false);
+    const [ratingFlowRevoked, setRatingFlowRevoked] = useState(false);
 
     useEffect(() => {
         setPaidOrder(order);
@@ -26,7 +31,42 @@ const OrderPaymentRatingModal = ({ order, onClose }: OrderPaymentRatingModalProp
         setSuccessMessage("");
         setErrorMessage("");
         setIsPaying(false);
+        setRatingGateResolved(false);
+        setRatingFlowAllowed(false);
+        setRatingFlowRevoked(false);
     }, [order]);
+
+    useEffect(() => {
+        if (!paymentDone) {
+            setRatingGateResolved(false);
+            setRatingFlowAllowed(false);
+            setRatingFlowRevoked(false);
+            return;
+        }
+
+        let cancelled = false;
+
+        const resolveRatingGate = async () => {
+            try {
+                const settings = await getRatingSettings();
+                if (cancelled) return;
+                setRatingFlowAllowed(isOrderRatingFlowEnabled(settings));
+            } catch {
+                if (cancelled) return;
+                setRatingFlowAllowed(true);
+            } finally {
+                if (!cancelled) {
+                    setRatingGateResolved(true);
+                }
+            }
+        };
+
+        void resolveRatingGate();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [paymentDone]);
 
     const handleDemoPayment = async () => {
         setIsPaying(true);
@@ -110,7 +150,34 @@ const OrderPaymentRatingModal = ({ order, onClose }: OrderPaymentRatingModalProp
 
                     {paymentDone ? (
                         <div className="mt-5">
-                            <OrderRatingForm order={paidOrder} onClose={onClose} />
+                            {!ratingGateResolved ? (
+                                <p className="text-center text-sm text-[var(--qresto-muted)]">
+                                    Değerlendirme durumu kontrol ediliyor…
+                                </p>
+                            ) : ratingFlowAllowed && !ratingFlowRevoked ? (
+                                <OrderRatingForm
+                                    order={paidOrder}
+                                    onClose={onClose}
+                                    onRatingFlowRevoked={() => setRatingFlowRevoked(true)}
+                                />
+                            ) : (
+                                <div className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-4 py-5 text-center">
+                                    <p className="text-sm font-semibold text-[var(--qresto-text)]">
+                                        Değerlendirme şu anda kapalı.
+                                    </p>
+                                    <p className="mt-2 text-sm text-[var(--qresto-muted)]">
+                                        Ödemeniz tamamlandı; yönetim panelindeki ayarlardan bu özellik
+                                        kapatılmış olabilir.
+                                    </p>
+                                    <button
+                                        type="button"
+                                        onClick={onClose}
+                                        className="mt-5 h-12 w-full rounded-full bg-[var(--qresto-primary)] font-bold text-white shadow-md transition hover:opacity-90 active:scale-95"
+                                    >
+                                        Tamam
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     ) : null}
                 </div>

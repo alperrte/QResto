@@ -1,11 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { CheckCircle2, Star } from "lucide-react";
 
 import type { OrderResponse } from "../../types/cartTypes";
 import {
     createProductRating,
     createRestaurantRating,
+    getRatingSettings,
 } from "../../services/ratingService";
+import { isOrderRatingFlowEnabled } from "./orderRatingFlowGate";
 
 type ProductRatingState = Record<
     number,
@@ -18,11 +20,19 @@ type ProductRatingState = Record<
 type OrderRatingFormProps = {
     order: OrderResponse;
     onClose: () => void;
+    /** Ayarlar kaynaklı kapatma (ör. ödeme modalında yalnızca değerlendirme kısmını kaldırmak için) */
+    onRatingFlowRevoked?: () => void;
 };
 
 const formatPrice = (price: number) => `₺${price.toFixed(2)}`;
 
-const OrderRatingForm = ({ order, onClose }: OrderRatingFormProps) => {
+const POLL_MS = 10_000;
+
+const OrderRatingForm = ({
+    order,
+    onClose,
+    onRatingFlowRevoked,
+}: OrderRatingFormProps) => {
     const [paidOrder, setPaidOrder] = useState<OrderResponse>(order);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
@@ -39,6 +49,52 @@ const OrderRatingForm = ({ order, onClose }: OrderRatingFormProps) => {
         useState<ProductRatingState>(initialProductRatings);
     const [restaurantRating, setRestaurantRating] = useState(5);
     const [restaurantComment, setRestaurantComment] = useState("");
+    /** `null`: ayar henüz gelmedi — yorum alanı gösterme (yanlış UI önleme) */
+    const [productCommentsAllowed, setProductCommentsAllowed] = useState<boolean | null>(null);
+    const [restaurantCommentsAllowed, setRestaurantCommentsAllowed] = useState<boolean | null>(
+        null
+    );
+
+    const revokeRef = useRef(onRatingFlowRevoked ?? onClose);
+    revokeRef.current = onRatingFlowRevoked ?? onClose;
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const verifyRatingStillAllowed = async () => {
+            try {
+                const settings = await getRatingSettings();
+                if (cancelled) return;
+                setProductCommentsAllowed(Boolean(settings.productCommentsEnabled));
+                setRestaurantCommentsAllowed(Boolean(settings.restaurantCommentsEnabled));
+                if (!isOrderRatingFlowEnabled(settings)) {
+                    revokeRef.current();
+                }
+            } catch {
+                /* ağ hatasında mevcut ekranı koru */
+            }
+        };
+
+        void verifyRatingStillAllowed();
+
+        const intervalId = window.setInterval(() => {
+            void verifyRatingStillAllowed();
+        }, POLL_MS);
+
+        const onVisibility = () => {
+            if (document.visibilityState === "visible") {
+                void verifyRatingStillAllowed();
+            }
+        };
+
+        document.addEventListener("visibilitychange", onVisibility);
+
+        return () => {
+            cancelled = true;
+            window.clearInterval(intervalId);
+            document.removeEventListener("visibilitychange", onVisibility);
+        };
+    }, []);
 
     useEffect(() => {
         setPaidOrder(order);
@@ -94,6 +150,8 @@ const OrderRatingForm = ({ order, onClose }: OrderRatingFormProps) => {
 
         try {
             const activeItems = paidOrder.items.filter((item) => item.status === "ACTIVE");
+            const sendProductComment = productCommentsAllowed === true;
+            const sendRestaurantComment = restaurantCommentsAllowed === true;
 
             for (const item of activeItems) {
                 const ratingData = productRatings[item.id];
@@ -102,7 +160,7 @@ const OrderRatingForm = ({ order, onClose }: OrderRatingFormProps) => {
                     orderItemId: item.id,
                     guestSessionId: paidOrder.guestSessionId,
                     rating: ratingData?.rating ?? 5,
-                    comment: ratingData?.comment ?? "",
+                    comment: sendProductComment ? (ratingData?.comment ?? "") : "",
                 });
             }
 
@@ -110,7 +168,7 @@ const OrderRatingForm = ({ order, onClose }: OrderRatingFormProps) => {
                 orderId: paidOrder.id,
                 guestSessionId: paidOrder.guestSessionId,
                 rating: restaurantRating,
-                comment: restaurantComment,
+                comment: sendRestaurantComment ? restaurantComment : "",
             });
 
             setShowRatingThankYou(true);
@@ -154,14 +212,16 @@ const OrderRatingForm = ({ order, onClose }: OrderRatingFormProps) => {
                                         updateProductRating(item.id, "rating", nextValue)
                                 )}
                             </div>
-                            <textarea
-                                value={productRatings[item.id]?.comment ?? ""}
-                                onChange={(event) =>
-                                    updateProductRating(item.id, "comment", event.target.value)
-                                }
-                                placeholder="Ürün hakkında yorum yazabilirsiniz..."
-                                className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--qresto-primary)]"
-                            />
+                            {productCommentsAllowed === true ? (
+                                <textarea
+                                    value={productRatings[item.id]?.comment ?? ""}
+                                    onChange={(event) =>
+                                        updateProductRating(item.id, "comment", event.target.value)
+                                    }
+                                    placeholder="Ürün hakkında yorum yazabilirsiniz..."
+                                    className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--qresto-primary)]"
+                                />
+                            ) : null}
                         </div>
                     ))}
             </div>
@@ -176,12 +236,14 @@ const OrderRatingForm = ({ order, onClose }: OrderRatingFormProps) => {
                     </div>
                     {renderStars(restaurantRating, setRestaurantRating)}
                 </div>
-                <textarea
-                    value={restaurantComment}
-                    onChange={(event) => setRestaurantComment(event.target.value)}
-                    placeholder="Restoran deneyiminiz hakkında yorum yazabilirsiniz..."
-                    className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--qresto-primary)]"
-                />
+                {restaurantCommentsAllowed === true ? (
+                    <textarea
+                        value={restaurantComment}
+                        onChange={(event) => setRestaurantComment(event.target.value)}
+                        placeholder="Restoran deneyiminiz hakkında yorum yazabilirsiniz..."
+                        className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--qresto-primary)]"
+                    />
+                ) : null}
             </div>
 
             {errorMessage ? (
