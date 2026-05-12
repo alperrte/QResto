@@ -42,28 +42,46 @@ export function useProductRatingSummaries(productIds: number[]) {
         let cancelled = false;
         setLoading(true);
 
-        void (async () => {
-            const results = await Promise.allSettled(
-                ids.map(async (id) => {
-                    const data = await getProductRatingSummary(id);
-                    return { id, data: normalizeSummary(data) };
-                })
-            );
+        const run = () => {
+            void (async () => {
+                const results = await Promise.allSettled(
+                    ids.map(async (id) => {
+                        const data = await getProductRatingSummary(id);
+                        return { id, data: normalizeSummary(data) };
+                    })
+                );
 
-            if (cancelled) return;
+                if (cancelled) return;
 
-            const next: Record<string, RatingSummaryResponse> = {};
-            for (const r of results) {
-                if (r.status === "fulfilled") {
-                    next[String(r.value.id)] = r.value.data;
+                const next: Record<string, RatingSummaryResponse> = {};
+                for (const r of results) {
+                    if (r.status === "fulfilled") {
+                        next[String(r.value.id)] = r.value.data;
+                    }
                 }
-            }
-            setSummaries(next);
-            setLoading(false);
-        })();
+                setSummaries(next);
+                setLoading(false);
+            })();
+        };
+
+        /* Menü ilk boyamasından sonra rating istekleri (animasyon + görsellerle çakışmasın) */
+        let idleId: number | undefined;
+        let scheduledWithIdleCallback = false;
+        if (typeof requestIdleCallback !== "undefined") {
+            scheduledWithIdleCallback = true;
+            idleId = requestIdleCallback(run, { timeout: 900 });
+        } else {
+            idleId = window.setTimeout(run, 120);
+        }
 
         return () => {
             cancelled = true;
+            if (idleId === undefined) return;
+            if (scheduledWithIdleCallback) {
+                cancelIdleCallback(idleId);
+            } else {
+                window.clearTimeout(idleId);
+            }
         };
     }, [idsKey]);
 

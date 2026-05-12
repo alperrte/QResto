@@ -35,7 +35,7 @@ function MenuAdminProductsTable({
         <div className="bg-surface-container-lowest rounded-xl border border-outline-variant card-shadow">
             <table className="w-full text-left border-collapse">
                 <thead>
-                    <tr className="menu-admin-table-head-enter border-b border-outline-variant bg-surface-container-low">
+                    <tr className="border-b border-outline-variant bg-surface-container-low">
                         <th className="p-3 text-label-bold text-secondary">Görsel</th>
                         <AdminSortableTh
                             label="Ürün adı"
@@ -84,14 +84,13 @@ function MenuAdminProductsTable({
                             </td>
                         </tr>
                     ) : (
-                        products.map((product, rowIndex) => {
+                        products.map((product) => {
                             const rowPassive = !isProductEffectivelyActive(product);
                             const rowSelected = selectedProductId === product.id;
                             const isEffectivelyActive = isProductEffectivelyActive(product);
                             return (
                                 <MenuAdminProductTableRow
                                     key={product.id}
-                                    ladderIndex={rowIndex}
                                     product={product}
                                     rowSelected={rowSelected}
                                     rowPassive={rowPassive}

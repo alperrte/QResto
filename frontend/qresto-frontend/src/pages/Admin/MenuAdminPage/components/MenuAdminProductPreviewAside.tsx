@@ -26,7 +26,7 @@ function MenuAdminProductPreviewAside({
     previewError,
 }: MenuAdminProductPreviewAsideProps) {
     return (
-        <aside className="menu-admin-preview-enter-up hidden xl:flex flex-col h-full min-h-0 bg-surface-container-lowest rounded-xl border border-outline-variant card-shadow overflow-hidden">
+        <aside className="hidden xl:flex flex-col h-full min-h-0 bg-surface-container-lowest rounded-xl border border-outline-variant card-shadow overflow-hidden">
             <div className="p-4 border-b border-outline-variant shrink-0 bg-surface-container-lowest">
                 <h3 className="text-headline-sm font-headline-sm text-on-surface">Ürün önizleme</h3>
                 {selectedProduct ? (
