@@ -8,6 +8,11 @@ export interface AuthResponse {
     role: AuthRole;
 }
 
+export interface TokenResponse {
+    accessToken: string;
+    refreshToken: string;
+}
+
 export interface AuthUser {
     userId: number;
     email: string;

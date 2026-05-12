@@ -22,7 +22,7 @@ export const authStorage = {
 
         try {
             return JSON.parse(serializedUser) as AuthUser;
-        } catch (_error) {
+        } catch {
             localStorage.removeItem(USER_KEY);
             return null;
         }
@@ -32,6 +32,11 @@ export const authStorage = {
         localStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
         localStorage.setItem(REFRESH_TOKEN_KEY, payload.refreshToken);
         localStorage.setItem(USER_KEY, JSON.stringify(payload.user));
+    },
+
+    setTokens(payload: { accessToken: string; refreshToken: string }) {
+        localStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
+        localStorage.setItem(REFRESH_TOKEN_KEY, payload.refreshToken);
     },
 
     clearSession() {
