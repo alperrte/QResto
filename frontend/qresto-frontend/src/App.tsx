@@ -30,7 +30,9 @@ function App() {
                 />
 
                 <Route path="/login" element={<LoginPage />} />
-                <Route path="/qr-generator" element={<QrGeneratorPage />} />
+                <Route element={<RoleRoute allowedRoles={["ADMIN"]} />}>
+                    <Route path="/qr-generator" element={<QrGeneratorPage />} />
+                </Route>
                 <Route path="/qr/scan" element={<QrScanPage />} />
 
                 {guestRoutes}

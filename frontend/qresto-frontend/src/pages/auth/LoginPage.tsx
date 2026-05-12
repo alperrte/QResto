@@ -6,10 +6,10 @@ import axios from "axios";
 import loginBg from "../../assets/QResto Login Page BG.png";
 import { useAuth } from "../../auth/AuthContext";
 import { getRoleHomePath } from "../../auth/routeGuards";
-import type { UserRole } from "../../auth/auth.types";
+import type { AuthRole } from "../../auth/auth.types";
 
 const ROLE_OPTIONS: Array<{
-    role: UserRole;
+    role: AuthRole;
     title: string;
     subtitle: string;
     Icon: ComponentType<{ size?: number; className?: string }>;
@@ -34,7 +34,7 @@ const ROLE_OPTIONS: Array<{
     },
 ];
 
-const getRoleName = (role: UserRole) => {
+const getRoleName = (role: AuthRole) => {
     if (role === "ADMIN") {
         return "Yönetici";
     }
@@ -52,8 +52,8 @@ function LoginPage() {
     const { login, logout, isAuthenticated, user } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
-    const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
-    const [displayRole, setDisplayRole] = useState<UserRole | null>(null);
+    const [selectedRole, setSelectedRole] = useState<AuthRole | null>(null);
+    const [displayRole, setDisplayRole] = useState<AuthRole | null>(null);
     const [isClosingRoleForm, setIsClosingRoleForm] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
@@ -114,7 +114,7 @@ function LoginPage() {
         }
     };
 
-    const handleRoleSelect = (role: UserRole) => {
+    const handleRoleSelect = (role: AuthRole) => {
         if (closeTimerRef.current) {
             window.clearTimeout(closeTimerRef.current);
             closeTimerRef.current = null;
