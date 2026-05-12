@@ -1,6 +1,7 @@
 package com.qresto.kitchen_service.controller;
 
 import com.qresto.kitchen_service.dto.request.UpdateKitchenOrderStatusRequest;
+import com.qresto.kitchen_service.dto.response.KitchenOrderResponse;
 import com.qresto.kitchen_service.entity.KitchenOrder;
 import com.qresto.kitchen_service.entity.enums.KitchenOrderStatus;
 import com.qresto.kitchen_service.service.KitchenOrderService;
@@ -34,6 +35,23 @@ public class KitchenOrderController {
             @RequestBody UpdateKitchenOrderStatusRequest request
     ) {
         return kitchenOrderService.updateOrderStatus(orderId, request);
+    }
+    @GetMapping("/ready")
+    public List<KitchenOrderResponse> getReadyOrdersForWaiter() {
+        return kitchenOrderService.getReadyOrdersForWaiter();
+    }
+
+    @GetMapping("/cancelled")
+    public List<KitchenOrderResponse> getCancelledOrdersForWaiter() {
+        return kitchenOrderService.getCancelledOrdersForWaiter();
+    }
+
+    @PatchMapping("/{orderId}/served")
+    public String markOrderServedForWaiter(
+            @PathVariable Long orderId
+    ) {
+        kitchenOrderService.markOrderServedForWaiter(orderId);
+        return "Sipariş servis edildi olarak işaretlendi";
     }
 
 }

@@ -85,12 +85,33 @@ public class TableSessionService {
         tableSessionRepository.save(tableSession);
     }
 
+    public void closeActiveSessionByTableByWaiter(Long tableId) {
+        List<TableSessionStatus> activeStatuses = List.of(
+                TableSessionStatus.ACTIVE,
+                TableSessionStatus.ORDERED,
+                TableSessionStatus.PAYMENT_PENDING
+        );
+
+        TableSession tableSession = tableSessionRepository
+                .findByRestaurantTableIdAndStatusIn(tableId, activeStatuses)
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Active table session not found for table: " + tableId));
+
+        tableSession.setStatus(TableSessionStatus.CLOSED_BY_WAITER);
+        tableSession.setCloseReason("Closed by waiter");
+        tableSession.setClosedAt(java.time.LocalDateTime.now());
+
+        tableSessionRepository.save(tableSession);
+    }
     public void closeSessionByWaiter(Long tableSessionId) {
         TableSession tableSession = tableSessionRepository.findById(tableSessionId)
                 .orElseThrow(() -> new RuntimeException("Table session not found: " + tableSessionId));
 
         tableSession.setStatus(TableSessionStatus.CLOSED_BY_WAITER);
         tableSession.setCloseReason("Closed by waiter");
+        tableSession.setClosedAt(java.time.LocalDateTime.now());
+
         tableSessionRepository.save(tableSession);
     }
 

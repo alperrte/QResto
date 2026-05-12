@@ -5,6 +5,7 @@ public enum KitchenOrderStatus {
     YENI,
     HAZIRLANIYOR,
     HAZIR,
-    IPTAL_EDILDI
+    IPTAL_EDILDI,
+    SERVIS_EDILDI
 
 }

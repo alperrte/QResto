@@ -360,4 +360,20 @@ public class OrderService {
 
         return toResponse(savedOrder);
     }
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getActiveOrders() {
+        List<OrderStatus> activeStatuses = List.of(
+                OrderStatus.RECEIVED,
+                OrderStatus.PREPARING,
+                OrderStatus.READY,
+                OrderStatus.SERVED,
+                OrderStatus.PAYMENT_PENDING
+        );
+
+        return customerOrderRepository.findByStatusInOrderByCreatedAtDesc(activeStatuses)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
 }

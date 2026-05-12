@@ -12,6 +12,8 @@ import com.qresto.waiter_service.dto.response.QrTableResponse;
 import com.qresto.waiter_service.dto.response.KitchenOrderResponse;
 import com.qresto.waiter_service.dto.response.QrValidationResponse;
 import com.qresto.waiter_service.dto.response.TableQrCodeResponse;
+import com.qresto.waiter_service.dto.response.OrderDetailResponse;
+import com.qresto.waiter_service.dto.response.TableSessionResponse;
 
 import java.util.List;
 
@@ -135,4 +137,42 @@ public class WaiterController {
         waiterService.publishOrderEvent(event);
         return ResponseEntity.ok("ok");
     }
+    @GetMapping("/orders/{orderId}/detail")
+    public ResponseEntity<OrderDetailResponse> getOrderDetail(
+            @PathVariable Long orderId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        return ResponseEntity.ok(waiterService.getOrderDetail(orderId, authHeader));
+    }
+
+    @GetMapping("/orders/active")
+    public ResponseEntity<List<KitchenOrderResponse>> getActiveOrders(
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        return ResponseEntity.ok(waiterService.getActiveOrders(authHeader));
+    }
+    @GetMapping("/tables/{tableId}/session/refresh")
+    public ResponseEntity<TableSessionResponse> refreshTableSession(
+            @PathVariable Long tableId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        TableSessionResponse session = waiterService.refreshTableSession(tableId, authHeader);
+
+        if (session == null) {
+            return ResponseEntity.noContent().build();
+        }
+
+        return ResponseEntity.ok(session);
+    }
+
+    @PatchMapping("/table-sessions/{tableSessionId}/close-by-waiter")
+    public ResponseEntity<String> closeTableSessionByWaiter(
+            @PathVariable Long tableSessionId,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        waiterService.closeTableSessionByWaiter(tableSessionId, authHeader);
+        return ResponseEntity.ok("Masa oturumu garson tarafından kapatıldı");
+    }
+
+
 }

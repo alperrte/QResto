@@ -71,7 +71,61 @@ export interface KitchenOrderResponse {
     createdAt?: string;
     updatedAt?: string;
 }
+export interface OrderItemDetailResponse {
+    id: number;
+    productId: number;
+    productName: string;
+    productPrice: number;
+    vatIncluded: boolean;
+    quantity: number;
+    removedIngredients?: string | null;
+    addedIngredients?: string | null;
+    note?: string | null;
+    lineTotal: number;
+    status: string;
+    cancelReason?: string | null;
+    cancelledAt?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+}
 
+export interface OrderDetailResponse {
+    id: number;
+    orderNo: string;
+    cartId?: number | null;
+    tableSessionId: number;
+    guestSessionId: number;
+    tableId: number;
+    tableName?: string | null;
+    status: string;
+    subtotalAmount: number;
+    vatAmount: number;
+    totalAmount: number;
+    cancelReason?: string | null;
+    createdAt?: string | null;
+    updatedAt?: string | null;
+    receivedAt?: string | null;
+    preparingAt?: string | null;
+    readyAt?: string | null;
+    servedAt?: string | null;
+    completedAt?: string | null;
+    paymentPendingAt?: string | null;
+    paidAt?: string | null;
+    cancelledAt?: string | null;
+    items: OrderItemDetailResponse[];
+}
+export const getOrderDetail = async (
+    orderId: number
+): Promise<OrderDetailResponse> => {
+    const response = await axios.get<OrderDetailResponse>(
+        `${WAITER_API_URL}/waiter/orders/${orderId}/detail`,
+        {
+            headers: getAuthHeader(),
+        }
+    );
+
+    return response.data;
+};
 export async function getAllCalls() {
     const response = await axios.get<TableCallResponse[]>(
         `${WAITER_API_URL}/waiter/calls`,
@@ -161,7 +215,7 @@ export async function markOrderServed(orderId: number) {
 
     return response.data;
 }
-export async function getActiveTableSession(tableId: number) {
+export async function getActiveTableSession(tableId: number): Promise<TableSessionResponse | null> {
     try {
         const response = await axios.get<TableSessionResponse>(
             `${QR_API_URL}/table-sessions/active/table/${tableId}`,
@@ -171,7 +225,60 @@ export async function getActiveTableSession(tableId: number) {
         );
 
         return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 400) {
+            return null;
+        }
+
+        return null;
+    }
+}
+export async function getActiveOrders() {
+    const response = await axios.get<KitchenOrderResponse[]>(
+        `${WAITER_API_URL}/waiter/orders/active`,
+        {
+            headers: getAuthHeader(),
+        }
+    );
+
+    return response.data;
+}
+
+export async function refreshTableSession(
+    tableId: number
+): Promise<TableSessionResponse | null> {
+    try {
+        const response = await axios.get<TableSessionResponse | "">(
+            `${WAITER_API_URL}/waiter/tables/${tableId}/session/refresh`,
+            {
+                headers: getAuthHeader(),
+            }
+        );
+
+        return response.data ? (response.data as TableSessionResponse) : null;
     } catch {
         return null;
     }
+}
+export async function closeTableSession(tableId: number) {
+    const response = await axios.patch(
+        `${WAITER_API_URL}/waiter/tables/${tableId}/session/close`,
+        {},
+        {
+            headers: getAuthHeader(),
+        }
+    );
+
+    return response.data;
+}
+export async function closeTableSessionByWaiter(tableSessionId: number) {
+    const response = await axios.patch(
+        `${WAITER_API_URL}/waiter/table-sessions/${tableSessionId}/close-by-waiter`,
+        {},
+        {
+            headers: getAuthHeader(),
+        }
+    );
+
+    return response.data;
 }

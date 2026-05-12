@@ -112,4 +112,31 @@ public class QrClient {
 
         return response.getBody();
     }
+    public void closeSessionByWaiter(Long tableSessionId, String token) {
+
+        String url = qrServiceUrl + "/api/table-sessions/" + tableSessionId + "/close-by-waiter";
+
+        HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
+
+        restTemplate.exchange(
+                url,
+                HttpMethod.PATCH,
+                entity,
+                Void.class
+        );
+    }
+    public void closeActiveSessionByTableByWaiter(Long tableId, String token) {
+
+        String url = qrServiceUrl + "/api/table-sessions/active/table/" + tableId + "/close-by-waiter";
+
+        HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
+
+        restTemplate.exchange(
+                url,
+                HttpMethod.PATCH,
+                entity,
+                Void.class
+        );
+    }
+
 }

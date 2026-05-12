@@ -7,6 +7,7 @@ import {
     CheckCircle2,
     ClipboardList,
     Coffee,
+    Eye,
     Loader2,
     ReceiptText,
     Soup,
@@ -19,10 +20,15 @@ import {
     getAllCalls,
     getCancelledOrders,
     getReadyOrders,
+    getActiveOrders,
     getTables,
     markOrderServed,
     resolveCall,
+    closeTableSessionByWaiter,
     getActiveTableSession,
+    getOrderDetail,
+
+    type OrderDetailResponse,
     type KitchenOrderResponse,
     type QrTableResponse,
     type TableCallResponse,
@@ -187,6 +193,11 @@ export default function WaiterDashboard() {
     const [tableSessions, setTableSessions] = useState<TableSessionResponse[]>([]);
     const [heldTableTimestamps, setHeldTableTimestamps] = useState<Map<number, number>>(new Map());
 
+    const [selectedOrder, setSelectedOrder] = useState<KitchenOrderResponse | null>(null);
+    const [selectedOrderDetail, setSelectedOrderDetail] = useState<OrderDetailResponse | null>(null);
+    const [orderDetailOpen, setOrderDetailOpen] = useState(false);
+    const [orderDetailLoading, setOrderDetailLoading] = useState(false);
+    const [refreshingTableId, setRefreshingTableId] = useState<number | null>(null);
     const [initialLoading, setInitialLoading] = useState(true);
     const [actionLoadingId, setActionLoadingId] = useState<number | null>(null);
     const [orderActionLoadingId, setOrderActionLoadingId] = useState<number | null>(null);
@@ -213,9 +224,10 @@ export default function WaiterDashboard() {
         try {
             setError(null);
 
-            const [allCallsData, tablesData, readyOrdersData, cancelledOrdersData] = await Promise.all([
+            const [allCallsData, tablesData, activeOrdersData, readyOrdersData, cancelledOrdersData] = await Promise.all([
                 getAllCalls().catch(() => []),
                 getTables().catch(() => []),
+                getActiveOrders().catch(() => []),
                 getReadyOrders().catch(() => []),
                 getCancelledOrders().catch(() => []),
             ]);
@@ -227,8 +239,11 @@ export default function WaiterDashboard() {
 
             const activeSessions = await Promise.all(
                 tableList.map(async (table) => {
-                    const session = await getActiveTableSession(table.id);
-                    return session;
+                    try {
+                        return await getActiveTableSession(table.id);
+                    } catch {
+                        return null;
+                    }
                 })
             );
 
@@ -241,6 +256,7 @@ export default function WaiterDashboard() {
 
 
             const fetched = [
+                ...ensureArray<KitchenOrderResponse>(activeOrdersData),
                 ...ensureArray<KitchenOrderResponse>(readyOrdersData),
                 ...ensureArray<KitchenOrderResponse>(cancelledOrdersData),
             ];
@@ -554,7 +570,35 @@ export default function WaiterDashboard() {
                 };
         }
     }
+    async function handleCloseTableSession(tableId: number, tableSessionId?: number) {
+        if (!tableSessionId) {
+            setError("Bu masa için aktif oturum bulunamadı.");
+            return;
+        }
 
+        try {
+            setRefreshingTableId(tableId);
+
+            await closeTableSessionByWaiter(tableSessionId);
+
+            setTableSessions((prev) =>
+                prev.filter((session) => session.id !== tableSessionId)
+            );
+
+            setHeldTableTimestamps((prev) => {
+                const next = new Map(prev);
+                next.delete(tableId);
+                return next;
+            });
+
+            await loadDashboard();
+        } catch (err) {
+            console.error(err);
+            setError("Masa oturumu kapatılamadı.");
+        } finally {
+            setRefreshingTableId(null);
+        }
+    }
     async function handleResolveCall(callId: number) {
         try {
             setActionLoadingId(callId);
@@ -580,6 +624,28 @@ export default function WaiterDashboard() {
         } finally {
             setActionLoadingId(null);
         }
+    }
+    async function handleOpenOrderDetail(order: KitchenOrderResponse) {
+        try {
+            setOrderDetailOpen(true);
+            setSelectedOrder(order);
+            setSelectedOrderDetail(null);
+            setOrderDetailLoading(true);
+
+            const detail = await getOrderDetail(order.orderId);
+            setSelectedOrderDetail(detail);
+        } catch (err) {
+            console.error(err);
+            setError("Sipariş detayı yüklenemedi.");
+        } finally {
+            setOrderDetailLoading(false);
+        }
+    }
+
+    function handleCloseOrderDetail() {
+        setOrderDetailOpen(false);
+        setSelectedOrder(null);
+        setSelectedOrderDetail(null);
     }
 
     async function handleMarkOrderServed(orderId: number) {
@@ -773,6 +839,23 @@ export default function WaiterDashboard() {
                                                     </p>
                                                 </div>
                                             ) : null}
+                                            {activeSession ? (
+                                                <button
+                                                    onClick={() => handleCloseTableSession(table.id, activeSession.id)}
+                                                    disabled={refreshingTableId === table.id}
+                                                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition hover:scale-[1.02] disabled:opacity-60"
+                                                    style={{
+                                                        borderColor: "var(--qresto-border)",
+                                                        background: "var(--qresto-surface)",
+                                                        color: "var(--qresto-text)",
+                                                    }}
+                                                >
+                                                    {refreshingTableId === table.id ? (
+                                                        <Loader2 size={14} className="animate-spin" />
+                                                    ) : null}
+                                                    Masa Oturumunu Kapat
+                                                </button>
+                                            ) : null}
                                         </div>
                                     );
                                 })}
@@ -937,24 +1020,39 @@ export default function WaiterDashboard() {
                                                     </span>
                                                 </div>
 
-                                                {normalizeOrderStatus(order.status) === "READY" ? (
+                                                <div className="mt-4 grid grid-cols-1 gap-2">
                                                     <button
-                                                        onClick={() => handleMarkOrderServed(order.orderId)}
-                                                        disabled={orderActionLoadingId === order.orderId}
-                                                        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:scale-[1.02] disabled:opacity-60"
+                                                        onClick={() => handleOpenOrderDetail(order)}
+                                                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition hover:scale-[1.02]"
                                                         style={{
-                                                            background: "var(--qresto-primary)",
-                                                            color: "#fff",
+                                                            borderColor: "var(--qresto-border)",
+                                                            background: "var(--qresto-surface)",
+                                                            color: "var(--qresto-text)",
                                                         }}
                                                     >
-                                                        {orderActionLoadingId === order.orderId ? (
-                                                            <Loader2 size={15} className="animate-spin" />
-                                                        ) : (
-                                                            <CheckCircle2 size={15} />
-                                                        )}
-                                                        Servis Edildi
+                                                        <Eye size={15} />
+                                                        Detay
                                                     </button>
-                                                ) : null}
+
+                                                    {["READY", "HAZIR"].includes(normalizeOrderStatus(order.status)) ? (
+                                                        <button
+                                                            onClick={() => handleMarkOrderServed(order.orderId)}
+                                                            disabled={orderActionLoadingId === order.orderId}
+                                                            className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs font-bold transition hover:scale-[1.02] disabled:opacity-60"
+                                                            style={{
+                                                                background: "var(--qresto-primary)",
+                                                                color: "#fff",
+                                                            }}
+                                                        >
+                                                            {orderActionLoadingId === order.orderId ? (
+                                                                <Loader2 size={15} className="animate-spin" />
+                                                            ) : (
+                                                                <CheckCircle2 size={15} />
+                                                            )}
+                                                            Servis Edildi
+                                                        </button>
+                                                    ) : null}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -1011,11 +1109,24 @@ export default function WaiterDashboard() {
                                                         >
                                                             {getOrderStatusLabel(order.status)}
                                                         </span>
-                                                        <span style={{ marginLeft: 8, fontSize: 12, color: "var(--qresto-muted)" }}>
+                                                                                                        <span style={{ marginLeft: 8, fontSize: 12, color: "var(--qresto-muted)" }}>
                                                             {formatDuration(order.createdAt, order.updatedAt)}
                                                         </span>
                                                     </div>
                                                 </div>
+
+                                                <button
+                                                    onClick={() => handleOpenOrderDetail(order)}
+                                                    className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl border px-3 py-2 text-xs font-bold transition hover:scale-[1.02]"
+                                                    style={{
+                                                        borderColor: "var(--qresto-border)",
+                                                        background: "var(--qresto-surface)",
+                                                        color: "var(--qresto-text)",
+                                                    }}
+                                                >
+                                                    <Eye size={15} />
+                                                    Detay
+                                                </button>
                                             </div>
                                         ))}
                                     </div>
@@ -1132,6 +1243,21 @@ export default function WaiterDashboard() {
                     </section>
                 </div>
             </div>
+
+            {orderDetailOpen && selectedOrder ? (
+                <OrderDetailModal
+                    order={selectedOrder}
+                    detail={selectedOrderDetail}
+                    loading={orderDetailLoading}
+                    tableName={
+                        selectedOrderDetail?.tableName ||
+                        getTableDisplayName(selectedOrder.tableId, selectedOrder.tableNumber)
+                    }
+                    onClose={handleCloseOrderDetail}
+                    onMarkServed={handleMarkOrderServed}
+                    actionLoadingId={orderActionLoadingId}
+                />
+            ) : null}
         </div>
     );
 }
@@ -1254,6 +1380,259 @@ function EmptyBox({ text }: { text: string }) {
             }}
         >
             {text}
+        </div>
+    );
+}
+
+
+
+
+function OrderDetailModal({
+                              order,
+                              detail,
+                              loading,
+                              tableName,
+                              onClose,
+                              onMarkServed,
+                              actionLoadingId,
+                          }: {
+    order: KitchenOrderResponse;
+    detail: OrderDetailResponse | null;
+    loading: boolean;
+    tableName: string;
+    onClose: () => void;
+    onMarkServed: (orderId: number) => Promise<void>;
+    actionLoadingId: number | null;
+}) {
+    const status = String(detail?.status || order.status || "UNKNOWN");
+    const items = Array.isArray(detail?.items) ? detail.items : [];
+
+    const formatMoney = (value: unknown) => {
+        if (value === null || value === undefined || value === "") return "-";
+
+        const numericValue = Number(value);
+
+        if (Number.isNaN(numericValue)) return "-";
+
+        return `${numericValue.toLocaleString("tr-TR")} ₺`;
+    };
+
+    const safeText = (value: unknown, fallback = "-") => {
+        if (value === null || value === undefined || value === "") return fallback;
+
+        if (typeof value === "object") {
+            try {
+                return JSON.stringify(value);
+            } catch {
+                return fallback;
+            }
+        }
+
+        return String(value);
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
+            <div
+                className="absolute inset-0 bg-black/60"
+                onClick={onClose}
+            />
+
+            <div
+                className="relative z-10 w-full max-w-3xl rounded-3xl border p-5 shadow-2xl"
+                style={{
+                    background: "var(--qresto-surface)",
+                    borderColor: "var(--qresto-border)",
+                    color: "var(--qresto-text)",
+                }}
+            >
+                <div
+                    className="flex items-start justify-between gap-4 border-b pb-4"
+                    style={{ borderColor: "var(--qresto-border)" }}
+                >
+                    <div>
+                        <span
+                            className="mb-2 inline-flex rounded-full px-3 py-1 text-xs font-bold"
+                            style={{
+                                background: getOrderStatusTone(status).bg,
+                                color: getOrderStatusTone(status).text,
+                            }}
+                        >
+                            {getOrderStatusLabel(status)}
+                        </span>
+
+                        <h2 className="text-xl font-black">
+                            {safeText(tableName, "Sipariş Detayı")}
+                        </h2>
+
+                        <p className="mt-1 text-sm" style={{ color: "var(--qresto-muted)" }}>
+                            Sipariş No: {safeText(detail?.orderNo || order.orderNumber || order.orderId)}
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex h-10 w-10 items-center justify-center rounded-2xl border text-xl font-black"
+                        style={{
+                            borderColor: "var(--qresto-border)",
+                            background: "var(--qresto-bg)",
+                            color: "var(--qresto-text)",
+                        }}
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="rounded-2xl border p-3" style={{ background: "var(--qresto-bg)", borderColor: "var(--qresto-border)" }}>
+                        <p className="text-xs font-semibold" style={{ color: "var(--qresto-muted)" }}>Oluşturulma</p>
+                        <p className="mt-1 text-sm font-bold">{formatDateTime(detail?.createdAt || order.createdAt)}</p>
+                    </div>
+
+                    <div className="rounded-2xl border p-3" style={{ background: "var(--qresto-bg)", borderColor: "var(--qresto-border)" }}>
+                        <p className="text-xs font-semibold" style={{ color: "var(--qresto-muted)" }}>Güncellenme</p>
+                        <p className="mt-1 text-sm font-bold">{formatDateTime(detail?.updatedAt || order.updatedAt)}</p>
+                    </div>
+
+                    <div className="rounded-2xl border p-3" style={{ background: "var(--qresto-bg)", borderColor: "var(--qresto-border)" }}>
+                        <p className="text-xs font-semibold" style={{ color: "var(--qresto-muted)" }}>Ara Toplam</p>
+                        <p className="mt-1 text-sm font-bold">{formatMoney(detail?.subtotalAmount)}</p>
+                    </div>
+
+                    <div className="rounded-2xl border p-3" style={{ background: "var(--qresto-bg)", borderColor: "var(--qresto-border)" }}>
+                        <p className="text-xs font-semibold" style={{ color: "var(--qresto-muted)" }}>Toplam</p>
+                        <p className="mt-1 text-sm font-bold">{formatMoney(detail?.totalAmount ?? order.totalAmount)}</p>
+                    </div>
+                </div>
+
+                <div className="mt-5">
+                    <h3
+                        className="text-sm font-bold uppercase tracking-wide"
+                        style={{ color: "var(--qresto-muted)" }}
+                    >
+                        Sipariş İçeriği
+                    </h3>
+
+                    {loading ? (
+                        <div
+                            className="mt-3 rounded-2xl border p-6 text-center text-sm"
+                            style={{
+                                borderColor: "var(--qresto-border)",
+                                color: "var(--qresto-muted)",
+                            }}
+                        >
+                            Detaylar yükleniyor...
+                        </div>
+                    ) : items.length === 0 ? (
+                        <div
+                            className="mt-3 rounded-2xl border p-5 text-center text-sm"
+                            style={{
+                                borderColor: "var(--qresto-border)",
+                                color: "var(--qresto-muted)",
+                            }}
+                        >
+                            Bu sipariş için ürün detayı bulunamadı.
+                        </div>
+                    ) : (
+                        <div className="mt-3 flex max-h-80 flex-col gap-3 overflow-y-auto pr-1">
+                            {items.map((item, index) => (
+                                <div
+                                    key={safeText(item.id || index)}
+                                    className="rounded-2xl border p-4"
+                                    style={{
+                                        background: "var(--qresto-bg)",
+                                        borderColor: "var(--qresto-border)",
+                                    }}
+                                >
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div>
+                                            <h4 className="font-bold">
+                                                {safeText(item.productName, `Ürün ${index + 1}`)}
+                                            </h4>
+
+                                            <p className="mt-1 text-xs" style={{ color: "var(--qresto-muted)" }}>
+
+                                            </p>
+                                        </div>
+
+                                        <span
+                                            className="rounded-full px-3 py-1 text-xs font-bold"
+                                            style={{
+                                                background: "var(--qresto-hover)",
+                                                color: "var(--qresto-primary)",
+                                            }}
+                                        >
+                                            x{safeText(item.quantity, "1")}
+                                        </span>
+                                    </div>
+
+                                    {item.removedIngredients ? (
+                                        <p className="mt-3 text-xs" style={{ color: "var(--qresto-muted)" }}>
+                                            Çıkarılanlar: {safeText(item.removedIngredients)}
+                                        </p>
+                                    ) : null}
+
+                                    {item.addedIngredients ? (
+                                        <p className="mt-1 text-xs" style={{ color: "var(--qresto-muted)" }}>
+                                            Eklenenler: {safeText(item.addedIngredients)}
+                                        </p>
+                                    ) : null}
+
+                                    {item.note ? (
+                                        <p className="mt-1 text-xs" style={{ color: "var(--qresto-muted)" }}>
+                                            Not: {safeText(item.note)}
+                                        </p>
+                                    ) : null}
+
+                                    <div
+                                        className="mt-3 flex items-center justify-between text-xs"
+                                        style={{ color: "var(--qresto-muted)" }}
+                                    >
+                                        <span>Birim: {formatMoney(item.productPrice)}</span>
+                                        <span className="font-bold" style={{ color: "var(--qresto-text)" }}>
+                                            {formatMoney(item.lineTotal)}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                <div
+                    className="mt-5 flex flex-col gap-2 border-t pt-4 sm:flex-row sm:justify-end"
+                    style={{ borderColor: "var(--qresto-border)" }}
+                >
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-xl border px-4 py-2 text-sm font-bold"
+                        style={{
+                            borderColor: "var(--qresto-border)",
+                            background: "var(--qresto-bg)",
+                            color: "var(--qresto-text)",
+                        }}
+                    >
+                        Kapat
+                    </button>
+
+                    {["READY", "HAZIR"].includes(normalizeOrderStatus(status)) ? (
+                        <button
+                            type="button"
+                            onClick={() => onMarkServed(order.orderId)}
+                            disabled={actionLoadingId === order.orderId}
+                            className="rounded-xl px-4 py-2 text-sm font-bold disabled:opacity-60"
+                            style={{
+                                background: "var(--qresto-primary)",
+                                color: "#fff",
+                            }}
+                        >
+                            Servis Edildi
+                        </button>
+                    ) : null}
+                </div>
+            </div>
         </div>
     );
 }

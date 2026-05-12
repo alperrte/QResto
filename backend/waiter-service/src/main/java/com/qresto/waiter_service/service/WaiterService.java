@@ -4,16 +4,13 @@ import com.qresto.waiter_service.client.KitchenClient;
 import com.qresto.waiter_service.client.QrClient;
 import com.qresto.waiter_service.dto.request.CreateTableCallRequest;
 import com.qresto.waiter_service.dto.request.ResolveTableCallRequest;
-import com.qresto.waiter_service.dto.response.KitchenOrderResponse;
-import com.qresto.waiter_service.dto.response.QrTableResponse;
-import com.qresto.waiter_service.dto.response.TableCallResponse;
+import com.qresto.waiter_service.dto.response.*;
 import com.qresto.waiter_service.entity.TableCall;
 import com.qresto.waiter_service.enums.TableCallStatus;
 import com.qresto.waiter_service.repository.TableCallRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-import com.qresto.waiter_service.dto.response.QrValidationResponse;
-import com.qresto.waiter_service.dto.response.TableQrCodeResponse;
+import com.qresto.waiter_service.client.OrderClient;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,6 +24,7 @@ public class WaiterService {
     private final QrClient qrClient;
     private final KitchenClient kitchenClient;
     private final SimpMessagingTemplate messagingTemplate;
+    private final OrderClient orderClient;
 
     public TableCallResponse createTableCall(CreateTableCallRequest request) {
 
@@ -185,5 +183,40 @@ public class WaiterService {
     public TableQrCodeResponse getActiveQrCodeByTableId(Long tableId, String authHeader) {
         String token = extractToken(authHeader);
         return qrClient.getActiveQrCodeByTableId(tableId, token);
+    }
+    public OrderDetailResponse getOrderDetail(Long orderId, String authHeader) {
+        String token = extractToken(authHeader);
+        return orderClient.getOrderDetail(orderId, token);
+    }
+    public List<KitchenOrderResponse> getActiveOrders(String authHeader) {
+        String token = extractToken(authHeader);
+
+        return orderClient.getActiveOrders(token)
+                .stream()
+                .map(this::mapOrderDetailToKitchenOrderResponse)
+                .toList();
+    }
+
+    private KitchenOrderResponse mapOrderDetailToKitchenOrderResponse(OrderDetailResponse order) {
+        KitchenOrderResponse response = new KitchenOrderResponse();
+
+        response.setOrderId(order.getId());
+        response.setTableId(order.getTableId());
+        response.setTableNumber(null);
+        response.setOrderNumber(order.getOrderNo());
+        response.setStatus(order.getStatus());
+        response.setTotalAmount(order.getTotalAmount());
+        response.setCreatedAt(order.getCreatedAt());
+        response.setUpdatedAt(order.getUpdatedAt());
+
+        return response;
+    }
+    public TableSessionResponse refreshTableSession(Long tableId, String authHeader) {
+        String token = extractToken(authHeader);
+        return qrClient.getActiveSessionByTableId(tableId, token);
+    }
+    public void closeTableSessionByWaiter(Long tableSessionId, String authHeader) {
+        String token = extractToken(authHeader);
+        qrClient.closeSessionByWaiter(tableSessionId, token);
     }
 }
