@@ -4,7 +4,9 @@ import type {
     AddCartItemRequest,
     CartResponse,
     DemoPaymentRequest,
+    OrderAdminProductSalesRowResponse,
     OrderAdminSummaryResponse,
+    OrderAdminTopProductResponse,
     OrderResponse,
     UpdateCartItemQuantityRequest,
 } from "../types/cartTypes";
@@ -140,6 +142,28 @@ export const getOrdersByTableSession = async (
 
 export const getAdminOrderSummary = async (): Promise<OrderAdminSummaryResponse> => {
     const response = await orderApi.get<OrderAdminSummaryResponse>("/orders/admin/summary");
+
+    return response.data;
+};
+
+export const getAdminTopProductsToday = async (
+    limit = 8
+): Promise<OrderAdminTopProductResponse[]> => {
+    const response = await orderApi.get<OrderAdminTopProductResponse[]>(
+        "/orders/admin/top-products-today",
+        { params: { limit } }
+    );
+
+    return response.data;
+};
+
+export const getAdminProductSalesToday = async (
+    limit = 50
+): Promise<OrderAdminProductSalesRowResponse[]> => {
+    const response = await orderApi.get<OrderAdminProductSalesRowResponse[]>(
+        "/orders/admin/product-sales-today",
+        { params: { limit } }
+    );
 
     return response.data;
 };

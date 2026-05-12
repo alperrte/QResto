@@ -1,0 +1,24 @@
+/* Ana sidebar: üst seviye öğeler sırayla hafif yukarıdan düşer */
+@keyframes main-sidebar-nav-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.main-sidebar-nav-item {
+  animation: main-sidebar-nav-drop 0.42s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--sidebar-stagger, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-sidebar-nav-item {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
