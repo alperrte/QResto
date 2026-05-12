@@ -3,11 +3,7 @@ package com.qresto.order_service.controller;
 import com.qresto.order_service.dto.request.DemoPaymentRequest;
 import com.qresto.order_service.dto.request.OrderCancelRequest;
 import com.qresto.order_service.dto.request.OrderStatusUpdateRequest;
-import com.qresto.order_service.dto.response.OrderAdminProductSalesRowResponse;
-import com.qresto.order_service.dto.response.OrderAdminSummaryResponse;
-import com.qresto.order_service.dto.response.OrderAdminTableHeatmapCellResponse;
-import com.qresto.order_service.dto.response.OrderAdminTopProductResponse;
-import com.qresto.order_service.dto.response.OrderResponse;
+import com.qresto.order_service.dto.response.*;
 import com.qresto.order_service.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -117,4 +113,8 @@ public class OrderController {
         return ResponseEntity.ok(orderService.markTableSessionOrdersPaid(tableSessionId));
     }
 
+    @GetMapping("/table-session/{tableSessionId}/bill")
+    public ResponseEntity<TableSessionBillResponse> getTableSessionBill(@PathVariable Long tableSessionId) {
+        return ResponseEntity.ok(orderService.getTableSessionBill(tableSessionId));
+    }
 }

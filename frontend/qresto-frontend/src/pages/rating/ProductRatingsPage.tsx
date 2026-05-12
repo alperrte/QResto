@@ -1,5 +1,4 @@
 import {
-    CalendarDays,
     Check,
     ChevronDown,
     ChevronLeft,
@@ -7,18 +6,16 @@ import {
     ImageOff,
     MessageSquareText,
     MoreHorizontal,
-    RotateCcw,
+    Package2,
     Star,
     TrendingUp,
     X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
-import type { ProductRatingResponse, RatingSummaryResponse } from "../../types/ratingTypes";
-import {
-    getAllProductRatingsSummary,
-    getRecentProductRatings,
-} from "../../services/ratingService";
+import RatingPageHero from "./components/RatingPageHero";
+import type { ProductRatingResponse } from "../../types/ratingTypes";
+import { getRecentProductRatings } from "../../services/ratingService";
 import {
     getMenuProductById,
     type MenuProductInfo,
@@ -57,34 +54,14 @@ function ProductRatingsPage() {
         Record<number, MenuProductInfo | null>
     >({});
     const [loading, setLoading] = useState(true);
-    const [productSummary, setProductSummary] = useState<RatingSummaryResponse | null>(
-        null
-    );
     const [errorMessage, setErrorMessage] = useState("");
     const [sortOption, setSortOption] = useState<SortOption>("rating-desc");
+    const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [selectedProduct, setSelectedProduct] =
         useState<ProductAnalyticsItem | null>(null);
     const [selectedComment, setSelectedComment] =
         useState<SelectedComment | null>(null);
-    const [dateModalOpen, setDateModalOpen] = useState(false);
-
-    const toInputDate = (date: Date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-
-        return `${year}-${month}-${day}`;
-    };
-
-    const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-
-    const [startDate, setStartDate] = useState(toInputDate(firstDayOfMonth));
-    const [endDate, setEndDate] = useState(toInputDate(lastDayOfMonth));
-    const [draftStartDate, setDraftStartDate] = useState(toInputDate(firstDayOfMonth));
-    const [draftEndDate, setDraftEndDate] = useState(toInputDate(lastDayOfMonth));
 
     const itemsPerPage = 6;
 
@@ -94,12 +71,8 @@ function ProductRatingsPage() {
             setErrorMessage("");
 
             try {
-                const [response, summaryResponse] = await Promise.all([
-                    getRecentProductRatings(),
-                    getAllProductRatingsSummary().catch(() => null),
-                ]);
+                const response = await getRecentProductRatings();
                 setRatings(response);
-                setProductSummary(summaryResponse);
 
                 const uniqueProductIds = Array.from(
                     new Set(response.map((rating) => rating.productId))
@@ -116,7 +89,6 @@ function ProductRatingsPage() {
             } catch (error) {
                 console.error("Ürün değerlendirmeleri alınırken hata oluştu:", error);
                 setErrorMessage("Ürün değerlendirmeleri alınamadı.");
-                setProductSummary(null);
             } finally {
                 setLoading(false);
             }
@@ -141,18 +113,6 @@ function ProductRatingsPage() {
             hour: "2-digit",
             minute: "2-digit",
         }).format(parseBackendDate(value));
-    };
-
-    const formatDateInputForLabel = (value: string) => {
-        return new Intl.DateTimeFormat("tr-TR", {
-            day: "2-digit",
-            month: "long",
-            year: "numeric",
-        }).format(new Date(`${value}T00:00:00`));
-    };
-
-    const getDateRangeLabel = () => {
-        return `${formatDateInputForLabel(startDate)} - ${formatDateInputForLabel(endDate)}`;
     };
 
     const getProductName = (
@@ -195,21 +155,18 @@ function ProductRatingsPage() {
         return `http://localhost:7073${cleanPath}`;
     };
 
-    const formatAverage = (value: number | undefined | null) => {
-        if (value === undefined || value === null || Number.isNaN(value)) return "0.0";
-
-        return value.toFixed(1);
+    const getRatingLabel = (rating: number) => {
+        if (rating >= 4.5) return "Mükemmel";
+        if (rating >= 3.5) return "İyi";
+        if (rating >= 2.5) return "İdare eder";
+        if (rating >= 1.5) return "Geliştirilmeli";
+        if (rating > 0) return "Zayıf";
+        return "Henüz puan yok";
     };
 
     const filteredRatings = useMemo(() => {
-        const start = new Date(`${startDate}T00:00:00`);
-        const end = new Date(`${endDate}T23:59:59`);
-
-        return ratings.filter((rating) => {
-            const createdAt = parseBackendDate(rating.createdAt);
-            return createdAt >= start && createdAt <= end;
-        });
-    }, [ratings, startDate, endDate]);
+        return ratings;
+    }, [ratings]);
 
     const groupedProducts = useMemo<ProductAnalyticsItem[]>(() => {
         const groupedMap = new Map<number, ProductRatingResponse[]>();
@@ -222,6 +179,7 @@ function ProductRatingsPage() {
 
         return Array.from(groupedMap.entries()).map(([productId, productRatings]) => {
             const productInfo = productInfoMap[productId] ?? null;
+
             const totalRatings = productRatings.length;
             const totalComments = productRatings.filter(
                 (item) => item.comment && item.comment.trim().length > 0
@@ -315,6 +273,13 @@ function ProductRatingsPage() {
         return sortedProducts.slice(start, start + itemsPerPage);
     }, [sortedProducts, currentPage]);
 
+    const generalAverage = useMemo(() => {
+        if (filteredRatings.length === 0) return 0;
+
+        const total = filteredRatings.reduce((sum, item) => sum + item.rating, 0);
+        return total / filteredRatings.length;
+    }, [filteredRatings]);
+
     const totalComments = useMemo(() => {
         return filteredRatings.filter(
             (item) => item.comment && item.comment.trim().length > 0
@@ -332,29 +297,53 @@ function ProductRatingsPage() {
             .slice(0, 10);
     }, [filteredRatings]);
 
-    const summaryCards = useMemo(
-        () => [
-            {
-                title: "Ortalama Ürün Puanı",
-                value: formatAverage(productSummary?.averageRating),
-                helper: "5 üzerinden · Tüm ürünler",
-                Icon: Star,
-            },
-            {
-                title: "Toplam Değerlendirme",
-                value: String(productSummary?.totalRatingCount ?? 0),
-                helper: "Tüm zamanlar",
-                Icon: TrendingUp,
-            },
-            {
-                title: "Toplam Yorum",
-                value: String(totalComments),
-                helper: "Seçilen tarih aralığı (görüntülenen kayıtlar)",
-                Icon: MessageSquareText,
-            },
-        ],
-        [productSummary, totalComments]
-    );
+    const summaryCards = [
+        {
+            title: "Ortalama Ürün Puanı",
+            value: generalAverage.toFixed(1),
+            helper: getRatingLabel(generalAverage),
+            Icon: Star,
+        },
+        {
+            title: "Değerlendirilen Ürün",
+            value: String(groupedProducts.length),
+            helper: "Geri bildirim alan ürün",
+            Icon: Package2,
+        },
+        {
+            title: "Toplam Yorum",
+            value: String(totalComments),
+            helper: "Müşteri yorumu",
+            Icon: MessageSquareText,
+        },
+    ];
+
+    const sortOptions: { value: SortOption; label: string }[] = [
+        {
+            value: "rating-desc",
+            label: "Puan yüksekten düşüğe",
+        },
+        {
+            value: "rating-asc",
+            label: "Puan düşükten yükseğe",
+        },
+        {
+            value: "count-desc",
+            label: "Değerlendirme sayısı",
+        },
+        {
+            value: "comments-desc",
+            label: "Yorum sayısı",
+        },
+        {
+            value: "name-asc",
+            label: "Ürün adı A-Z",
+        },
+    ];
+
+    const selectedSortLabel =
+        sortOptions.find((option) => option.value === sortOption)?.label ??
+        "Sıralama seç";
 
     const renderStars = (rating: number, size = 16) => {
         return (
@@ -431,103 +420,12 @@ function ProductRatingsPage() {
         );
     };
 
-    const applyDateFilter = () => {
-        if (new Date(draftStartDate) > new Date(draftEndDate)) {
-            setErrorMessage("Başlangıç tarihi bitiş tarihinden büyük olamaz.");
-            return;
-        }
-
-        setStartDate(draftStartDate);
-        setEndDate(draftEndDate);
-        setCurrentPage(1);
-        setDateModalOpen(false);
-        setErrorMessage("");
-    };
-
-    const setQuickDateRange = (type: "today" | "week" | "month" | "all") => {
-        const nowDate = new Date();
-
-        if (type === "today") {
-            const value = toInputDate(nowDate);
-            setDraftStartDate(value);
-            setDraftEndDate(value);
-            return;
-        }
-
-        if (type === "week") {
-            const weekStart = new Date(nowDate);
-            weekStart.setDate(nowDate.getDate() - 6);
-
-            setDraftStartDate(toInputDate(weekStart));
-            setDraftEndDate(toInputDate(nowDate));
-            return;
-        }
-
-        if (type === "month") {
-            setDraftStartDate(toInputDate(new Date(nowDate.getFullYear(), nowDate.getMonth(), 1)));
-            setDraftEndDate(toInputDate(nowDate));
-            return;
-        }
-
-        if (type === "all") {
-            if (ratings.length === 0) {
-                setDraftStartDate(toInputDate(firstDayOfMonth));
-                setDraftEndDate(toInputDate(nowDate));
-                return;
-            }
-
-            const sortedDates = [...ratings].sort(
-                (a, b) =>
-                    parseBackendDate(a.createdAt).getTime() -
-                    parseBackendDate(b.createdAt).getTime()
-            );
-
-            setDraftStartDate(toInputDate(parseBackendDate(sortedDates[0].createdAt)));
-            setDraftEndDate(toInputDate(nowDate));
-        }
-    };
-
-    const resetToToday = () => {
-        const nowDate = new Date();
-        setDraftStartDate(toInputDate(new Date(nowDate.getFullYear(), nowDate.getMonth(), 1)));
-        setDraftEndDate(toInputDate(nowDate));
-    };
-
     return (
         <div className="space-y-5">
-            <section className="rounded-[26px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-7 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-                    <div className="flex items-start gap-5">
-                        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--qresto-hover)] text-[var(--qresto-primary)]">
-                            <Star size={30} />
-                        </div>
-
-                        <div>
-                            <h2 className="text-[34px] font-black tracking-tight text-[var(--qresto-text)]">
-                                Ürün Değerlendirmeleri
-                            </h2>
-
-                            <p className="mt-2 text-base font-medium text-[var(--qresto-muted)]">
-                                Menü ürünlerinin puanlarını, yorumlarını ve müşteri geri bildirimlerini analiz edin.
-                            </p>
-                        </div>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={() => {
-                            setDraftStartDate(startDate);
-                            setDraftEndDate(endDate);
-                            setDateModalOpen(true);
-                        }}
-                        className="inline-flex items-center gap-3 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-5 py-4 text-sm font-semibold text-[var(--qresto-text)] shadow-sm transition hover:bg-[var(--qresto-hover)]"
-                    >
-                        <CalendarDays size={18} />
-                        <span>{getDateRangeLabel()}</span>
-                        <ChevronDown size={16} className="text-[var(--qresto-muted)]" />
-                    </button>
-                </div>
-            </section>
+            <RatingPageHero
+                title="Ürün Değerlendirmeleri"
+                description="Menü ürünlerinin puanlarını, yorumlarını ve müşteri geri bildirimlerini analiz edin."
+            />
 
             {errorMessage && (
                 <section className="rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-500">
@@ -557,11 +455,11 @@ function ProductRatingsPage() {
                                             {card.title}
                                         </p>
 
-                                        <p className="mt-2 text-4xl font-black leading-none text-[var(--qresto-text)]">
+                                        <p className="mt-2 text-[30px] font-black leading-none text-[var(--qresto-text)]">
                                             {card.value}
                                         </p>
 
-                                        <p className="mt-2 text-sm font-semibold text-[var(--qresto-muted)]">
+                                        <p className="mt-2 text-xs font-semibold text-[var(--qresto-muted)]">
                                             {card.helper}
                                         </p>
                                     </div>
@@ -588,32 +486,70 @@ function ProductRatingsPage() {
                                 </div>
                             </div>
 
-                            <div className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3">
-                                <p className="text-xs font-medium text-[var(--qresto-muted)]">
-                                    Sıralama
-                                </p>
-
-                                <select
-                                    value={sortOption}
-                                    onChange={(event) => {
-                                        setSortOption(event.target.value as SortOption);
-                                        setCurrentPage(1);
-                                    }}
-                                    className="mt-1 bg-transparent text-sm font-semibold text-[var(--qresto-text)] outline-none"
+                            <div className="relative min-w-[260px]">
+                                <button
+                                    type="button"
+                                    onClick={() => setSortDropdownOpen((prev) => !prev)}
+                                    className="flex w-full items-center justify-between gap-4 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-left shadow-sm transition hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
                                 >
-                                    <option value="rating-desc">Puan yüksekten düşüğe</option>
-                                    <option value="rating-asc">Puan düşükten yükseğe</option>
-                                    <option value="count-desc">Değerlendirme sayısı</option>
-                                    <option value="comments-desc">Yorum sayısı</option>
-                                    <option value="name-asc">Ürün adı A-Z</option>
-                                </select>
+                                    <div>
+                                        <p className="text-xs font-semibold text-[var(--qresto-muted)]">
+                                            Sıralama
+                                        </p>
+
+                                        <p className="mt-1 text-sm font-bold text-[var(--qresto-text)]">
+                                            {selectedSortLabel}
+                                        </p>
+                                    </div>
+
+                                    <ChevronDown
+                                        size={18}
+                                        className={`shrink-0 text-[var(--qresto-muted)] transition-transform duration-200 ${
+                                            sortDropdownOpen ? "rotate-180" : ""
+                                        }`}
+                                    />
+                                </button>
+
+                                {sortDropdownOpen && (
+                                    <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-full overflow-hidden rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-2 shadow-[0_18px_40px_rgba(15,23,42,0.18)]">
+                                        {sortOptions.map((option) => {
+                                            const selected = option.value === sortOption;
+
+                                            return (
+                                                <button
+                                                    key={option.value}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSortOption(option.value);
+                                                        setCurrentPage(1);
+                                                        setSortDropdownOpen(false);
+                                                    }}
+                                                    className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-bold transition ${
+                                                        selected
+                                                            ? "bg-[var(--qresto-hover)] text-[var(--qresto-primary)]"
+                                                            : "text-[var(--qresto-text)] hover:bg-[var(--qresto-hover)]"
+                                                    }`}
+                                                >
+                                                    <span>{option.label}</span>
+
+                                                    {selected && (
+                                                        <Check
+                                                            size={16}
+                                                            className="shrink-0 text-[var(--qresto-primary)]"
+                                                        />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         <div className="mt-5 overflow-hidden rounded-[22px] border border-[var(--qresto-border)]">
                             {currentProducts.length === 0 ? (
                                 <div className="px-6 py-10 text-center text-sm font-semibold text-[var(--qresto-muted)]">
-                                    Seçilen tarih aralığında ürün değerlendirmesi bulunmuyor.
+                                    Henüz ürün değerlendirmesi bulunmuyor.
                                 </div>
                             ) : (
                                 <div className="divide-y divide-[var(--qresto-border)]">
@@ -652,6 +588,7 @@ function ProductRatingsPage() {
                                                     <p className="text-2xl font-black text-[var(--qresto-text)]">
                                                         {product.averageRating.toFixed(1)}
                                                     </p>
+
                                                     {renderStars(product.averageRating)}
                                                 </button>
 
@@ -662,7 +599,8 @@ function ProductRatingsPage() {
                                                             onClick={() =>
                                                                 setSelectedComment({
                                                                     productName: product.productName,
-                                                                    comment: product.latestComment as ProductRatingResponse,
+                                                                    comment:
+                                                                        product.latestComment as ProductRatingResponse,
                                                                 })
                                                             }
                                                             className="w-full rounded-2xl border border-transparent px-3 py-2 text-left transition hover:border-[var(--qresto-border)] hover:bg-[var(--qresto-surface)]"
@@ -672,7 +610,8 @@ function ProductRatingsPage() {
                                                             </p>
 
                                                             <p className="mt-1 text-xs font-medium text-[var(--qresto-muted)]">
-                                                                {product.totalRatings} değerlendirme • {product.totalComments} yorum
+                                                                {product.totalRatings} değerlendirme •{" "}
+                                                                {product.totalComments} yorum
                                                             </p>
                                                         </button>
                                                     ) : (
@@ -682,7 +621,8 @@ function ProductRatingsPage() {
                                                             </p>
 
                                                             <p className="mt-1 text-xs font-medium text-[var(--qresto-muted)]">
-                                                                {product.totalRatings} değerlendirme • {product.totalComments} yorum
+                                                                {product.totalRatings} değerlendirme •{" "}
+                                                                {product.totalComments} yorum
                                                             </p>
                                                         </div>
                                                     )}
@@ -751,7 +691,7 @@ function ProductRatingsPage() {
 
                         {latestComments.length === 0 ? (
                             <div className="mt-4 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-5 text-sm font-semibold text-[var(--qresto-muted)]">
-                                Seçilen tarih aralığında ürün yorumu bulunmuyor.
+                                Henüz ürün yorumu bulunmuyor.
                             </div>
                         ) : (
                             <div className="mt-4 space-y-3">
@@ -991,126 +931,6 @@ function ProductRatingsPage() {
                                     {formatTurkeyDateTime(selectedComment.comment.createdAt)}
                                 </span>
                             </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {dateModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-                    <div className="w-full max-w-lg rounded-[30px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-2xl">
-                        <div className="flex items-start justify-between gap-4">
-                            <div>
-                                <h3 className="text-2xl font-black text-[var(--qresto-text)]">
-                                    Tarih Aralığı Seç
-                                </h3>
-
-                                <p className="mt-2 text-sm font-medium text-[var(--qresto-muted)]">
-                                    Ürün değerlendirmelerini seçilen tarih aralığına göre filtreleyin.
-                                </p>
-                            </div>
-
-                            <button
-                                type="button"
-                                onClick={() => setDateModalOpen(false)}
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--qresto-border)] text-[var(--qresto-text)] transition hover:bg-[var(--qresto-hover)]"
-                            >
-                                <X size={18} />
-                            </button>
-                        </div>
-
-                        <div className="mt-6 grid gap-3 sm:grid-cols-2">
-                            <button
-                                type="button"
-                                onClick={() => setQuickDateRange("today")}
-                                className="rounded-2xl border border-[var(--qresto-border)] px-4 py-3 text-sm font-bold text-[var(--qresto-text)] transition hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
-                            >
-                                Bugün
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setQuickDateRange("week")}
-                                className="rounded-2xl border border-[var(--qresto-border)] px-4 py-3 text-sm font-bold text-[var(--qresto-text)] transition hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
-                            >
-                                Son 7 Gün
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setQuickDateRange("month")}
-                                className="rounded-2xl border border-[var(--qresto-border)] px-4 py-3 text-sm font-bold text-[var(--qresto-text)] transition hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
-                            >
-                                Bu Ay
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() => setQuickDateRange("all")}
-                                className="rounded-2xl border border-[var(--qresto-border)] px-4 py-3 text-sm font-bold text-[var(--qresto-text)] transition hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
-                            >
-                                Tüm Zamanlar
-                            </button>
-                        </div>
-
-                        <div className="mt-6 space-y-4">
-                            <label className="block">
-                                <span className="text-sm font-bold text-[var(--qresto-text)]">
-                                    Başlangıç Tarihi
-                                </span>
-
-                                <input
-                                    type="date"
-                                    value={draftStartDate}
-                                    onChange={(event) =>
-                                        setDraftStartDate(event.target.value)
-                                    }
-                                    className="mt-2 h-12 w-full rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-4 text-sm font-semibold text-[var(--qresto-text)] outline-none focus:border-[var(--qresto-primary)]"
-                                />
-                            </label>
-
-                            <label className="block">
-                                <span className="text-sm font-bold text-[var(--qresto-text)]">
-                                    Bitiş Tarihi
-                                </span>
-
-                                <input
-                                    type="date"
-                                    value={draftEndDate}
-                                    onChange={(event) =>
-                                        setDraftEndDate(event.target.value)
-                                    }
-                                    className="mt-2 h-12 w-full rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-4 text-sm font-semibold text-[var(--qresto-text)] outline-none focus:border-[var(--qresto-primary)]"
-                                />
-                            </label>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={resetToToday}
-                            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-[var(--qresto-border)] px-4 py-3 text-sm font-bold text-[var(--qresto-text)] transition hover:bg-[var(--qresto-hover)]"
-                        >
-                            <RotateCcw size={17} />
-                            Günümüze Dön
-                        </button>
-
-                        <div className="mt-6 grid grid-cols-2 gap-3">
-                            <button
-                                type="button"
-                                onClick={() => setDateModalOpen(false)}
-                                className="h-11 rounded-full border border-[var(--qresto-border)] text-sm font-bold text-[var(--qresto-text)] transition hover:bg-[var(--qresto-hover)]"
-                            >
-                                Vazgeç
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={applyDateFilter}
-                                className="flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--qresto-primary)] text-sm font-bold text-white transition hover:opacity-90"
-                            >
-                                <Check size={17} />
-                                Uygula
-                            </button>
                         </div>
                     </div>
                 </div>
