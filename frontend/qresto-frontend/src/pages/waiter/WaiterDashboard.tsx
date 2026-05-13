@@ -1241,7 +1241,6 @@ const [
                     actionLoading={actionLoadingId === confirmResolveCall.id}
                     onCancel={() => setConfirmResolveCall(null)}
                     onConfirm={async () => {
-                  onConfirm={async () => {
     const confirmed = await handleConfirmCall(confirmResolveCall);
 
     if (confirmed) {
