@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from "react";
 import {
     AlertCircle,
     CheckCircle2,
@@ -23,6 +23,7 @@ import type {
     OrderAdminSummaryResponse,
     OrderResponse,
 } from "../../types/cartTypes";
+import "../../styles/adminPageAnimations.css";
 
 type OrderTab = "active" | "completed";
 
@@ -230,7 +231,7 @@ function OrdersAdminPage() {
         <div className="flex h-[calc(100vh-132px)] min-h-[720px] min-w-0 flex-col overflow-hidden">
             <div className="grid min-h-0 flex-1 grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
                 <section className="flex min-h-0 flex-col gap-5">
-                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="admin-page-header-enter flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div>
                             <h1 className="text-3xl font-black tracking-tight text-[var(--qresto-text)]">
                                 Siparişler
@@ -261,8 +262,8 @@ function OrdersAdminPage() {
                         </button>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                        <div className="rounded-3xl border border-orange-200 bg-gradient-to-br from-orange-50 to-[var(--qresto-surface)] p-4 shadow-sm dark:border-orange-500/20 dark:from-orange-500/10">
+                    <div className="admin-page-stagger grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div style={{ "--admin-page-item-delay": "60ms" } as CSSProperties} className="rounded-3xl border border-orange-200 bg-gradient-to-br from-orange-50 to-[var(--qresto-surface)] p-4 shadow-sm dark:border-orange-500/20 dark:from-orange-500/10">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-black text-[var(--qresto-muted)]">
@@ -284,7 +285,7 @@ function OrdersAdminPage() {
                             </div>
                         </div>
 
-                        <div className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-[var(--qresto-surface)] p-4 shadow-sm dark:border-emerald-500/20 dark:from-emerald-500/10">
+                        <div style={{ "--admin-page-item-delay": "115ms" } as CSSProperties} className="rounded-3xl border border-emerald-200 bg-gradient-to-br from-emerald-50 to-[var(--qresto-surface)] p-4 shadow-sm dark:border-emerald-500/20 dark:from-emerald-500/10">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-black text-[var(--qresto-muted)]">
@@ -307,7 +308,7 @@ function OrdersAdminPage() {
 
                         </div>
 
-                        <div className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-[var(--qresto-surface)] p-4 shadow-sm dark:border-amber-500/20 dark:from-amber-500/10">
+                        <div style={{ "--admin-page-item-delay": "170ms" } as CSSProperties} className="rounded-3xl border border-amber-200 bg-gradient-to-br from-amber-50 to-[var(--qresto-surface)] p-4 shadow-sm dark:border-amber-500/20 dark:from-amber-500/10">
                             <div className="flex items-center justify-between">
                                 <div>
                                     <p className="text-sm font-black text-[var(--qresto-muted)]">
@@ -330,7 +331,7 @@ function OrdersAdminPage() {
                         </div>
                     </div>
 
-                    <div className="flex min-h-0 flex-1 flex-col rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-sm">
+                    <div className="admin-page-panel-enter flex min-h-0 flex-1 flex-col rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-sm">
                         <div className="flex flex-col gap-3 border-b border-[var(--qresto-border)] p-4 lg:flex-row lg:items-center lg:justify-between">
                             <div className="flex flex-wrap gap-2">
                                 <button
@@ -492,7 +493,7 @@ function OrdersAdminPage() {
                     </div>
                 </section>
 
-                <aside className="flex min-h-0 flex-col rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-sm">
+                <aside className="admin-page-panel-enter flex min-h-0 flex-col rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-sm">
                     <div className="flex items-center justify-between border-b border-[var(--qresto-border)] p-5">
                         <div>
                             <h2 className="text-lg font-black text-[var(--qresto-text)]">
