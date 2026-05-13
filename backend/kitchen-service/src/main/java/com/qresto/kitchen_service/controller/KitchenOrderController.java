@@ -57,10 +57,11 @@ public class KitchenOrderController {
     }
 
     @PatchMapping("/{orderId}/served")
-    public OrderResponse markOrderServedForWaiter(
+    public String markOrderServedForWaiter(
             @PathVariable Long orderId
     ) {
-        return kitchenOrderService.markOrderServedForWaiter(orderId);
+        kitchenOrderService.markOrderServedForWaiter(orderId);
+        return "Sipariş servis edildi olarak işaretlendi";
     }
 
     @PatchMapping("/{orderId}/cancel")

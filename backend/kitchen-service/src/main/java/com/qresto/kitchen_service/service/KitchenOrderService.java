@@ -41,12 +41,7 @@ public class KitchenOrderService {
         return orderClient.updateOrderStatus(orderId, request.getStatus());
     }
 
-    public OrderResponse cancelOrder(
-            Long orderId,
-            CancelKitchenOrderRequest request
-    ) {
-        return orderClient.cancelOrder(orderId, request.getReason());
-    }
+
 
     public List<KitchenOrderResponse> getReadyOrdersForWaiter() {
         return kitchenOrderRepository.findByStatus(KitchenOrderStatus.HAZIR)
@@ -75,15 +70,11 @@ public class KitchenOrderService {
                         new ResourceNotFoundException("Sipariş bulunamadı")
                 );
 
-        kitchenOrderRepository.findByOrderId(orderId).ifPresent(kitchenOrder -> {
-            kitchenOrder.setStatus(KitchenOrderStatus.SERVIS_EDILDI);
-            kitchenOrder.setUpdatedAt(LocalDateTime.now());
-            kitchenOrderRepository.save(kitchenOrder);
-        });
+        kitchenOrder.setStatus(KitchenOrderStatus.SERVIS_EDILDI);
+        kitchenOrder.setUpdatedAt(LocalDateTime.now());
 
-        return updatedOrder;
+        kitchenOrderRepository.save(kitchenOrder);
     }
-
     private KitchenOrderResponse mapToResponse(KitchenOrder kitchenOrder) {
         return KitchenOrderResponse.builder()
                 .orderId(kitchenOrder.getOrderId())
