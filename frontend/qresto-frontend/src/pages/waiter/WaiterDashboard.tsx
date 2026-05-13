@@ -370,21 +370,21 @@ export default function WaiterDashboard() {
 
             const beforeOrdersSnapshot = [...ordersRef.current];
 
-            const [
-                allCallsResult,
-                tablesResult,
-                activeOrdersResult,
-                readyOrdersResult,
-                cancelledOrdersResult,
-                completedRecentResult,
-            ] = await Promise.allSettled([
-                getAllCalls(),
-                getTables(),
-                getActiveOrders(),
-                getReadyOrders(),
-                getCancelledOrders(),
-                getRecentCompletedOrders(40),
-            ]);
+const [
+    allCallsResult,
+    tablesResult,
+    activeOrdersResult,
+    readyOrdersResult,
+    cancelledOrdersResult,
+    completedRecentResult,
+] = await Promise.allSettled([
+    getAllCalls(),
+    getTables(),
+    getActiveOrders(),
+    getReadyOrders(),
+    getCancelledOrders(),
+    getRecentCompletedOrders(40),
+]);
 
             const tableList =
                 tablesResult.status === "fulfilled"
@@ -426,18 +426,18 @@ export default function WaiterDashboard() {
                     ? ensureArray<OrderResponse>(completedRecentResult.value).map(orderResponseToKitchenRow)
                     : [];
 
-            const fetched = [
-                ...(activeOrdersResult.status === "fulfilled"
-                    ? ensureArray<KitchenOrderResponse>(activeOrdersResult.value)
-                    : []),
-                ...(readyOrdersResult.status === "fulfilled"
-                    ? ensureArray<KitchenOrderResponse>(readyOrdersResult.value)
-                    : []),
-                ...(cancelledOrdersResult.status === "fulfilled"
-                    ? ensureArray<KitchenOrderResponse>(cancelledOrdersResult.value)
-                    : []),
-                ...completedRecentRows,
-            ];
+           const fetched = [
+    ...(activeOrdersResult.status === "fulfilled"
+        ? ensureArray<KitchenOrderResponse>(activeOrdersResult.value)
+        : []),
+    ...(readyOrdersResult.status === "fulfilled"
+        ? ensureArray<KitchenOrderResponse>(readyOrdersResult.value)
+        : []),
+    ...(cancelledOrdersResult.status === "fulfilled"
+        ? ensureArray<KitchenOrderResponse>(cancelledOrdersResult.value)
+        : []),
+    ...completedRecentRows,
+];
 
             const fetchedOrderIds = new Set(fetched.map((order) => order.orderId));
 
@@ -563,8 +563,14 @@ export default function WaiterDashboard() {
         const timer = window.setTimeout(() => {
             loadDashboard().finally(() => setInitialLoading(false));
         }, 0);
+        const refreshTimer = window.setInterval(() => {
+            loadDashboard().catch(() => undefined);
+        }, 5000);
 
-        return () => window.clearTimeout(timer);
+        return () => {
+            window.clearTimeout(timer);
+            window.clearInterval(refreshTimer);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -636,10 +642,10 @@ export default function WaiterDashboard() {
                                 setHeldTableTimestamps((prev) => {
                                     const next = new Map(prev);
                                     if (isOrderArchived(body.status)) {
-                                        next.delete(body.tableId);
-                                    } else {
-                                        next.set(body.tableId, Date.now());
-                                    }
+    next.delete(body.tableId);
+} else {
+    next.set(body.tableId, Date.now());
+}
                                     return next;
                                 });
                             }
@@ -845,31 +851,41 @@ export default function WaiterDashboard() {
             .join(", ");
     }
 
-    async function handleConfirmCall(call: TableCallResponse) {
-        try {
-            setActionLoadingId(call.id);
+   async function handleConfirmCall(call: TableCallResponse) {
+    try {
+        setActionLoadingId(call.id);
 
-            if (call.callType === "BILL_REQUEST") {
-                await markBillPaid(call.id, userEmail);
-            } else {
-                await resolveCall(call.id, userEmail);
-            }
+        if (call.callType === "BILL_REQUEST") {
+            await markBillPaid(call.id, userEmail);
 
-            await loadDashboard();
-            setSelectedCall(null);
-            return true;
-        } catch (err) {
-            console.error(err);
-            setError(
-                call.callType === "BILL_REQUEST"
-                    ? "Hesap ödendi olarak işaretlenemedi."
-                    : "Çağrı çözüldü olarak işaretlenemedi."
+            setHeldTableTimestamps((prev) => {
+                const next = new Map(prev);
+                next.delete(call.tableId);
+                return next;
+            });
+
+            setTableSessions((prev) =>
+                prev.filter((session) => session.tableId !== call.tableId)
             );
-            return false;
-        } finally {
-            setActionLoadingId(null);
+        } else {
+            await resolveCall(call.id, userEmail);
         }
+
+        await loadDashboard();
+        setSelectedCall(null);
+        return true;
+    } catch (err) {
+        console.error(err);
+        setError(
+            call.callType === "BILL_REQUEST"
+                ? "Hesap ödendi olarak işaretlenemedi."
+                : "Çağrı çözüldü olarak işaretlenemedi."
+        );
+        return false;
+    } finally {
+        setActionLoadingId(null);
     }
+}
 
     async function handleOpenOrderDetail(order: KitchenOrderResponse) {
         try {
@@ -1225,12 +1241,14 @@ export default function WaiterDashboard() {
                     actionLoading={actionLoadingId === confirmResolveCall.id}
                     onCancel={() => setConfirmResolveCall(null)}
                     onConfirm={async () => {
-                        const confirmed = await handleConfirmCall(confirmResolveCall);
+                  onConfirm={async () => {
+    const confirmed = await handleConfirmCall(confirmResolveCall);
 
-                        if (confirmed) {
-                            setConfirmResolveCall(null);
-                        }
-                    }}
+    if (confirmed) {
+        setConfirmResolveCall(null);
+        setSelectedCall(null);
+    }
+}}
                 />
             ) : null}
         </div>

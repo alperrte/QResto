@@ -24,7 +24,7 @@ public class KitchenClient {
     public List<KitchenOrderResponse> getReadyOrders(String token) {
 
         try {
-            String url = kitchenServiceUrl + "/api/kitchen/orders/ready";
+            String url = kitchenServiceUrl + "/kitchen/orders/ready";
 
             HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
 
@@ -44,7 +44,7 @@ public class KitchenClient {
     public List<KitchenOrderResponse> getCancelledOrders(String token) {
 
         try {
-            String url = kitchenServiceUrl + "/api/kitchen/orders/cancelled";
+            String url = kitchenServiceUrl + "/kitchen/orders/cancelled";
 
             HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
 
@@ -63,7 +63,7 @@ public class KitchenClient {
 
     public void markOrderServed(Long orderId, String token) {
 
-        String url = kitchenServiceUrl + "/api/kitchen/orders/" + orderId + "/served";
+        String url = kitchenServiceUrl + "/kitchen/orders/" + orderId + "/served";
 
         HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
 
@@ -86,5 +86,4 @@ public class KitchenClient {
 
         return headers;
     }
-
 }

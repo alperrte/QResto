@@ -10,6 +10,10 @@ import org.springframework.data.repository.query.Param;
 import java.util.Optional;
 
 public interface RestaurantTableRepository extends JpaRepository<RestaurantTable, Long> {
+    boolean existsByNameIgnoreCase(String name);
+
+    boolean existsByNameIgnoreCaseAndIdNot(String name, Long id);
+}
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT t FROM RestaurantTable t WHERE t.id = :id")

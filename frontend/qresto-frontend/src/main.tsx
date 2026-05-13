@@ -1,5 +1,5 @@
 // Polyfill for libraries that expect a Node `global` in the browser (e.g. sockjs-client)
-;(window as any).global = window;
+;(window as Window & typeof globalThis & { global: typeof globalThis }).global = window;
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -9,11 +9,12 @@ import { AuthProvider } from './auth/AuthContext.tsx'
 import { authStorage } from './auth/authStorage.ts'
 
 if (import.meta.env.DEV) {
-    const alreadyCleared = sessionStorage.getItem("qresto-dev-auth-cleared");
+    const devSessionStorageKey = "qresto-dev-server-session";
+    const previousDevSession = sessionStorage.getItem(devSessionStorageKey);
 
-    if (!alreadyCleared) {
+    if (previousDevSession !== __QRESTO_DEV_SERVER_SESSION__) {
         authStorage.clearSession();
-        sessionStorage.setItem("qresto-dev-auth-cleared", "true");
+        sessionStorage.setItem(devSessionStorageKey, __QRESTO_DEV_SERVER_SESSION__);
     }
 }
 

@@ -36,15 +36,14 @@ public class TableQrCodeService {
     }
 
     public TableQrCodeResponse regenerateQrCode(Long tableId) {
-        tableRepository.findById(tableId)
+        RestaurantTable table = tableRepository.findById(tableId)
                 .orElseThrow(() -> new RuntimeException("Table not found: " + tableId));
 
         closeActiveSessionsForTable(tableId);
 
-        TableQrCode qr = qrRepository.findFirstByRestaurantTableIdOrderByVersionNoDesc(tableId)
-                .orElseThrow(() -> new RuntimeException("QR not found for table: " + tableId));
-
-        return mapToResponse(qr);
+        return qrRepository.findFirstByRestaurantTableIdOrderByVersionNoDesc(tableId)
+                .map(this::mapToResponse)
+                .orElseGet(() -> createNewQr(table, 1));
     }
 
     public TableQrCodeResponse getActiveQrCode(Long tableId) {

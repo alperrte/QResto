@@ -7,6 +7,7 @@ import com.qresto.kitchen_service.dto.request.UpdateKitchenOrderStatusRequest;
 import com.qresto.kitchen_service.dto.response.KitchenOrderResponse;
 import com.qresto.kitchen_service.entity.KitchenOrder;
 import com.qresto.kitchen_service.entity.enums.KitchenOrderStatus;
+import com.qresto.kitchen_service.exception.ResourceNotFoundException;
 import com.qresto.kitchen_service.repository.KitchenOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -61,8 +62,18 @@ public class KitchenOrderService {
                 .toList();
     }
 
-    public OrderResponse markOrderServedForWaiter(Long orderId) {
-        OrderResponse updatedOrder = orderClient.updateOrderStatus(orderId, "SERVED");
+    public OrderResponse cancelOrder(
+            Long orderId,
+            CancelKitchenOrderRequest request
+    ) {
+        return orderClient.cancelOrder(orderId, request.getReason());
+    }
+
+    public void markOrderServedForWaiter(Long orderId) {
+        KitchenOrder kitchenOrder = kitchenOrderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Sipariş bulunamadı")
+                );
 
         kitchenOrderRepository.findByOrderId(orderId).ifPresent(kitchenOrder -> {
             kitchenOrder.setStatus(KitchenOrderStatus.SERVIS_EDILDI);

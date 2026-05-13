@@ -243,6 +243,17 @@ export async function getCancelledOrders() {
     return response.data;
 }
 
+export async function getCompletedOrders() {
+    const response = await axios.get<KitchenOrderResponse[]>(
+        `${WAITER_API_URL}/waiter/orders/completed`,
+        {
+            headers: await getAuthHeader(),
+        }
+    );
+
+    return response.data;
+}
+
 export async function markOrderServed(orderId: number) {
     const response = await axios.patch(
         `${WAITER_API_URL}/waiter/orders/${orderId}/served`,

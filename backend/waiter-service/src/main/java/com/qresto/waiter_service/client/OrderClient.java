@@ -68,12 +68,44 @@ public class OrderClient {
         return response.getBody() != null ? response.getBody() : Collections.emptyList();
     }
 
+    public List<OrderDetailResponse> getCompletedOrders(String token) {
+
+        String url = orderServiceUrl + "/api/order/orders/admin/completed";
+
+        HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
+
+        ResponseEntity<List<OrderDetailResponse>> response = restTemplate.exchange(
+                url,
+                HttpMethod.GET,
+                entity,
+                new ParameterizedTypeReference<List<OrderDetailResponse>>() {
+                }
+        );
+
+        return response.getBody() != null ? response.getBody() : Collections.emptyList();
+    }
+
     public List<OrderResponse> markTableSessionOrdersPaid(Long tableSessionId, String token) {
 
         return restClientBuilder.build()
                 .patch()
                 .uri(orderServiceUrl + "/api/order/orders/table-session/{tableSessionId}/mark-paid",
                         tableSessionId)
+                .headers(headers -> {
+                    if (token != null && !token.isBlank()) {
+                        headers.setBearerAuth(token);
+                    }
+                })
+                .retrieve()
+                .body(new ParameterizedTypeReference<List<OrderResponse>>() {});
+    }
+
+    public List<OrderResponse> markActiveTableOrdersPaid(Long tableId, String token) {
+
+        return restClientBuilder.build()
+                .patch()
+                .uri(orderServiceUrl + "/api/order/orders/table/{tableId}/mark-active-paid",
+                        tableId)
                 .headers(headers -> {
                     if (token != null && !token.isBlank()) {
                         headers.setBearerAuth(token);

@@ -200,6 +200,15 @@ public class WaiterService {
                 .toList();
     }
 
+    public List<KitchenOrderResponse> getCompletedOrders(String authHeader) {
+        String token = extractToken(authHeader);
+
+        return orderClient.getCompletedOrders(token)
+                .stream()
+                .map(this::mapOrderDetailToKitchenOrderResponse)
+                .toList();
+    }
+
     private KitchenOrderResponse mapOrderDetailToKitchenOrderResponse(OrderDetailResponse order) {
         KitchenOrderResponse response = new KitchenOrderResponse();
 
@@ -243,10 +252,7 @@ public class WaiterService {
             throw new RuntimeException("Hesap isteği zaten tamamlandı");
         }
 
-        TableSessionResponse activeSession =
-                qrClient.getActiveSessionByTableId(tableCall.getTableId(), token);
-
-        orderClient.markTableSessionOrdersPaid(activeSession.getId(), token);
+        orderClient.markActiveTableOrdersPaid(tableCall.getTableId(), token);
 
         tableCall.setStatus(TableCallStatus.RESOLVED);
         tableCall.setResolvedAt(LocalDateTime.now());
@@ -263,4 +269,5 @@ public class WaiterService {
 
         return response;
     }
+
 }

@@ -26,6 +26,8 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
 
     List<CustomerOrder> findByTableSessionIdAndStatusIn(Long tableSessionId, List<OrderStatus> statuses);
 
+    List<CustomerOrder> findByTableIdAndStatusIn(Long tableId, List<OrderStatus> statuses);
+
     List<CustomerOrder> findByGuestSessionId(Long guestSessionId);
 
     List<CustomerOrder> findByStatus(OrderStatus status);
