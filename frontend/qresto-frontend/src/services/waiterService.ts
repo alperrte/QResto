@@ -102,6 +102,7 @@ export interface QrTableResponse {
 export interface KitchenOrderResponse {
     orderId: number;
     tableId: number;
+    tableSessionId?: number | null;
     tableNumber?: number;
     orderNumber?: string;
     status: string;

@@ -44,6 +44,8 @@ import {
     type TableCallType,
     type TableSessionResponse,
 } from "../../services/waiterService";
+import { getRecentCompletedOrders } from "../../services/orderService";
+import type { OrderResponse } from "../../types/cartTypes";
 
 type TableVisualStatus = "occupied" | "ordered" | "bill" | "waiter" | "empty";
 type WaiterView = "dashboard" | "tables" | "orders" | "calls" | "payments";
@@ -152,6 +154,33 @@ function isOrderPaid(status?: string) {
 
 function isPaymentPending(status?: string) {
     return normalizeOrderStatus(status) === "PAYMENT_PENDING";
+}
+
+function mergeKitchenOrderRow(
+    existing: KitchenOrderResponse | undefined,
+    incoming: KitchenOrderResponse
+): KitchenOrderResponse {
+    const merged: KitchenOrderResponse = { ...(existing ?? incoming), ...incoming };
+    if (
+        (incoming.tableSessionId === undefined || incoming.tableSessionId === null) &&
+        existing?.tableSessionId != null
+    ) {
+        merged.tableSessionId = existing.tableSessionId;
+    }
+    return merged;
+}
+
+function orderResponseToKitchenRow(o: OrderResponse): KitchenOrderResponse {
+    return {
+        orderId: o.id,
+        tableId: o.tableId,
+        tableSessionId: o.tableSessionId,
+        orderNumber: o.orderNo,
+        status: o.status,
+        totalAmount: Number(o.totalAmount),
+        createdAt: o.createdAt ?? undefined,
+        updatedAt: o.updatedAt ?? undefined,
+    };
 }
 
 function getOrderStatusLabel(status?: string) {
@@ -341,14 +370,21 @@ export default function WaiterDashboard() {
 
             const beforeOrdersSnapshot = [...ordersRef.current];
 
-            const [allCallsResult, tablesResult, activeOrdersResult, readyOrdersResult, cancelledOrdersResult] =
-                await Promise.allSettled([
-                    getAllCalls(),
-                    getTables(),
-                    getActiveOrders(),
-                    getReadyOrders(),
-                    getCancelledOrders(),
-                ]);
+            const [
+                allCallsResult,
+                tablesResult,
+                activeOrdersResult,
+                readyOrdersResult,
+                cancelledOrdersResult,
+                completedRecentResult,
+            ] = await Promise.allSettled([
+                getAllCalls(),
+                getTables(),
+                getActiveOrders(),
+                getReadyOrders(),
+                getCancelledOrders(),
+                getRecentCompletedOrders(40),
+            ]);
 
             const tableList =
                 tablesResult.status === "fulfilled"
@@ -366,12 +402,29 @@ export default function WaiterDashboard() {
                     tableList.map(async (table) => getActiveTableSession(table.id).catch(() => null))
                 );
 
-                setTableSessions(
-                    activeSessions.filter(
-                        (session): session is TableSessionResponse => Boolean(session)
-                    )
+                const sessionRows = activeSessions.filter(
+                    (session): session is TableSessionResponse => Boolean(session)
                 );
+
+                /**
+                 * Held yalnızca WS ile kısa vadeli vurgu içindi; API ile yeniden yüklendiğinde
+                 * sıfırlanmazsa bir sonraki oturumda masa sürekli «Dolu» kalabiliyordu.
+                 */
+                setHeldTableTimestamps((prev) => {
+                    const next = new Map(prev);
+                    tableList.forEach((table) => {
+                        next.delete(table.id);
+                    });
+                    return next;
+                });
+
+                setTableSessions(sessionRows);
             }
+
+            const completedRecentRows =
+                completedRecentResult.status === "fulfilled"
+                    ? ensureArray<OrderResponse>(completedRecentResult.value).map(orderResponseToKitchenRow)
+                    : [];
 
             const fetched = [
                 ...(activeOrdersResult.status === "fulfilled"
@@ -383,16 +436,27 @@ export default function WaiterDashboard() {
                 ...(cancelledOrdersResult.status === "fulfilled"
                     ? ensureArray<KitchenOrderResponse>(cancelledOrdersResult.value)
                     : []),
+                ...completedRecentRows,
             ];
 
             const fetchedOrderIds = new Set(fetched.map((order) => order.orderId));
 
-            const releasedTableIds = fetched
-                .filter((order) => isOrderPaid(order.status) || normalizeOrderStatus(order.status) === "COMPLETED")
-                .map((order) => order.tableId)
-                .filter((tableId): tableId is number => Boolean(tableId));
+            const releasedTableIds = new Set<number>();
+            fetched.forEach((order) => {
+                if (
+                    (isOrderPaid(order.status) || normalizeOrderStatus(order.status) === "COMPLETED") &&
+                    order.tableId
+                ) {
+                    releasedTableIds.add(order.tableId);
+                }
+            });
+            beforeOrdersSnapshot.forEach((order) => {
+                if (isOrderPaid(order.status) && order.tableId) {
+                    releasedTableIds.add(order.tableId);
+                }
+            });
 
-            if (releasedTableIds.length > 0) {
+            if (releasedTableIds.size > 0) {
                 setHeldTableTimestamps((prev) => {
                     const next = new Map(prev);
                     releasedTableIds.forEach((tableId) => next.delete(tableId));
@@ -403,13 +467,16 @@ export default function WaiterDashboard() {
             if (
                 activeOrdersResult.status === "fulfilled" ||
                 readyOrdersResult.status === "fulfilled" ||
-                cancelledOrdersResult.status === "fulfilled"
+                cancelledOrdersResult.status === "fulfilled" ||
+                completedRecentResult.status === "fulfilled"
             ) {
                 setOrders((prev) => {
                     const map = new Map<number, KitchenOrderResponse>();
 
                     prev.forEach((order) => map.set(order.orderId, order));
-                    fetched.forEach((order) => map.set(order.orderId, { ...map.get(order.orderId), ...order }));
+                    fetched.forEach((order) =>
+                        map.set(order.orderId, mergeKitchenOrderRow(map.get(order.orderId), order))
+                    );
 
                     return Array.from(map.values()).sort((a, b) =>
                         (b.createdAt || "").localeCompare(a.createdAt || "")
@@ -430,6 +497,7 @@ export default function WaiterDashboard() {
                             const next: KitchenOrderResponse = {
                                 orderId: d.id,
                                 tableId: d.tableId,
+                                tableSessionId: d.tableSessionId,
                                 tableNumber: undefined,
                                 orderNumber: d.orderNo,
                                 status: d.status,
@@ -447,11 +515,23 @@ export default function WaiterDashboard() {
                 const mergedDetails = detailRows.filter((row): row is KitchenOrderResponse => row !== null);
 
                 if (mergedDetails.length > 0) {
+                    const paidTableIdsFromDetails = mergedDetails
+                        .filter((order) => isOrderPaid(order.status) && order.tableId)
+                        .map((order) => order.tableId as number);
+
+                    if (paidTableIdsFromDetails.length > 0) {
+                        setHeldTableTimestamps((prev) => {
+                            const next = new Map(prev);
+                            paidTableIdsFromDetails.forEach((tableId) => next.delete(tableId));
+                            return next;
+                        });
+                    }
+
                     setOrders((prev) => {
                         const map = new Map<number, KitchenOrderResponse>();
                         prev.forEach((order) => map.set(order.orderId, order));
                         mergedDetails.forEach((order) =>
-                            map.set(order.orderId, { ...map.get(order.orderId), ...order })
+                            map.set(order.orderId, mergeKitchenOrderRow(map.get(order.orderId), order))
                         );
                         return Array.from(map.values()).sort((a, b) =>
                             (b.createdAt || "").localeCompare(a.createdAt || "")
@@ -519,10 +599,14 @@ export default function WaiterDashboard() {
                                     : [body, ...prev];
                             });
 
-                            if (body.tableId && body.status === "ACTIVE") {
+                            if (body.tableId) {
                                 setHeldTableTimestamps((prev) => {
                                     const next = new Map(prev);
-                                    next.set(body.tableId, Date.now());
+                                    if (body.status === "ACTIVE") {
+                                        next.set(body.tableId, Date.now());
+                                    } else {
+                                        next.delete(body.tableId);
+                                    }
                                     return next;
                                 });
                             }
@@ -541,20 +625,39 @@ export default function WaiterDashboard() {
                                 const exists = prev.some((order) => order.orderId === body.orderId);
                                 return exists
                                     ? prev.map((order) =>
-                                          order.orderId === body.orderId ? { ...order, ...body } : order
+                                          order.orderId === body.orderId
+                                              ? mergeKitchenOrderRow(order, body)
+                                              : order
                                       )
-                                    : [body, ...prev];
+                                    : [mergeKitchenOrderRow(undefined, body), ...prev];
                             });
 
                             if (body.tableId) {
                                 setHeldTableTimestamps((prev) => {
                                     const next = new Map(prev);
-                                    next.set(body.tableId, Date.now());
+                                    if (isOrderArchived(body.status)) {
+                                        next.delete(body.tableId);
+                                    } else {
+                                        next.set(body.tableId, Date.now());
+                                    }
                                     return next;
                                 });
                             }
 
-                            scheduleFullRefresh();
+                            const settled =
+                                normalizeOrderStatus(body.status) === "PAID" ||
+                                normalizeOrderStatus(body.status) === "COMPLETED";
+                            if (settled && body.tableSessionId != null) {
+                                setTableSessions((prev) =>
+                                    prev.filter((s) => s.id !== body.tableSessionId)
+                                );
+                            }
+
+                            if (settled) {
+                                void loadDashboardRef.current();
+                            } else {
+                                scheduleFullRefresh();
+                            }
                         } catch (err) {
                             console.error("Error parsing waiter order message", err);
                         }
@@ -713,6 +816,21 @@ export default function WaiterDashboard() {
         }
 
         if (activeOrder) return "ordered";
+
+        if (!activeOrder && tableCalls.length === 0 && activeSession) {
+            const sessionOrders = orders.filter((o) => {
+                if (o.tableId !== table.id) return false;
+                const sid = o.tableSessionId ?? orderDetails[o.orderId]?.tableSessionId;
+                return sid != null && sid === activeSession.id;
+            });
+            if (
+                sessionOrders.length > 0 &&
+                sessionOrders.every((o) => isOrderArchived(o.status))
+            ) {
+                return "empty";
+            }
+        }
+
         if (activeSession || isHeld || tableCalls.length > 0) return "occupied";
         return "empty";
     }

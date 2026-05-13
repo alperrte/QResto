@@ -20,6 +20,7 @@ import {
     getMenuProductById,
     type MenuProductInfo,
 } from "../../services/menuProductService";
+import { resolveProductImageUrl } from "../../utils/resolveProductImageUrl";
 
 type SortOption =
     | "rating-desc"
@@ -144,15 +145,7 @@ function ProductRatingsPage() {
             info.image ??
             null;
 
-        if (!rawImage) return null;
-
-        if (rawImage.startsWith("http")) {
-            return rawImage;
-        }
-
-        const cleanPath = rawImage.startsWith("/") ? rawImage : `/${rawImage}`;
-
-        return `http://localhost:7073${cleanPath}`;
+        return resolveProductImageUrl(rawImage);
     };
 
     const getRatingLabel = (rating: number) => {

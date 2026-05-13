@@ -14,6 +14,8 @@ public class KitchenOrderResponse {
 
     private Long tableId;
 
+    private Long tableSessionId;
+
     private Integer tableNumber;
 
     private String orderNumber;

@@ -3,6 +3,7 @@ package com.qresto.order_service.entity;
 import com.qresto.order_service.entity.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -86,6 +87,7 @@ public class CustomerOrder {
     @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
+    @BatchSize(size = 16)
     @OneToMany(mappedBy = "order", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItem> items;
 

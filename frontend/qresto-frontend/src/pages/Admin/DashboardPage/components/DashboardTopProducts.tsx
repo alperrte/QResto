@@ -2,6 +2,7 @@ import { ImageOff, MoreVertical, Package } from "lucide-react";
 import { useState } from "react";
 
 import type { OrderAdminTopProductResponse } from "../../../../types/cartTypes";
+import { resolveProductImageUrl } from "../../../../utils/resolveProductImageUrl";
 
 type DashboardTopProductsProps = {
     items: OrderAdminTopProductResponse[];
@@ -15,33 +16,6 @@ const formatCurrency = (value: number) =>
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
     }).format(value);
-
-function menuPublicOrigin(): string {
-    const raw =
-        import.meta.env.VITE_MENU_SERVICE_URL ?? "http://localhost:7073/api";
-
-    try {
-        const u = new URL(raw);
-        return `${u.protocol}//${u.host}`;
-    } catch {
-        return "http://localhost:7073";
-    }
-}
-
-function resolveProductImageUrl(raw: string | null | undefined): string | null {
-    if (!raw || !raw.trim()) return null;
-
-    const t = raw.trim();
-    if (t.startsWith("http://") || t.startsWith("https://")) return t;
-
-    const path = t.startsWith("/") ? t : `/${t}`;
-    /* public/seed — Vite kökü; menü API host’unda dosya yok */
-    if (path.startsWith("/seed/") && typeof window !== "undefined" && window.location?.origin) {
-        return `${window.location.origin}${path}`;
-    }
-
-    return `${menuPublicOrigin()}${path}`;
-}
 
 function ProductThumb({
     productName,

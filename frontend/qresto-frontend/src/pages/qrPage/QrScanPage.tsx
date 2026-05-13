@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { scanQr } from "../../services/qrService";
+import { clearGuestTableSessionStorage } from "../../utils/clearGuestTableSessionStorage";
 
 const generateDeviceToken = () => {
     let token = sessionStorage.getItem("deviceToken");
@@ -34,22 +35,7 @@ const QrScanPage = () => {
 
         const handleScan = async () => {
             try {
-                const clearGuestFlowKeys = (storage: Storage) => {
-                    storage.removeItem("tableId");
-                    storage.removeItem("tableNo");
-                    storage.removeItem("tableName");
-                    storage.removeItem("tableSessionId");
-                    storage.removeItem("guestSessionId");
-                    storage.removeItem("qresto_table_id");
-                    storage.removeItem("qresto_table_no");
-                    storage.removeItem("qresto_table_name");
-                    storage.removeItem("qresto_table_session_id");
-                    storage.removeItem("qresto_guest_session_id");
-                    storage.removeItem("qresto_cart_id");
-                };
-
-                clearGuestFlowKeys(sessionStorage);
-                clearGuestFlowKeys(localStorage);
+                clearGuestTableSessionStorage();
 
                 const deviceToken = generateDeviceToken();
                 const data = await scanQr(qrToken, deviceToken);
