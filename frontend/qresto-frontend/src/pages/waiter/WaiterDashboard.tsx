@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+﻿import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { Client } from "@stomp/stompjs";
@@ -15,14 +15,13 @@ import {
     LogOut,
     Moon,
     ReceiptText,
-    ShieldCheck,
     ShoppingCart,
     Sun,
     Table2,
     TriangleAlert,
     WalletCards,
 } from "lucide-react";
-
+import "./styles/waiterdashboardanimation.css";
 import { useAuth } from "../../auth/AuthContext";
 import darkLogo from "../../assets/qresto_logo_dark.png";
 import lightLogo from "../../assets/qresto_logo_light.png";
@@ -157,7 +156,7 @@ function isPaymentPending(status?: string) {
 function getOrderStatusLabel(status?: string) {
     switch (normalizeOrderStatus(status)) {
         case "RECEIVED":
-            return "Alındı";
+            return "Sipariş Alındı";
         case "PREPARING":
             return "Hazırlanıyor";
         case "READY":
@@ -207,17 +206,32 @@ function getCallTypeLabel(type: TableCallType) {
     }
 }
 
-function getCallStatusLabel(status?: TableCallResponse["status"]) {
+function getCallStatusLabel(status?: TableCallResponse["status"], callType?: TableCallType) {
     switch (status) {
         case "ACTIVE":
             return "Aktif";
         case "RESOLVED":
-            return "Tamamlandı";
+            return callType === "BILL_REQUEST" ? "Ödendi" : "Tamamlandı";
         case "CANCELLED":
             return "İptal Edildi";
         default:
             return status || "-";
     }
+}
+function getCallActionLabel(call: TableCallResponse) {
+    return call.callType === "BILL_REQUEST" ? "Ödendi" : "Tamamla";
+}
+
+function getCallConfirmTitle(call: TableCallResponse) {
+    return call.callType === "BILL_REQUEST" ? "Hesap ödendi mi?" : "Çağrı tamamlansın mı?";
+}
+
+function getCallConfirmDescription(call: TableCallResponse, tableName: string) {
+    if (call.callType === "BILL_REQUEST") {
+        return `${tableName} için hesap istendi.Ödeme tamamlanacak ve mevcut masa oturumu kapanacaktır.`;
+    }
+
+    return `${tableName} için garson çağırma talebi tamamlandı olarak güncellenecektir.`;
 }
 
 function formatDateTime(value?: string | null) {
@@ -736,10 +750,6 @@ export default function WaiterDashboard() {
                         Çıkış Yap
                     </button>
 
-                    <div className="mt-4 rounded-xl bg-[var(--qresto-hover)] p-4 text-xs text-[var(--qresto-muted)]">
-                        <ShieldCheck size={18} className="mb-2 text-[var(--qresto-text)]" />
-                        Hızlı, kolay ve kapsamlı yönetim QResto ile her şey kontrolünüz altında.
-                    </div>
                 </div>
             </aside>
 
@@ -1133,7 +1143,12 @@ function TableCardsGrid({
                             {table.capacity || "-"} Kişilik
                         </p>
 
-                        <div className="mt-6 flex items-center gap-3 font-black" style={{ color: meta.color }}>
+                        <div
+                            className={`mt-6 flex items-center gap-3 font-black ${
+                                status === "waiter" || status === "bill" ? "qresto-alert-bounce" : ""
+                            }`}
+                            style={{ color: meta.color }}
+                        >
                             {meta.icon}
                             <span>{meta.label}</span>
                         </div>
@@ -1347,7 +1362,7 @@ function CallsList({
                                 }}
                                 className="cursor-pointer rounded-lg bg-[var(--qresto-primary)] px-3 py-1.5 text-xs font-black text-white"
                             >
-                                Tamamla
+                    {getCallActionLabel(call)}
                             </span>
                         </span>
                     </div>
@@ -1481,7 +1496,7 @@ function CallDetailModal({
                             <InfoTile label="Tamamlayan" value={call.resolvedBy || "-"} />
                         </>
                     ) : null}
-                    <InfoTile label="Durum" value={getCallStatusLabel(call.status)} />
+                    <InfoTile label="Durum" value={getCallStatusLabel(call.status, call.callType)} />
                 </div>
 
                 <div className="mt-4 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4">
@@ -1489,7 +1504,7 @@ function CallDetailModal({
                     <p className="mt-2 text-sm font-semibold">
                         {call.message || "Mesaj girilmedi."}
                     </p>
-                </div>
+                    </div>
 
                 <div className="mt-5 flex justify-end gap-2 border-t border-[var(--qresto-border)] pt-4">
                     <button type="button" onClick={onClose} className="rounded-xl border border-[var(--qresto-border)] px-4 py-2 text-sm font-bold">
@@ -1502,7 +1517,7 @@ function CallDetailModal({
                             disabled={actionLoadingId === call.id}
                             className="cursor-pointer rounded-xl bg-[var(--qresto-primary)] px-4 py-2 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            Tamamla
+                            {getCallActionLabel(call)}
                         </button>
                     ) : null}
                 </div>
@@ -1529,9 +1544,9 @@ function ConfirmResolveCallModal({
             <button type="button" className="absolute inset-0 bg-black/60" onClick={onCancel} aria-label="Vazgeç" />
 
             <div className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-2xl">
-                <h2 className="text-xl font-black">Çağrı tamamlansın mı?</h2>
+                <h2 className="text-xl font-black">{getCallConfirmTitle(call)}</h2>
                 <p className="mt-3 text-sm font-semibold text-[var(--qresto-muted)]">
-                    {tableName} için {getCallTypeLabel(call.callType).toLowerCase()} kaydını tamamlandı olarak işaretleyeceksiniz.
+                    {getCallConfirmDescription(call, tableName)}
                 </p>
 
                 <div className="mt-6 flex gap-3">
@@ -1548,7 +1563,7 @@ function ConfirmResolveCallModal({
                         disabled={actionLoading}
                         className="flex-1 cursor-pointer rounded-xl bg-[var(--qresto-primary)] px-4 py-3 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        {actionLoading ? "Tamamlanıyor..." : "Tamamla"}
+                        {actionLoading ? "İşleniyor..." : getCallActionLabel(call)}
                     </button>
                 </div>
             </div>
@@ -1558,7 +1573,10 @@ function ConfirmResolveCallModal({
 
 function AlertBubble({ color, icon }: { color: string; icon: ReactNode }) {
     return (
-        <span className="relative flex h-8 w-8 items-center justify-center rounded-full text-white shadow-lg" style={{ background: color }}>
+        <span
+            className="qresto-alert-ring qresto-alert-shake relative flex h-8 w-8 items-center justify-center rounded-full text-white shadow-lg"
+            style={{ background: color }}
+        >
             {icon}
             <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-red-500" />
         </span>
@@ -1650,16 +1668,31 @@ function OrderDetailModal({
 }) {
     const items = Array.isArray(detail?.items) ? detail.items : [];
     const status = detail?.status || order.status;
+    const subtotal = detail?.subtotalAmount ?? items.reduce((sum, item) => sum + item.productPrice * item.quantity, 0);
+    const vatAmount = detail?.vatAmount ?? 0;
+    const total = detail?.totalAmount ?? order.totalAmount;
+    const timeline = [
+        { label: "Sipariş Alındı", value: detail?.receivedAt || detail?.createdAt || order.createdAt },
+        { label: "Hazırlanıyor", value: detail?.preparingAt },
+        { label: "Hazır", value: detail?.readyAt },
+        { label: "Servis", value: detail?.servedAt },
+        { label: "Ödeme", value: detail?.paymentPendingAt || detail?.paidAt || detail?.completedAt },
+    ].filter((step) => step.value);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4 py-6">
             <button type="button" className="absolute inset-0 bg-black/60" onClick={onClose} aria-label="Kapat" />
 
-            <div className="relative z-10 w-full max-w-3xl rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-2xl">
-                <div className="flex items-start justify-between gap-4 border-b border-[var(--qresto-border)] pb-4">
-                    <div>
-                        <StatusPill status={status} />
-                        <h2 className="mt-3 text-xl font-black">{tableName}</h2>
+            <div className="relative z-10 flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-2xl">
+                <div className="flex items-start justify-between gap-4 border-b border-[var(--qresto-border)]">
+                    <div className="p-5 pb-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <StatusPill status={status} />
+                            <span className="rounded-md border border-[var(--qresto-primary)]/30 bg-[var(--qresto-hover)] px-2.5 py-1 text-xs font-black text-[var(--qresto-primary)]">
+                                {items.length} ürün
+                            </span>
+                        </div>
+                        <h2 className="mt-3 text-2xl font-black text-[var(--qresto-text)]">{tableName}</h2>
                         <p className="mt-1 text-sm text-[var(--qresto-muted)]">
                             Sipariş No: {detail?.orderNo || order.orderNumber || order.orderId}
                         </p>
@@ -1668,77 +1701,74 @@ function OrderDetailModal({
                     <button
                         type="button"
                         onClick={onClose}
-                        className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--qresto-border)] text-xl font-black"
+                        className="m-5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-[var(--qresto-border)] text-xl font-black transition hover:bg-[var(--qresto-hover)]"
                     >
                         ×
                     </button>
                 </div>
 
-                <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <InfoTile label="Oluşturulma" value={formatDateTime(detail?.createdAt || order.createdAt)} />
                     <InfoTile label="Güncellenme" value={formatDateTime(detail?.updatedAt || order.updatedAt)} />
-                    <InfoTile label="Toplam" value={formatMoney(detail?.totalAmount ?? order.totalAmount)} />
+                    <InfoTile label="Masa" value={detail?.tableName || tableName} />
+                    <InfoTile label="Toplam" value={formatMoney(total)} />
                 </div>
 
-                <div className="mt-5">
-                    <h3 className="text-sm font-black text-[var(--qresto-muted)]">Sipariş İçeriği</h3>
+                {timeline.length > 0 ? (
+                    <div className="mt-4 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4">
+                        <h3 className="text-sm font-black text-[var(--qresto-text)]">Sipariş Akışı</h3>
+                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                            {timeline.map((step) => (
+                                <div key={step.label} className="rounded-xl bg-[var(--qresto-surface)] px-3 py-2">
+                                    <p className="text-[11px] font-black uppercase text-[var(--qresto-primary)]">{step.label}</p>
+                                    <p className="mt-1 text-xs font-black text-[var(--qresto-text)]">
+                                        {formatDateTime(step.value)}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ) : null}
+
+                <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_260px]">
+                    <div>
+                        <div className="flex items-center justify-between gap-3">
+                            <h3 className="text-sm font-black text-[var(--qresto-text)]">Sipariş İçeriği</h3>
+                        </div>
 
                     {loading ? (
                         <LoadingBox text="Detaylar yükleniyor..." />
                     ) : items.length === 0 ? (
                         <EmptyBox text="Bu sipariş için ürün detayı bulunamadı." />
                     ) : (
-                        <div className="mt-3 max-h-80 space-y-3 overflow-y-auto pr-1">
+                        <div className="mt-3 space-y-3">
                             {items.map((item) => (
-                                <div key={item.id} className="rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4">
-                                    <div className="flex items-start justify-between gap-3">
-                                        <div>
-                                            <h4 className="font-black">{item.productName}</h4>
-                                            <p className="mt-1 text-xs text-[var(--qresto-muted)]">
-                                                Birim: {formatMoney(item.productPrice)}
-                                            </p>
-                                        </div>
-                                        <span className="rounded-md bg-[var(--qresto-hover)] px-3 py-1 text-xs font-black text-[var(--qresto-primary)]">
-                                            x{item.quantity}
-                                        </span>
-                                    </div>
-
-                                    {item.note ? (
-                                        <p className="mt-3 text-xs text-[var(--qresto-muted)]">Not: {item.note}</p>
-                                    ) : null}
-
-                                    {item.removedIngredients ? (
-                                        <p className="mt-2 text-xs text-[var(--qresto-muted)]">
-                                            Çıkarılanlar: {item.removedIngredients}
-                                        </p>
-                                    ) : null}
-
-                                    {item.addedIngredients ? (
-                                        <p className="mt-2 text-xs text-[var(--qresto-muted)]">
-                                            Eklenenler: {item.addedIngredients}
-                                        </p>
-                                    ) : null}
-
-                                    {item.cancelReason ? (
-                                        <p className="mt-2 text-xs text-red-500">
-                                            İptal nedeni: {item.cancelReason}
-                                        </p>
-                                    ) : null}
-
-                                    {item.cancelledAt ? (
-                                        <p className="mt-2 text-xs text-[var(--qresto-muted)]">
-                                            İptal zamanı: {formatDateTime(item.cancelledAt)}
-                                        </p>
-                                    ) : null}
-
-                                    <p className="mt-3 text-right text-sm font-black">{formatMoney(item.lineTotal)}</p>
-                                </div>
+                                <OrderItemCard key={item.id} item={item} />
                             ))}
                         </div>
                     )}
                 </div>
 
-                <div className="mt-5 flex justify-end gap-2 border-t border-[var(--qresto-border)] pt-4">
+                    <aside className="mt-8 h-fit rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4 xl:mt-8">                        <h3 className="text-sm font-black text-[var(--qresto-text)]">Tutar Özeti</h3>
+                        <div className="mt-4 space-y-3 text-sm">
+                            <PriceRow label="Ara Toplam" value={formatMoney(subtotal)} />
+                            <PriceRow label="KDV" value={formatMoney(vatAmount)} />
+                            <div className="border-t border-[var(--qresto-border)] pt-3">
+                                <PriceRow label="Genel Toplam" value={formatMoney(total)} strong />
+                            </div>
+                        </div>
+
+                        {detail?.cancelReason ? (
+                            <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
+                                İptal nedeni: {detail.cancelReason}
+                            </div>
+                        ) : null}
+                    </aside>
+                </div>
+                </div>
+
+                <div className="flex justify-end gap-2 border-t border-[var(--qresto-border)] p-5">
                     <button type="button" onClick={onClose} className="rounded-xl border border-[var(--qresto-border)] px-4 py-2 text-sm font-bold">
                         Kapat
                     </button>
@@ -1754,6 +1784,65 @@ function OrderDetailModal({
                     ) : null}
                 </div>
             </div>
+        </div>
+    );
+}
+
+function OrderItemCard({ item }: { item: OrderDetailResponse["items"][number] }) {
+
+    return (
+        <article className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4">
+            <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                    <h4 className="truncate text-base font-black text-[var(--qresto-text)]">{item.productName}</h4>
+                </div>
+                <div className="shrink-0 text-right">
+                    <span className="inline-flex rounded-xl bg-[var(--qresto-hover)] px-3 py-1 text-xs font-black text-[var(--qresto-primary)]">
+                        x{item.quantity}
+                    </span>
+                    <p className="mt-2 text-sm font-black text-[var(--qresto-text)]">{formatMoney(item.lineTotal)}</p>
+                </div>
+            </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+                    <DetailNote label="Not" value={item.note?.trim() || "-"} />
+
+                    {item.addedIngredients ? (
+                        <DetailNote label="Eklenenler" value={item.addedIngredients} />
+                    ) : null}
+
+                    {item.removedIngredients ? (
+                        <DetailNote label="Çıkarılanlar" value={item.removedIngredients} />
+                    ) : null}
+
+                    {item.cancelReason ? (
+                        <DetailNote label="İptal Nedeni" value={item.cancelReason} danger />
+                    ) : null}
+
+                    {item.cancelledAt ? (
+                        <DetailNote label="İptal Zamanı" value={formatDateTime(item.cancelledAt)} danger />
+                    ) : null}
+                </div>
+
+        </article>
+    );
+}
+
+
+function DetailNote({ label, value, danger = false }: { label: string; value: string; danger?: boolean }) {
+    return (
+        <div className={`rounded-xl p-3 text-xs ${danger ? "bg-red-50 text-red-700" : "bg-[var(--qresto-surface)] text-[var(--qresto-muted)]"}`}>
+            <p className="font-black text-[var(--qresto-text)]">{label}</p>
+            <p className="mt-1 font-semibold">{value}</p>
+        </div>
+    );
+}
+
+function PriceRow({ label, value, strong = false }: { label: string; value: string; strong?: boolean }) {
+    return (
+        <div className={`flex items-center justify-between gap-3 ${strong ? "text-base font-black text-[var(--qresto-text)]" : "font-semibold text-[var(--qresto-muted)]"}`}>
+            <span>{label}</span>
+            <span>{value}</span>
         </div>
     );
 }
