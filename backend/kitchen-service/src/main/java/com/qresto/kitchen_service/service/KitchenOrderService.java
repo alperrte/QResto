@@ -11,6 +11,7 @@ import com.qresto.kitchen_service.repository.KitchenOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -38,6 +39,7 @@ public class KitchenOrderService {
     ) {
         return orderClient.updateOrderStatus(orderId, request.getStatus());
     }
+
     public List<KitchenOrderResponse> getReadyOrdersForWaiter() {
         return kitchenOrderRepository.findByStatus(KitchenOrderStatus.HAZIR)
                 .stream()
@@ -58,17 +60,17 @@ public class KitchenOrderService {
     ) {
         return orderClient.cancelOrder(orderId, request.getReason());
     }
-}
-    public void markOrderServedForWaiter(Long orderId) {
-        KitchenOrder kitchenOrder = kitchenOrderRepository.findById(orderId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Sipariş bulunamadı")
-                );
 
-        kitchenOrder.setStatus(KitchenOrderStatus.SERVIS_EDILDI);
-        kitchenOrder.setUpdatedAt(LocalDateTime.now());
+    public OrderResponse markOrderServedForWaiter(Long orderId) {
+        OrderResponse updatedOrder = orderClient.updateOrderStatus(orderId, "SERVED");
 
-        kitchenOrderRepository.save(kitchenOrder);
+        kitchenOrderRepository.findByOrderId(orderId).ifPresent(kitchenOrder -> {
+            kitchenOrder.setStatus(KitchenOrderStatus.SERVIS_EDILDI);
+            kitchenOrder.setUpdatedAt(LocalDateTime.now());
+            kitchenOrderRepository.save(kitchenOrder);
+        });
+
+        return updatedOrder;
     }
 
     private KitchenOrderResponse mapToResponse(KitchenOrder kitchenOrder) {

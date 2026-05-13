@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/waiter/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/waiter/calls").permitAll()
                         .requestMatchers(HttpMethod.POST, "/waiter/internal/orders/event").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/waiter/orders/*/served").permitAll()
 
                         .requestMatchers(
                                 HttpMethod.PATCH,
