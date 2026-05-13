@@ -236,7 +236,7 @@ function RestaurantRatingsPage() {
                         Henüz restoran değerlendirmesi yok.
                     </section>
                 ) : (
-                    <section className="grid gap-4 xl:grid-cols-2">
+                    <section className="qr-admin-table-grid grid gap-4 xl:grid-cols-2">
                         {ratings.map((rating) => renderCommentCard(rating))}
                     </section>
                 )}
@@ -245,7 +245,7 @@ function RestaurantRatingsPage() {
     }
 
     return (
-        <div className="space-y-5">
+        <div className="qr-admin-header-enter">
             <RatingPageHero
                 title="Restoran Değerlendirmeleri"
                 description="Restoran puanlarını, müşteri yorumlarını ve genel memnuniyet seviyesini tek ekrandan takip edin."
@@ -263,7 +263,7 @@ function RestaurantRatingsPage() {
                 </section>
             ) : (
                 <>
-                    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <section className="qr-admin-stats-stagger grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                         {cards.map((card) => (
                             <article
                                 key={card.title}
@@ -292,7 +292,7 @@ function RestaurantRatingsPage() {
                         ))}
                     </section>
 
-                    <section className="rounded-[24px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
+                    <section className="qr-admin-panel-enter rounded-[24px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
                         <div className="flex items-start justify-between gap-4">
                             <div>
                                 <h3 className="text-lg font-black text-[var(--qresto-text)]">

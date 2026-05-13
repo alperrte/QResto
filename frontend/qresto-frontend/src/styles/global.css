@@ -22,6 +22,10 @@
   --qresto-border-strong: #d8c8ba;
   --qresto-primary: #ff4b16;
   --qresto-hover: #fff3ea;
+  --qresto-success: #23a559;
+  --qresto-success-hover: #1f8b4c;
+  --qresto-success-soft: #e8f7ee;
+  --qresto-success-border: #b7e4c7;
 }
 
 .dark {
@@ -34,6 +38,10 @@
   --qresto-border-strong: #4b5563;
   --qresto-primary: #ff5a1f;
   --qresto-hover: #2b3546;
+  --qresto-success: #23a559;
+  --qresto-success-hover: #2cc46b;
+  --qresto-success-soft: rgba(35, 165, 89, 0.12);
+  --qresto-success-border: rgba(35, 165, 89, 0.35);
 
   /* Tailwind @theme (tailwind-theme.css) — müşteri menüsü + admin menü ortak */
   --color-background: #111827;

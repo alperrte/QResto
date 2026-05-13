@@ -12,7 +12,6 @@ import WelcomeServiceModal, {
 import { createTableCall } from "../../services/waiterService";
 import { getOrdersByTableSession } from "../../services/orderService";
 import type { OrderResponse } from "../../types/cartTypes";
-import { parseBackendLocalDateTime } from "../../utils/parseBackendLocalDateTime";
 
 import {
   DEV_PREVIEW_TABLE,
@@ -32,19 +31,6 @@ const readTableSessionId = (): number | null => {
   return Number.isFinite(n) ? n : null;
 };
 
-const pickOrderForOnlinePay = (orders: OrderResponse[]): OrderResponse | null => {
-  const eligible = orders.filter((o) => o.status !== "PAID" && o.status !== "CANCELLED");
-  if (eligible.length === 0) return null;
-  return [...eligible].sort(
-    (a, b) =>
-      parseBackendLocalDateTime(b.createdAt).getTime() -
-      parseBackendLocalDateTime(a.createdAt).getTime()
-  )[0];
-};
-
-
-
-
 const countSessionOrdersForListButton = (orders: OrderResponse[]): number =>
   orders.filter((o) => o.status !== "CANCELLED").length;
 
@@ -63,8 +49,6 @@ const WelcomePage = () => {
   const onlinePayLoading = false;
   const [payChoiceError, setPayChoiceError] = useState<string | null>(null);
   const [paymentRatingTableSessionId, setPaymentRatingTableSessionId] = useState<number | null>(null);
-  const [paymentRatingOrder, setPaymentRatingOrder] = useState<OrderResponse | null>(null);
-  const [ratingOnlyOrder, setRatingOnlyOrder] = useState<OrderResponse | null>(null);
   const [sessionOrdersListCount, setSessionOrdersListCount] = useState(0);
   const [sessionOrdersAttentionCount, setSessionOrdersAttentionCount] = useState(0);
   const [sessionOrdersFetched, setSessionOrdersFetched] = useState(false);
@@ -201,16 +185,8 @@ const WelcomePage = () => {
     setPaymentRatingTableSessionId(sessionId);
   };
 
-  
-  //CONFLICT ÇÖZÜLDÜ HATA BURADA OLABİLİR
-  const handleCloseRatingOnlyModal = () => {
-    setRatingOnlyOrder(null);
-    void refreshSessionOrderCount();
-  };
-
   const handleClosePaymentRatingModal = () => {
-    setPaymentRatingTableSessionId(null);    
-    setPaymentRatingOrder(null);
+    setPaymentRatingTableSessionId(null);
     void refreshSessionOrderCount();
     window.setTimeout(() => {
       void refreshSessionOrderCount();

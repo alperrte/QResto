@@ -24,8 +24,6 @@ type OrderRatingFormProps = {
     onRatingFlowRevoked?: () => void;
 };
 
-const formatPrice = (price: number) => `₺${price.toFixed(2)}`;
-
 const POLL_MS = 10_000;
 
 const OrderRatingForm = ({
@@ -136,6 +134,7 @@ const OrderRatingForm = ({
         field: "rating" | "comment",
         value: number | string
     ) => {
+        setErrorMessage("");
         setProductRatings((prev) => ({
             ...prev,
             [orderItemId]: {
@@ -146,7 +145,7 @@ const OrderRatingForm = ({
     };
 
     const renderStars = (value: number, onChange: (nextValue: number) => void) => (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center justify-center gap-1">
             {[1, 2, 3, 4, 5].map((star) => (
                 <button
                     key={star}
@@ -205,9 +204,9 @@ const OrderRatingForm = ({
 
     return (
         <div className="space-y-5">
-            <div>
+            <div className="text-center">
                 <h3 className="text-lg font-extrabold">Ürünleri Değerlendir</h3>
-                <p className="text-sm text-[var(--qresto-muted)]">
+                <p className="mt-1 text-sm text-[var(--qresto-muted)]">
                     Siparişinizdeki ürünlere 1-5 arası puan verin.
                 </p>
             </div>
@@ -218,18 +217,15 @@ const OrderRatingForm = ({
                             key={item.id}
                             className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4"
                         >
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <p className="font-bold">{item.productName}</p>
-                                    <p className="text-sm text-[var(--qresto-muted)]">
-                                        {item.quantity} adet • {formatPrice(item.lineTotal)}
-                                    </p>
+                            <div className="flex flex-col items-center text-center">
+                                <p className="font-bold text-[var(--qresto-text)]">{item.productName}</p>
+                                <div className="mt-3 flex w-full justify-center">
+                                    {renderStars(
+                                        productRatings[item.id]?.rating ?? 5,
+                                        (nextValue) =>
+                                            updateProductRating(item.id, "rating", nextValue)
+                                    )}
                                 </div>
-                                {renderStars(
-                                    productRatings[item.id]?.rating ?? 5,
-                                    (nextValue) =>
-                                        updateProductRating(item.id, "rating", nextValue)
-                                )}
                             </div>
                             {productCommentsAllowed === true ? (
                                 <textarea
@@ -238,7 +234,7 @@ const OrderRatingForm = ({
                                         updateProductRating(item.id, "comment", event.target.value)
                                     }
                                     placeholder="Ürün hakkında yorum yazabilirsiniz..."
-                                    className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--qresto-primary)]"
+                                    className="mt-3 min-h-16 w-full resize-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--qresto-primary)]"
                                 />
                             ) : null}
                         </div>
@@ -246,21 +242,22 @@ const OrderRatingForm = ({
             </div>
 
             <div className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4">
-                <div className="flex items-start justify-between gap-4">
-                    <div>
-                        <h3 className="font-extrabold">Restoranı Değerlendir</h3>
-                        <p className="text-sm text-[var(--qresto-muted)]">
-                            Genel deneyiminizi puanlayın.
-                        </p>
+                <div className="text-center">
+                    <h3 className="font-extrabold text-[var(--qresto-text)]">Restoranı Değerlendir</h3>
+                   
+                    <div className="mt-3 flex justify-center">
+                        {renderStars(restaurantRating, (next) => {
+                            setErrorMessage("");
+                            setRestaurantRating(next);
+                        })}
                     </div>
-                    {renderStars(restaurantRating, setRestaurantRating)}
                 </div>
                 {restaurantCommentsAllowed === true ? (
                     <textarea
                         value={restaurantComment}
                         onChange={(event) => setRestaurantComment(event.target.value)}
                         placeholder="Restoran deneyiminiz hakkında yorum yazabilirsiniz..."
-                        className="mt-3 min-h-20 w-full resize-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-sm outline-none transition focus:border-[var(--qresto-primary)]"
+                        className="mt-3 min-h-16 w-full resize-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-2.5 text-sm outline-none transition focus:border-[var(--qresto-primary)]"
                     />
                 ) : null}
             </div>

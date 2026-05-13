@@ -7,6 +7,10 @@ import { getOrdersByTableSession } from "../../services/orderService";
 import type { OrderItemResponse, OrderResponse } from "../../types/cartTypes";
 import { formatGuestOrderNo } from "../../utils/formatGuestOrderNo";
 import { formatOrderDateTimeTr, parseBackendLocalDateTime } from "../../utils/parseBackendLocalDateTime";
+import {
+    formatExtraDeltaTry,
+    parsePaidIngredientsFromOrderField,
+} from "../../utils/parseOrderPaidExtras";
 
 import "./guestOrdersPage.css";
 
@@ -22,40 +26,6 @@ const ORDER_STATUS_TR: Record<string, string> = {
 };
 
 const formatPrice = (n: number) => `₺${n.toFixed(2)}`;
-
-type ParsedPaidExtra = { label: string; extraTry: number | null };
-
-const parsePaidIngredientSegment = (segment: string): ParsedPaidExtra => {
-    const s = segment.trim();
-    if (!s) return { label: "", extraTry: null };
-    let m = s.match(/\s+\+₺([\d.]+)$/);
-    if (m != null && m.index != null) {
-        return { label: s.slice(0, m.index).trim(), extraTry: Number(m[1]) };
-    }
-    m = s.match(/\s+-₺([\d.]+)$/);
-    if (m != null && m.index != null) {
-        return { label: s.slice(0, m.index).trim(), extraTry: -Number(m[1]) };
-    }
-    return { label: s, extraTry: null };
-};
-
-const parsePaidIngredientsFromOrderField = (
-    raw: string | null | undefined
-): ParsedPaidExtra[] => {
-    if (!raw?.trim()) return [];
-    return raw
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .map(parsePaidIngredientSegment)
-        .filter((x) => x.label.length > 0);
-};
-
-const formatExtraDeltaTry = (n: number | null): string | null => {
-    if (n == null || Number.isNaN(n)) return null;
-    if (n >= 0) return `+₺${n.toFixed(2)}`;
-    return `-₺${Math.abs(n).toFixed(2)}`;
-};
 
 /** `addedIngredients` menüden yalnızca ücretli ekleri içerir (virgülle ayrılmış). */
 const orderLineHasPaidExtras = (line: OrderItemResponse): boolean =>
@@ -147,7 +117,7 @@ const GuestOrdersPage = () => {
                                 <h2 className="text-title-md font-bold text-on-surface">
                                     Ödeme ve hesap
                                 </h2>
-                                <p className="mx-auto mt-2 text-body-sm text-on-surface-variant leading-relaxed">
+                                <p className="mx-auto mt-2s text-body-sm text-on-surface-variant leading-relaxed">
                                     Online ödeme veya hesap iste seçenekleri için karşılama
                                     ekranındaki ödeme adımına yönlendirilirsiniz.
                                 </p>
