@@ -23,8 +23,11 @@ public class RestaurantTableService {
     private final TableSessionRepository tableSessionRepository;
     private final GuestSessionRepository guestSessionRepository;
     public RestaurantTableResponse createTable(CreateRestaurantTableRequest request) {
+        String tableName = normalizeTableName(request.getName());
+        ensureTableNameAvailable(tableName);
+
         RestaurantTable table = RestaurantTable.builder()
-                .name(request.getName())
+                .name(tableName)
                 .capacity(request.getCapacity())
                 .active(true)
                 .build();
@@ -38,7 +41,10 @@ public class RestaurantTableService {
         RestaurantTable table = restaurantTableRepository.findById(tableId)
                 .orElseThrow(() -> new RuntimeException("Table not found with id: " + tableId));
 
-        table.setName(request.getName());
+        String tableName = normalizeTableName(request.getName());
+        ensureTableNameAvailable(tableName, tableId);
+
+        table.setName(tableName);
         table.setCapacity(request.getCapacity());
 
         if (request.getActive() != null) {
@@ -111,5 +117,38 @@ public class RestaurantTableService {
         tableQrCodeRepository.deleteByRestaurantTableId(tableId);
 
         restaurantTableRepository.delete(table);
+    }
+
+    private String normalizeTableName(String name) {
+        if (name == null) {
+            return "";
+        }
+
+        return name.trim().replaceAll("\\s+", " ");
+    }
+
+    private void ensureTableNameAvailable(String name) {
+        String normalizedName = normalizeTableName(name);
+
+        boolean exists = restaurantTableRepository.findAll()
+                .stream()
+                .anyMatch(table -> normalizeTableName(table.getName()).equalsIgnoreCase(normalizedName));
+
+        if (exists) {
+            throw new RuntimeException("Bu isimde bir masa zaten var.");
+        }
+    }
+
+    private void ensureTableNameAvailable(String name, Long currentTableId) {
+        String normalizedName = normalizeTableName(name);
+
+        boolean exists = restaurantTableRepository.findAll()
+                .stream()
+                .filter(table -> !table.getId().equals(currentTableId))
+                .anyMatch(table -> normalizeTableName(table.getName()).equalsIgnoreCase(normalizedName));
+
+        if (exists) {
+            throw new RuntimeException("Bu isimde bir masa zaten var.");
+        }
     }
 }

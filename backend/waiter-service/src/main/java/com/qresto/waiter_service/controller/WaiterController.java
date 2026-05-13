@@ -151,6 +151,14 @@ public class WaiterController {
     ) {
         return ResponseEntity.ok(waiterService.getActiveOrders(authHeader));
     }
+
+    @GetMapping("/orders/completed")
+    public ResponseEntity<List<KitchenOrderResponse>> getCompletedOrders(
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        return ResponseEntity.ok(waiterService.getCompletedOrders(authHeader));
+    }
+
     @GetMapping("/tables/{tableId}/session/refresh")
     public ResponseEntity<TableSessionResponse> refreshTableSession(
             @PathVariable Long tableId,

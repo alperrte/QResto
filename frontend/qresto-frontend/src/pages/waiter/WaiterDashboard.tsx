@@ -31,9 +31,11 @@ import {
     getActiveTableSession,
     getAllCalls,
     getCancelledOrders,
+    getCompletedOrders,
     getOrderDetail,
     getReadyOrders,
     getTables,
+    markBillPaid,
     markOrderServed,
     resolveCall,
     type KitchenOrderResponse,
@@ -335,13 +337,21 @@ export default function WaiterDashboard() {
         try {
             setError(null);
 
-            const [allCallsResult, tablesResult, activeOrdersResult, readyOrdersResult, cancelledOrdersResult] =
+            const [
+                allCallsResult,
+                tablesResult,
+                activeOrdersResult,
+                readyOrdersResult,
+                cancelledOrdersResult,
+                completedOrdersResult,
+            ] =
                 await Promise.allSettled([
                     getAllCalls(),
                     getTables(),
                     getActiveOrders(),
                     getReadyOrders(),
                     getCancelledOrders(),
+                    getCompletedOrders(),
                 ]);
 
             const tableList =
@@ -377,6 +387,9 @@ export default function WaiterDashboard() {
                 ...(cancelledOrdersResult.status === "fulfilled"
                     ? ensureArray<KitchenOrderResponse>(cancelledOrdersResult.value)
                     : []),
+                ...(completedOrdersResult.status === "fulfilled"
+                    ? ensureArray<KitchenOrderResponse>(completedOrdersResult.value)
+                    : []),
             ];
 
             const releasedTableIds = fetched
@@ -395,7 +408,8 @@ export default function WaiterDashboard() {
             if (
                 activeOrdersResult.status === "fulfilled" ||
                 readyOrdersResult.status === "fulfilled" ||
-                cancelledOrdersResult.status === "fulfilled"
+                cancelledOrdersResult.status === "fulfilled" ||
+                completedOrdersResult.status === "fulfilled"
             ) {
                 setOrders((prev) => {
                     const map = new Map<number, KitchenOrderResponse>();
@@ -422,14 +436,19 @@ export default function WaiterDashboard() {
         const timer = window.setTimeout(() => {
             loadDashboard().finally(() => setInitialLoading(false));
         }, 0);
+        const refreshTimer = window.setInterval(() => {
+            loadDashboard().catch(() => undefined);
+        }, 5000);
 
-        return () => window.clearTimeout(timer);
+        return () => {
+            window.clearTimeout(timer);
+            window.clearInterval(refreshTimer);
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
         let client: Client | null = null;
-        let refreshTimer: number | undefined;
 
         try {
             client = new Client({
@@ -479,7 +498,11 @@ export default function WaiterDashboard() {
                             if (body.tableId) {
                                 setHeldTableTimestamps((prev) => {
                                     const next = new Map(prev);
-                                    next.set(body.tableId, Date.now());
+                                    if (isOrderPaid(body.status) || normalizeOrderStatus(body.status) === "COMPLETED") {
+                                        next.delete(body.tableId);
+                                    } else {
+                                        next.set(body.tableId, Date.now());
+                                    }
                                     return next;
                                 });
                             }
@@ -487,10 +510,6 @@ export default function WaiterDashboard() {
                             console.error("Error parsing waiter order message", err);
                         }
                     });
-
-                    refreshTimer = window.setInterval(() => {
-                        loadDashboard().catch(() => undefined);
-                    }, 5000);
                 },
             });
 
@@ -500,7 +519,6 @@ export default function WaiterDashboard() {
         }
 
         return () => {
-            if (refreshTimer) window.clearInterval(refreshTimer);
             if (client) void client.deactivate();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -659,14 +677,28 @@ export default function WaiterDashboard() {
             .join(", ");
     }
 
-    async function handleResolveCall(callId: number) {
+    async function handleResolveCall(call: TableCallResponse) {
         try {
-            setActionLoadingId(callId);
-            await resolveCall(callId, userEmail);
+            setActionLoadingId(call.id);
+            if (call.callType === "BILL_REQUEST") {
+                await markBillPaid(call.id, userEmail);
+                setHeldTableTimestamps((prev) => {
+                    const next = new Map(prev);
+                    next.delete(call.tableId);
+                    return next;
+                });
+                setTableSessions((prev) => prev.filter((session) => session.tableId !== call.tableId));
+            } else {
+                await resolveCall(call.id, userEmail);
+            }
             await loadDashboard();
         } catch (err) {
             console.error(err);
-            setError("Çağrı çözüldü olarak işaretlenemedi.");
+            setError(
+                call.callType === "BILL_REQUEST"
+                    ? "Hesap ödendi olarak işaretlenemedi."
+                    : "Çağrı çözüldü olarak işaretlenemedi."
+            );
         } finally {
             setActionLoadingId(null);
         }
@@ -1012,7 +1044,7 @@ export default function WaiterDashboard() {
                     actionLoading={actionLoadingId === confirmResolveCall.id}
                     onCancel={() => setConfirmResolveCall(null)}
                     onConfirm={async () => {
-                        await handleResolveCall(confirmResolveCall.id);
+                        await handleResolveCall(confirmResolveCall);
                         setConfirmResolveCall(null);
                         setSelectedCall(null);
                     }}

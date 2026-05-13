@@ -730,6 +730,35 @@ public class OrderService {
                 .toList();
     }
 
+    public List<OrderResponse> markActiveTableOrdersPaid(Long tableId) {
+        List<OrderStatus> payableStatuses = List.of(
+                OrderStatus.RECEIVED,
+                OrderStatus.PREPARING,
+                OrderStatus.READY,
+                OrderStatus.SERVED,
+                OrderStatus.COMPLETED,
+                OrderStatus.PAYMENT_PENDING
+        );
+
+        List<CustomerOrder> orders =
+                customerOrderRepository.findByTableIdAndStatusIn(tableId, payableStatuses);
+
+        if (orders.isEmpty()) {
+            throw new IllegalArgumentException("Bu masaya ait ödenecek aktif sipariş bulunamadı: " + tableId);
+        }
+
+        Long tableSessionId = orders.stream()
+                .filter(order -> order.getTableSessionId() != null)
+                .max(java.util.Comparator.comparing(
+                        CustomerOrder::getCreatedAt,
+                        java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())
+                ))
+                .map(CustomerOrder::getTableSessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Bu masaya ait masa oturumu bulunamadı: " + tableId));
+
+        return markTableSessionOrdersPaid(tableSessionId);
+    }
+
     @Transactional(readOnly = true)
     public TableSessionBillResponse getTableSessionBill(Long tableSessionId) {
         List<OrderStatus> payableStatuses = List.of(

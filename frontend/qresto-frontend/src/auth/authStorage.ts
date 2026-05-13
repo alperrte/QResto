@@ -4,17 +4,25 @@ const ACCESS_TOKEN_KEY = "qresto-access-token";
 const REFRESH_TOKEN_KEY = "qresto-refresh-token";
 const USER_KEY = "qresto-user";
 
+const storage = sessionStorage;
+
+const clearLegacyLocalSession = () => {
+    localStorage.removeItem(ACCESS_TOKEN_KEY);
+    localStorage.removeItem(REFRESH_TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+};
+
 export const authStorage = {
     getAccessToken(): string | null {
-        return localStorage.getItem(ACCESS_TOKEN_KEY);
+        return storage.getItem(ACCESS_TOKEN_KEY);
     },
 
     getRefreshToken(): string | null {
-        return localStorage.getItem(REFRESH_TOKEN_KEY);
+        return storage.getItem(REFRESH_TOKEN_KEY);
     },
 
     getUser(): AuthUser | null {
-        const serializedUser = localStorage.getItem(USER_KEY);
+        const serializedUser = storage.getItem(USER_KEY);
 
         if (!serializedUser) {
             return null;
@@ -23,25 +31,28 @@ export const authStorage = {
         try {
             return JSON.parse(serializedUser) as AuthUser;
         } catch {
-            localStorage.removeItem(USER_KEY);
+            storage.removeItem(USER_KEY);
             return null;
         }
     },
 
     setSession(payload: { accessToken: string; refreshToken: string; user: AuthUser }) {
-        localStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
-        localStorage.setItem(REFRESH_TOKEN_KEY, payload.refreshToken);
-        localStorage.setItem(USER_KEY, JSON.stringify(payload.user));
+        clearLegacyLocalSession();
+        storage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
+        storage.setItem(REFRESH_TOKEN_KEY, payload.refreshToken);
+        storage.setItem(USER_KEY, JSON.stringify(payload.user));
     },
 
     setTokens(payload: { accessToken: string; refreshToken: string }) {
-        localStorage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
-        localStorage.setItem(REFRESH_TOKEN_KEY, payload.refreshToken);
+        clearLegacyLocalSession();
+        storage.setItem(ACCESS_TOKEN_KEY, payload.accessToken);
+        storage.setItem(REFRESH_TOKEN_KEY, payload.refreshToken);
     },
 
     clearSession() {
-        localStorage.removeItem(ACCESS_TOKEN_KEY);
-        localStorage.removeItem(REFRESH_TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
+        storage.removeItem(ACCESS_TOKEN_KEY);
+        storage.removeItem(REFRESH_TOKEN_KEY);
+        storage.removeItem(USER_KEY);
+        clearLegacyLocalSession();
     },
 };

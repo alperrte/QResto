@@ -113,6 +113,11 @@ public class OrderController {
         return ResponseEntity.ok(orderService.markTableSessionOrdersPaid(tableSessionId));
     }
 
+    @PatchMapping("/table/{tableId}/mark-active-paid")
+    public ResponseEntity<List<OrderResponse>> markActiveTableOrdersPaid(@PathVariable Long tableId) {
+        return ResponseEntity.ok(orderService.markActiveTableOrdersPaid(tableId));
+    }
+
     @GetMapping("/table-session/{tableSessionId}/bill")
     public ResponseEntity<TableSessionBillResponse> getTableSessionBill(@PathVariable Long tableSessionId) {
         return ResponseEntity.ok(orderService.getTableSessionBill(tableSessionId));

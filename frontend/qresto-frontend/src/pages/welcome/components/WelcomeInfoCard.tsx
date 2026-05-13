@@ -48,7 +48,7 @@ const WelcomeInfoCard = ({
           >
             table_restaurant
           </span>
-          <span className="font-bold text-label-bold text-on-surface">Masa: {tableName ?? "-"}</span>
+          <span className="font-bold text-label-bold text-on-surface"> {tableName ?? "-"}</span>
         </div>
         {showOrdersCta ? (
           <div

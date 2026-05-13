@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import QRCode from "qrcode";
 import {
     ArrowLeft,
@@ -48,6 +48,8 @@ type ModalType =
     | "download"
     | "refresh"
     | "refreshSuccess"
+    | "refreshAll"
+    | "refreshAllSuccess"
     | "deactivate"
     | "activate"
     | "delete"
@@ -81,6 +83,9 @@ const QrGeneratorPage = () => {
 
     const [openMenuTableId, setOpenMenuTableId] = useState<number | null>(null);
     const [copiedQrUrl, setCopiedQrUrl] = useState(false);
+    const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
+    const [refreshAllCountdown, setRefreshAllCountdown] = useState(0);
+    const refreshAllCountdownTimerRef = useRef<number | null>(null);
 
     const activeCount = tables.filter((table) => table.active).length;
     const passiveCount = tables.filter((table) => !table.active).length;
@@ -103,6 +108,25 @@ const QrGeneratorPage = () => {
 
     const hasActiveSession = (tableId: number) => {
         return Boolean(activeSessions[tableId]);
+    };
+
+    const normalizeTableName = (name: string) =>
+        name.trim().replace(/\s+/g, " ").toLocaleLowerCase("tr-TR");
+
+    const hasDuplicateTableName = (name: string, exceptTableId?: number) => {
+        const normalizedName = normalizeTableName(name);
+
+        return tables.some((table) => {
+            if (exceptTableId && table.id === exceptTableId) {
+                return false;
+            }
+
+            return normalizeTableName(table.name) === normalizedName;
+        });
+    };
+
+    const showNotice = (message: string) => {
+        setNoticeMessage(message);
     };
 
     const filteredTables = useMemo(() => {
@@ -197,8 +221,20 @@ const QrGeneratorPage = () => {
         ]);
     };
 
+    const refreshTableSessionStatuses = async () => {
+        const data = await getTables();
+
+        setTables(data);
+        await hydrateActiveSessions(data);
+    };
+
     useEffect(() => {
         loadTables();
+        const activeSessionRefreshTimer = window.setInterval(() => {
+            refreshTableSessionStatuses().catch((error) => {
+                console.error("Aktif oturum durumu guncellenemedi:", error);
+            });
+        }, 5000);
 
         const handleTablesUpdated = () => {
             loadTables();
@@ -220,6 +256,7 @@ const QrGeneratorPage = () => {
         window.addEventListener("qresto-qr-page-reset", handleQrPageReset);
 
         return () => {
+            window.clearInterval(activeSessionRefreshTimer);
             window.removeEventListener("qresto-tables-updated", handleTablesUpdated);
             window.removeEventListener("qresto-qr-page-reset", handleQrPageReset);
         };
@@ -237,6 +274,17 @@ const QrGeneratorPage = () => {
         setOpenMenuTableId(null);
     };
 
+    const clearRefreshAllCountdownTimer = () => {
+        if (refreshAllCountdownTimerRef.current) {
+            window.clearInterval(refreshAllCountdownTimerRef.current);
+            refreshAllCountdownTimerRef.current = null;
+        }
+    };
+
+    useEffect(() => {
+        return () => clearRefreshAllCountdownTimer();
+    }, []);
+
     const createQrImage = async (
         table: RestaurantTableResponse,
         qr: TableQrCodeResponse
@@ -252,6 +300,11 @@ const QrGeneratorPage = () => {
     const handleCreateTable = async () => {
         if (!tableName.trim()) {
             alert("Masa adı zorunlu.");
+            return;
+        }
+
+        if (hasDuplicateTableName(tableName)) {
+            showNotice("Bu isimde bir masa zaten var. Lütfen farklı bir masa adı girin.");
             return;
         }
 
@@ -272,7 +325,7 @@ const QrGeneratorPage = () => {
             setActiveView("main");
         } catch (error) {
             console.error(error);
-            alert("Masa veya QR oluşturulamadı.");
+            alert("Masa veya QR oluşturulamadı. Aynı isimde masa olmadığından emin olun.");
         } finally {
             setLoading(false);
         }
@@ -308,6 +361,24 @@ const QrGeneratorPage = () => {
         setModalType("refresh");
     };
 
+    const openRefreshAllModal = () => {
+        setOpenMenuTableId(null);
+        setSelectedTable(null);
+        setRefreshAllCountdown(5);
+        clearRefreshAllCountdownTimer();
+        refreshAllCountdownTimerRef.current = window.setInterval(() => {
+            setRefreshAllCountdown((current) => {
+                if (current <= 1) {
+                    clearRefreshAllCountdownTimer();
+                    return 0;
+                }
+
+                return current - 1;
+            });
+        }, 1000);
+        setModalType("refreshAll");
+    };
+
     const openDeleteModal = (table: RestaurantTableResponse) => {
         setOpenMenuTableId(null);
         setSelectedTable(table);
@@ -328,6 +399,11 @@ const QrGeneratorPage = () => {
             return;
         }
 
+        if (hasDuplicateTableName(editName, selectedTable.id)) {
+            showNotice("Bu isimde bir masa zaten var. Lütfen farklı bir masa adı girin.");
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -342,7 +418,7 @@ const QrGeneratorPage = () => {
             setSelectedTable(null);
         } catch (error) {
             console.error(error);
-            alert("Masa güncellenemedi.");
+            alert("Masa güncellenemedi. Aynı isimde masa olmadığından emin olun.");
         } finally {
             setLoading(false);
         }
@@ -408,6 +484,24 @@ const QrGeneratorPage = () => {
         } catch (error) {
             console.error(error);
             alert("Masa yenilenemedi.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const confirmRefreshAllTables = async () => {
+        if (tables.length === 0) return;
+
+        setLoading(true);
+
+        try {
+            await Promise.all(tables.map((table) => refreshTableSessions(table.id)));
+            await loadTables();
+
+            setModalType("refreshAllSuccess");
+        } catch (error) {
+            console.error(error);
+            alert("Tüm masalar yenilenemedi.");
         } finally {
             setLoading(false);
         }
@@ -483,6 +577,8 @@ const QrGeneratorPage = () => {
         if (modalType === "download") return "QR indirilsin mi?";
         if (modalType === "refresh") return "Masa yenilensin mi?";
         if (modalType === "refreshSuccess") return "Masa yenilendi";
+        if (modalType === "refreshAll") return "Tüm masalar yenilensin mi?";
+        if (modalType === "refreshAllSuccess") return "Tüm masalar yenilendi";
         if (modalType === "deactivate") return "Masa kullanıma kapatılsın mı?";
         if (modalType === "activate") return "Masa kullanıma açılsın mı?";
         if (modalType === "delete") return "Masa silinsin mi?";
@@ -503,6 +599,16 @@ const QrGeneratorPage = () => {
             return "Masa başarıyla yenilendi. Aktif masa oturumları kapatıldı. Müşteri aynı QR kodu tekrar okuttuğunda yeni oturum başlayacak.";
         }
 
+        if (modalType === "refreshAll") {
+            return refreshAllCountdown > 0
+                ? `Tüm masalardaki aktif oturumlar kapatılacaktır. Onay butonu ${refreshAllCountdown} saniye sonra açılacak.`
+                : "Tüm masalardaki aktif oturumlar kapatılacaktır. Bu işlem yeni QR oluşturmaz; müşteriler aynı QR kodu tekrar okuttuğunda yeni oturum başlar.";
+        }
+
+        if (modalType === "refreshAllSuccess") {
+            return "Tüm masalar başarıyla yenilendi. Aktif masa oturumları kapatıldı.";
+        }
+
         if (modalType === "deactivate") {
             return "Bu masa kullanıma kapatılacak. Kapalı masada QR okutulsa bile sipariş akışı başlatılamaz.";
         }
@@ -519,6 +625,8 @@ const QrGeneratorPage = () => {
     };
 
     const closeModal = () => {
+        clearRefreshAllCountdownTimer();
+        setRefreshAllCountdown(0);
         setModalType(null);
         setSelectedTable(null);
     };
@@ -617,14 +725,26 @@ const QrGeneratorPage = () => {
                     </div>
 
                     {activeView === "main" && (
-                        <button
-                            type="button"
-                            onClick={() => setActiveView("create")}
-                            className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--qresto-primary)] px-6 font-bold text-white shadow-[0_14px_28px_rgba(255,75,22,0.25)] transition-all duration-200 hover:-translate-y-1 hover:opacity-95"
-                        >
-                            <Plus size={19} />
-                            Yeni Masa
-                        </button>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <button
+                                type="button"
+                                onClick={openRefreshAllModal}
+                                disabled={tables.length === 0 || loading}
+                                className="flex h-12 items-center justify-center gap-2 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-5 font-bold text-[var(--qresto-text)] shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                                <RefreshCw size={18} />
+                                Tüm Masaları Yenile
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={() => setActiveView("create")}
+                                className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-[var(--qresto-primary)] px-6 font-bold text-white shadow-[0_14px_28px_rgba(255,75,22,0.25)] transition-all duration-200 hover:-translate-y-1 hover:opacity-95"
+                            >
+                                <Plus size={19} />
+                                Yeni Masa
+                            </button>
+                        </div>
                     )}
                 </header>
 
@@ -1228,30 +1348,56 @@ const QrGeneratorPage = () => {
                                 onClick={closeModal}
                                 className="flex-1 rounded-2xl bg-[var(--qresto-bg)] py-3 font-bold text-[var(--qresto-text)] transition-all hover:bg-[var(--qresto-hover)]"
                             >
-                                {modalType === "refreshSuccess" ? "Kapat" : "Vazgeç"}
+                                {modalType === "refreshSuccess" || modalType === "refreshAllSuccess" ? "Kapat" : "Vazgeç"}
                             </button>
 
-                            {modalType !== "refreshSuccess" && (
+                            {modalType !== "refreshSuccess" && modalType !== "refreshAllSuccess" && (
                                 <button
                                     type="button"
-                                    disabled={loading}
+                                    disabled={loading || (modalType === "refreshAll" && refreshAllCountdown > 0)}
                                     onClick={
                                         modalType === "download"
                                             ? downloadQr
                                             : modalType === "refresh"
                                                 ? confirmRefreshTable
-                                                : modalType === "delete"
-                                                    ? confirmDeleteTable
-                                                    : modalType === "edit"
-                                                        ? confirmEditTable
-                                                        : confirmTableStatusChange
+                                                : modalType === "refreshAll"
+                                                    ? confirmRefreshAllTables
+                                                    : modalType === "delete"
+                                                        ? confirmDeleteTable
+                                                        : modalType === "edit"
+                                                            ? confirmEditTable
+                                                            : confirmTableStatusChange
                                     }
                                     className="flex-1 rounded-2xl bg-[var(--qresto-primary)] py-3 font-bold text-white transition-all hover:opacity-90 disabled:opacity-60"
                                 >
-                                    {loading ? "İşleniyor..." : "Onayla"}
+                                    {loading
+                                        ? "İşleniyor..."
+                                        : modalType === "refreshAll" && refreshAllCountdown > 0
+                                            ? `${refreshAllCountdown} sn`
+                                            : "Onayla"}
                                 </button>
                             )}
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {noticeMessage && (
+                <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+                    <div className="w-full max-w-md rounded-[28px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-7 shadow-2xl">
+                        <h2 className="mb-3 text-2xl font-black text-[var(--qresto-text)]">
+                            Uyarı
+                        </h2>
+                        <p className="mb-6 text-[var(--qresto-muted)]">
+                            {noticeMessage}
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setNoticeMessage(null)}
+                            className="w-full rounded-2xl bg-[var(--qresto-primary)] py-3 font-bold text-white transition-all hover:opacity-90"
+                        >
+                            Tamam
+                        </button>
                     </div>
                 </div>
             )}

@@ -7,10 +7,12 @@ import com.qresto.kitchen_service.dto.request.UpdateKitchenOrderStatusRequest;
 import com.qresto.kitchen_service.dto.response.KitchenOrderResponse;
 import com.qresto.kitchen_service.entity.KitchenOrder;
 import com.qresto.kitchen_service.entity.enums.KitchenOrderStatus;
+import com.qresto.kitchen_service.exception.ResourceNotFoundException;
 import com.qresto.kitchen_service.repository.KitchenOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -58,7 +60,7 @@ public class KitchenOrderService {
     ) {
         return orderClient.cancelOrder(orderId, request.getReason());
     }
-}
+
     public void markOrderServedForWaiter(Long orderId) {
         KitchenOrder kitchenOrder = kitchenOrderRepository.findById(orderId)
                 .orElseThrow(() ->
