@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, ChevronDown, Moon, Sun } from "lucide-react";
+import { ChevronDown, Moon, Sun } from "lucide-react";
 
 import {
     activateQrCode,
@@ -118,10 +118,6 @@ function PanelHeader() {
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <button className="relative flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] transition-all duration-200 hover:-translate-y-[2px] hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]">
-                        <Bell size={20} className="text-[var(--qresto-text)]" />
-                        <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-red-500" />
-                    </button>
 
                     <button
                         type="button"

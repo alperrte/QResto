@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import qrestoLogoDark from "../../assets/qresto_logo_dark.png";
 import OrderPaymentRatingModal from "../../components/rating/OrderPaymentRatingModal";
-import OrderRatingModal from "../../components/rating/OrderRatingModal";
 import WelcomeActionButtons from "./components/WelcomeActionButtons";
 import WelcomeInfoCard from "./components/WelcomeInfoCard";
 import WelcomePayChoiceModal from "./components/WelcomePayChoiceModal";
@@ -14,6 +13,7 @@ import { createTableCall } from "../../services/waiterService";
 import { getOrdersByTableSession } from "../../services/orderService";
 import type { OrderResponse } from "../../types/cartTypes";
 import { parseBackendLocalDateTime } from "../../utils/parseBackendLocalDateTime";
+
 import {
   DEV_PREVIEW_TABLE,
   HERO_IMAGE_URL,
@@ -42,13 +42,8 @@ const pickOrderForOnlinePay = (orders: OrderResponse[]): OrderResponse | null =>
   )[0];
 };
 
-/** Oturumdaki ödenmemiş en yeni siparişi bulur; online ödeme modalı için. */
-const fetchOrderForPaymentRating = async (): Promise<OrderResponse | null> => {
-  const sessionId = readTableSessionId();
-  if (!sessionId) return null;
-  const list = await getOrdersByTableSession(sessionId);
-  return pickOrderForOnlinePay(list);
-};
+
+
 
 const countSessionOrdersForListButton = (orders: OrderResponse[]): number =>
   orders.filter((o) => o.status !== "CANCELLED").length;
@@ -65,8 +60,9 @@ const WelcomePage = () => {
   const [serviceModalStep, setServiceModalStep] = useState<ServiceModalStep>("confirm");
   const [serviceModalError, setServiceModalError] = useState<string | null>(null);
   const [payChoiceOpen, setPayChoiceOpen] = useState(false);
-  const [onlinePayLoading, setOnlinePayLoading] = useState(false);
+  const onlinePayLoading = false;
   const [payChoiceError, setPayChoiceError] = useState<string | null>(null);
+  const [paymentRatingTableSessionId, setPaymentRatingTableSessionId] = useState<number | null>(null);
   const [paymentRatingOrder, setPaymentRatingOrder] = useState<OrderResponse | null>(null);
   const [ratingOnlyOrder, setRatingOnlyOrder] = useState<OrderResponse | null>(null);
   const [sessionOrdersListCount, setSessionOrdersListCount] = useState(0);
@@ -193,36 +189,27 @@ const WelcomePage = () => {
   };
 
   const handlePayChoiceOnlinePay = async () => {
-    if (!readTableSessionId()) {
+    const sessionId = readTableSessionId();
+
+    if (!sessionId) {
       setPayChoiceError("Oturum bulunamadı. QR kodu tekrar okutun.");
       return;
     }
-    setOnlinePayLoading(true);
+
     setPayChoiceError(null);
-    try {
-      const order = await fetchOrderForPaymentRating();
-      if (!order) {
-        setPayChoiceError(
-          "Ödenecek sipariş bulunamadı. Önce menüden sipariş verin veya Siparişlerim sayfasından kontrol edin."
-        );
-        return;
-      }
-      setPayChoiceOpen(false);
-      setPaymentRatingOrder(order);
-    } catch (e) {
-      console.error(e);
-      setPayChoiceError("Siparişler yüklenemedi. Bağlantınızı kontrol edip tekrar deneyin.");
-    } finally {
-      setOnlinePayLoading(false);
-    }
+    setPayChoiceOpen(false);
+    setPaymentRatingTableSessionId(sessionId);
   };
 
+  
+  //CONFLICT ÇÖZÜLDÜ HATA BURADA OLABİLİR
   const handleCloseRatingOnlyModal = () => {
     setRatingOnlyOrder(null);
     void refreshSessionOrderCount();
   };
 
   const handleClosePaymentRatingModal = () => {
+    setPaymentRatingTableSessionId(null);    
     setPaymentRatingOrder(null);
     void refreshSessionOrderCount();
     window.setTimeout(() => {
@@ -368,11 +355,11 @@ const WelcomePage = () => {
         onSelectOnlinePay={() => void handlePayChoiceOnlinePay()}
         onSelectBillRequest={handlePayChoiceBillRequest}
       />
-      {paymentRatingOrder ? (
-        <OrderPaymentRatingModal order={paymentRatingOrder} onClose={handleClosePaymentRatingModal} />
-      ) : null}
-      {ratingOnlyOrder ? (
-        <OrderRatingModal order={ratingOnlyOrder} onClose={handleCloseRatingOnlyModal} />
+      {paymentRatingTableSessionId ? (
+          <OrderPaymentRatingModal
+              tableSessionId={paymentRatingTableSessionId}
+              onClose={handleClosePaymentRatingModal}
+          />
       ) : null}
       {serviceModalError ? (
         <div className="fixed bottom-4 left-1/2 z-[110] -translate-x-1/2 rounded-xl bg-red-600 px-4 py-3 text-sm text-white shadow-lg">
