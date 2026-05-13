@@ -162,7 +162,8 @@ public class TableSessionService {
 
         boolean tableSessionAllowed =
                 tableSession.getStatus() == TableSessionStatus.ACTIVE ||
-                        tableSession.getStatus() == TableSessionStatus.ORDERED;
+                        tableSession.getStatus() == TableSessionStatus.ORDERED ||
+                        tableSession.getStatus() == TableSessionStatus.PAYMENT_PENDING;
 
         boolean guestSessionAllowed =
                 guestSession.getStatus() == GuestSessionStatus.ACTIVE;

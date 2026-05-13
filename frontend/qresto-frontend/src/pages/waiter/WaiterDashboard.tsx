@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type ReactNode } from "react";
+﻿import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { Client } from "@stomp/stompjs";
@@ -331,10 +331,15 @@ export default function WaiterDashboard() {
     const [error, setError] = useState<string | null>(null);
 
     const userEmail = getCurrentUserEmail();
+    const ordersRef = useRef<KitchenOrderResponse[]>([]);
+    ordersRef.current = orders;
+    const loadDashboardRef = useRef<() => Promise<void>>(async () => {});
 
     async function loadDashboard() {
         try {
             setError(null);
+
+            const beforeOrdersSnapshot = [...ordersRef.current];
 
             const [allCallsResult, tablesResult, activeOrdersResult, readyOrdersResult, cancelledOrdersResult] =
                 await Promise.allSettled([
@@ -380,6 +385,8 @@ export default function WaiterDashboard() {
                     : []),
             ];
 
+            const fetchedOrderIds = new Set(fetched.map((order) => order.orderId));
+
             const releasedTableIds = fetched
                 .filter((order) => isOrderPaid(order.status) || normalizeOrderStatus(order.status) === "COMPLETED")
                 .map((order) => order.tableId)
@@ -409,11 +416,64 @@ export default function WaiterDashboard() {
                     );
                 });
             }
+
+            /** Aktif listelerde artık yok ama hâlâ «aktif» statüde görünen satırlar (ör. ödeme sonrası PAID) — detaydan tazele. */
+            const disappeared = beforeOrdersSnapshot.filter(
+                (order) => !isOrderArchived(order.status) && !fetchedOrderIds.has(order.orderId)
+            );
+
+            if (activeOrdersResult.status === "fulfilled" && disappeared.length > 0) {
+                const detailRows = await Promise.all(
+                    disappeared.map(async (order) => {
+                        try {
+                            const d = await getOrderDetail(order.orderId);
+                            const next: KitchenOrderResponse = {
+                                orderId: d.id,
+                                tableId: d.tableId,
+                                tableNumber: undefined,
+                                orderNumber: d.orderNo,
+                                status: d.status,
+                                totalAmount: d.totalAmount,
+                                createdAt: d.createdAt ?? undefined,
+                                updatedAt: d.updatedAt ?? undefined,
+                            };
+                            return next;
+                        } catch {
+                            return null;
+                        }
+                    })
+                );
+
+                const mergedDetails = detailRows.filter((row): row is KitchenOrderResponse => row !== null);
+
+                if (mergedDetails.length > 0) {
+                    setOrders((prev) => {
+                        const map = new Map<number, KitchenOrderResponse>();
+                        prev.forEach((order) => map.set(order.orderId, order));
+                        mergedDetails.forEach((order) =>
+                            map.set(order.orderId, { ...map.get(order.orderId), ...order })
+                        );
+                        return Array.from(map.values()).sort((a, b) =>
+                            (b.createdAt || "").localeCompare(a.createdAt || "")
+                        );
+                    });
+                }
+            }
         } catch (err) {
             console.error(err);
             setError("Garson paneli verileri yüklenirken bir hata oluştu.");
         }
     }
+
+    loadDashboardRef.current = loadDashboard;
+
+    useEffect(() => {
+        const intervalId = window.setInterval(() => {
+            void loadDashboardRef.current();
+        }, 5000);
+
+        return () => window.clearInterval(intervalId);
+    }, []);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem("qresto-theme");
@@ -430,7 +490,14 @@ export default function WaiterDashboard() {
 
     useEffect(() => {
         let client: Client | null = null;
-        let refreshTimer: number | undefined;
+        let refreshDebounce: number | undefined;
+
+        const scheduleFullRefresh = () => {
+            window.clearTimeout(refreshDebounce);
+            refreshDebounce = window.setTimeout(() => {
+                void loadDashboardRef.current();
+            }, 400);
+        };
 
         try {
             client = new Client({
@@ -439,7 +506,7 @@ export default function WaiterDashboard() {
                 onConnect: () => {
                     if (!client) return;
 
-                    loadDashboard().catch(() => undefined);
+                    void loadDashboardRef.current();
 
                     client.subscribe("/topic/waiter/calls", (message) => {
                         try {
@@ -459,6 +526,8 @@ export default function WaiterDashboard() {
                                     return next;
                                 });
                             }
+
+                            scheduleFullRefresh();
                         } catch (err) {
                             console.error("Error parsing waiter call message", err);
                         }
@@ -484,14 +553,12 @@ export default function WaiterDashboard() {
                                     return next;
                                 });
                             }
+
+                            scheduleFullRefresh();
                         } catch (err) {
                             console.error("Error parsing waiter order message", err);
                         }
                     });
-
-                    refreshTimer = window.setInterval(() => {
-                        loadDashboard().catch(() => undefined);
-                    }, 5000);
                 },
             });
 
@@ -501,7 +568,7 @@ export default function WaiterDashboard() {
         }
 
         return () => {
-            if (refreshTimer) window.clearInterval(refreshTimer);
+            window.clearTimeout(refreshDebounce);
             if (client) void client.deactivate();
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps

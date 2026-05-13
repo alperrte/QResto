@@ -23,6 +23,7 @@ import type {
     OrderAdminSummaryResponse,
     OrderResponse,
 } from "../../types/cartTypes";
+import { parseBackendLocalDateTime } from "../../utils/parseBackendLocalDateTime";
 import "../../styles/adminPageAnimations.css";
 
 type OrderTab = "active" | "completed";
@@ -85,13 +86,18 @@ const formatDateTime = (value?: string | null) => {
         return "-";
     }
 
+    const d = parseBackendLocalDateTime(value);
+    if (Number.isNaN(d.getTime())) {
+        return "-";
+    }
+
     return new Intl.DateTimeFormat("tr-TR", {
         day: "2-digit",
         month: "2-digit",
         year: "numeric",
         hour: "2-digit",
         minute: "2-digit",
-    }).format(new Date(value));
+    }).format(d);
 };
 
 const getStatusLabel = (status: string) => {

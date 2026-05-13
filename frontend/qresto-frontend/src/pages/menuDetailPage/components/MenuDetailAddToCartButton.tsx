@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import axios from "axios";
 
 import { QRESTO_OPEN_CART_EVENT } from "../../../components/cart/Cart";
 import type { AddCartItemRequest } from "../../../types/cartTypes";
@@ -21,6 +22,7 @@ const MenuDetailAddToCartButton = ({
     const [feedback, setFeedback] = useState<{
         open: boolean;
         variant: MenuDetailCartFeedbackVariant;
+        title?: string;
         message: string;
     }>({ open: false, variant: "info", message: "" });
 
@@ -28,8 +30,12 @@ const MenuDetailAddToCartButton = ({
         setFeedback((prev) => ({ ...prev, open: false }));
     }, []);
 
-    const showFeedback = (variant: MenuDetailCartFeedbackVariant, message: string) => {
-        setFeedback({ open: true, variant, message });
+    const showFeedback = (
+        variant: MenuDetailCartFeedbackVariant,
+        message: string,
+        title?: string
+    ) => {
+        setFeedback({ open: true, variant, message, title });
     };
 
     /** Önce session, yoksa local — QR verisi genelde session’da; sekme/yenileme senaryoları için local yedek. */
@@ -177,10 +183,45 @@ const MenuDetailAddToCartButton = ({
             window.dispatchEvent(new CustomEvent(QRESTO_OPEN_CART_EVENT));
         } catch (error) {
             console.error("Ürün sepete eklenirken hata oluştu:", error);
-            showFeedback(
-                "error",
-                "Ürün sepete eklenirken bir hata oluştu. Bağlantınızı ve sipariş servisini kontrol edip tekrar deneyin."
-            );
+
+            const axiosErr = axios.isAxiosError(error) ? error : null;
+            const status = axiosErr?.response?.status;
+            const data = axiosErr?.response?.data;
+            const dataObj = data && typeof data === "object" ? (data as Record<string, unknown>) : null;
+            const serverMessage =
+                typeof data === "string"
+                    ? data
+                    : typeof dataObj?.message === "string"
+                      ? dataObj.message
+                      : typeof dataObj?.error === "string"
+                        ? dataObj.error
+                        : "";
+
+            const combined = `${serverMessage}`.toLowerCase();
+            const looksLikeOrderNotAllowed =
+                combined.includes("order not allowed") ||
+                combined.includes("order is not allowed");
+
+            if (status !== undefined && status > 0 && status < 500) {
+                if (looksLikeOrderNotAllowed) {
+                    showFeedback(
+                        "error",
+                        "Bu masa oturumunda şu an sipariş verilemiyor. Lütfen masanızdaki QR kodunu tekrar okutun veya sayfayı yenileyin.",
+                        "Sipariş verilemiyor"
+                    );
+                } else {
+                    showFeedback(
+                        "error",
+                        "Masa oturumunuz veya sepet bilgisi güncellenmiş olabilir. Lütfen QR kodunu tekrar okutun; sorun sürerse sayfayı yenileyin.",
+                        "Sepete eklenemedi"
+                    );
+                }
+            } else {
+                showFeedback(
+                    "error",
+                    "Ürün sepete eklenirken bir hata oluştu. Bağlantınızı ve sipariş servisini kontrol edip tekrar deneyin."
+                );
+            }
         } finally {
             setIsAdding(false);
         }
@@ -191,6 +232,7 @@ const MenuDetailAddToCartButton = ({
             <MenuDetailCartFeedbackModal
                 isOpen={feedback.open}
                 variant={feedback.variant}
+                title={feedback.title}
                 message={feedback.message}
                 onClose={closeFeedback}
             />
