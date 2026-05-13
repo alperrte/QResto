@@ -5,8 +5,8 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UpdateKitchenOrderStatusRequest {
+public class CancelKitchenOrderRequest {
 
-    private String status;
+    private String reason;
 
 }

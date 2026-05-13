@@ -98,7 +98,6 @@ export type OrderResponse = {
 
 export type DemoPaymentRequest = {
     guestSessionId: number;
-    items: OrderItemResponse[];
 };
 
 export type OrderAdminSummaryResponse = {

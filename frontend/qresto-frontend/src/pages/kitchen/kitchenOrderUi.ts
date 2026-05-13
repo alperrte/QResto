@@ -14,7 +14,14 @@ export type KitchenPipelineStatus = Extract<
     "RECEIVED" | "PREPARING" | "READY" | "CANCELLED"
 >;
 
-export type KitchenTab = "all" | "received" | "preparing" | "ready";
+export type KitchenTab = "all" | "received" | "preparing" | "ready" | "cancelled";
+
+const KITCHEN_STATUS_SORT_WEIGHT: Record<string, number> = {
+    RECEIVED: 0,
+    PREPARING: 1,
+    READY: 2,
+    CANCELLED: 3,
+};
 
 function parseBackendDate(iso?: string | null): Date | null {
     if (!iso) {
@@ -193,7 +200,38 @@ export function tabLabel(tab: KitchenTab): string {
 
         case "ready":
             return "Hazır";
+
+        case "cancelled":
+            return "İptal Edilen";
     }
+}
+
+function orderSortDate(order: OrderResponse): Date | null {
+    return parseBackendDate(
+        order.receivedAt ||
+        order.createdAt ||
+        order.updatedAt ||
+        null
+    );
+}
+
+export function sortKitchenOrdersForKitchenView(
+    orders: OrderResponse[]
+): OrderResponse[] {
+    return [...orders].sort((a, b) => {
+        const statusDiff =
+            (KITCHEN_STATUS_SORT_WEIGHT[a.status] ?? 99) -
+            (KITCHEN_STATUS_SORT_WEIGHT[b.status] ?? 99);
+
+        if (statusDiff !== 0) {
+            return statusDiff;
+        }
+
+        const aTime = orderSortDate(a)?.getTime() ?? 0;
+        const bTime = orderSortDate(b)?.getTime() ?? 0;
+
+        return bTime - aTime;
+    });
 }
 
 export function filterOrdersForKitchenView(
@@ -202,7 +240,7 @@ export function filterOrdersForKitchenView(
     tableName: string | "all",
     _dateKey?: string
 ): OrderResponse[] {
-    return orders.filter((o) => {
+    return sortKitchenOrdersForKitchenView(orders.filter((o) => {
         if (tableName !== "all" && o.tableName !== tableName) {
             return false;
         }
@@ -223,8 +261,12 @@ export function filterOrdersForKitchenView(
             return o.status === "READY";
         }
 
+        if (tab === "cancelled") {
+            return o.status === "CANCELLED";
+        }
+
         return true;
-    });
+    }));
 }
 
 export function uniqueTableNames(orders: OrderResponse[]): string[] {

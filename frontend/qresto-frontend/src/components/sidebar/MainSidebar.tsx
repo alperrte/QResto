@@ -4,18 +4,13 @@ import {
   ArchiveX,
   ChevronDown,
   ChefHat,
-  ClipboardList,
   LayoutDashboard,
   LogOut,
   MessageSquareText,
-  PackageCheck,
   QrCode,
-  Settings,
   ShoppingBag,
   Star,
   Store,
-  ToggleLeft,
-  ToggleRight,
   UtensilsCrossed,
 } from "lucide-react";
 
@@ -29,7 +24,6 @@ function MainSidebar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [ratingMenuOpen, setRatingMenuOpen] = useState(false);
   const [menuDropdownOpen, setMenuDropdownOpen] = useState(true);
-  const [kitchenOpen, setKitchenOpen] = useState(true);
   const { user, logout } = useAuth();
   const location = useLocation();
   const isMenuProductsSection =
@@ -280,81 +274,19 @@ function MainSidebar() {
                 Siparişler
               </NavLink>
 
-              <NavLink to="/app/kitchen/products" className={navLinkClass}>
-                <PackageCheck size={19} />
-                Ürün Yönetimi
-              </NavLink>
 
-              <NavLink to="/app/kitchen/stock" className={navLinkClass}>
-                <ClipboardList size={19} />
-                Stok Yönetimi
-              </NavLink>
 
               <NavLink to="/app/kitchen/cancelled-orders" className={navLinkClass}>
                 <ArchiveX size={19} />
                 İptal Edilen Siparişler
               </NavLink>
 
-              <NavLink to="/app/kitchen/settings" className={navLinkClass}>
-                <Settings size={19} />
-                Ayarlar
-              </NavLink>
+
             </>
         ) : null}
       </nav>
 
       <div className="space-y-4 border-t border-[var(--qresto-border)] p-4">
-        {user.role === "KITCHEN" ? (
-            <div
-                className={`rounded-2xl border p-4 transition-all duration-200 ${
-                    kitchenOpen
-                        ? "border-emerald-500/25 bg-emerald-500/10"
-                        : "border-red-500/25 bg-red-500/10"
-                }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold text-[var(--qresto-primary)]">
-                    Mutfak Durumu
-                  </p>
-
-                  <div className="mt-2 flex items-center gap-2">
-                        <span
-                            className={`h-2.5 w-2.5 rounded-full ${
-                                kitchenOpen ? "bg-emerald-500" : "bg-red-500"
-                            }`}
-                        />
-
-                    <p
-                        className={`text-sm font-black ${
-                            kitchenOpen ? "text-emerald-600" : "text-red-600"
-                        }`}
-                    >
-                      {kitchenOpen ? "Mutfak açık" : "Mutfak kapalı"}
-                    </p>
-                  </div>
-                </div>
-
-                <button
-                    type="button"
-                    onClick={() => setKitchenOpen((prev) => !prev)}
-                    className={`transition-transform duration-200 hover:scale-105 ${
-                        kitchenOpen ? "text-emerald-500" : "text-red-500"
-                    }`}
-                    aria-label={kitchenOpen ? "Mutfağı kapat" : "Mutfağı aç"}
-                >
-                  {kitchenOpen ? <ToggleRight size={34} /> : <ToggleLeft size={34} />}
-                </button>
-              </div>
-
-              <p className="mt-2 text-xs font-medium text-[var(--qresto-muted)]">
-                {kitchenOpen
-                    ? "Yeni siparişler alınıyor."
-                    : "Yeni siparişler alınmıyor."}
-              </p>
-            </div>
-        ) : null}
-
         <button
             type="button"
             onClick={() => {

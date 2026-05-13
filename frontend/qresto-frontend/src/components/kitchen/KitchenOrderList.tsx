@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import {
     CalendarDays,
+    CheckCircle2,
     ChevronDown,
     ChevronRight,
+    Hourglass,
     ImageOff,
     Loader2,
+    XCircle,
 } from "lucide-react";
 
 import {
@@ -268,28 +271,19 @@ export default function KitchenOrderList({
         }
     };
 
-    const statusOptionsFor = (
-        order: OrderResponse
-    ): { value: KitchenPipelineStatus; label: string }[] => {
-        if (order.status === "CANCELLED") {
-            return [];
+    const statusActionClass = (active: boolean, tone: "preparing" | "ready") => {
+        const base =
+            "inline-flex h-9 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-60";
+
+        if (active && tone === "preparing") {
+            return `${base} border-sky-500/30 bg-sky-500/15 text-sky-700 dark:text-sky-300`;
         }
 
-        const opts: { value: KitchenPipelineStatus; label: string }[] = [];
-
-        if (order.status !== "RECEIVED") {
-            opts.push({ value: "RECEIVED", label: "Yeni" });
+        if (active && tone === "ready") {
+            return `${base} border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300`;
         }
 
-        if (order.status !== "PREPARING") {
-            opts.push({ value: "PREPARING", label: "Hazırlanıyor" });
-        }
-
-        if (order.status !== "READY") {
-            opts.push({ value: "READY", label: "Hazır" });
-        }
-
-        return opts;
+        return `${base} border-[var(--qresto-border)] bg-[var(--qresto-bg)] text-[var(--qresto-text)] hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]`;
     };
 
     return (
@@ -338,7 +332,7 @@ export default function KitchenOrderList({
             </div>
 
             <div className="flex gap-6 overflow-x-auto border-b border-[var(--qresto-border)] px-6">
-                {(["all", "received", "preparing", "ready"] as const).map((t) => {
+                {(["all", "preparing", "ready", "cancelled"] as const).map((t) => {
                     const active = tab === t;
 
                     return (
@@ -461,40 +455,45 @@ export default function KitchenOrderList({
 
                                 {enableStatusControls && order.status !== "CANCELLED" ? (
                                     <div className="flex shrink-0 flex-col items-end gap-2">
-                                        <select
-                                            disabled={busy}
-                                            value={order.status}
-                                            onChange={(e) =>
-                                                void handleStatusChange(
-                                                    order,
-                                                    e.target.value as KitchenPipelineStatus
-                                                )
-                                            }
-                                            className="max-w-[11rem] rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-3 py-2 text-xs font-black text-[var(--qresto-text)] outline-none transition focus:border-[var(--qresto-primary)] disabled:opacity-50"
-                                        >
-                                            <option value={order.status}>
-                                                {order.status === "RECEIVED"
-                                                    ? "Yeni"
-                                                    : order.status === "PREPARING"
-                                                        ? "Hazırlanıyor"
-                                                        : order.status === "READY"
-                                                            ? "Hazır"
-                                                            : order.status}
-                                            </option>
+                                        <div className="flex w-36 flex-col gap-2">
+                                            <button
+                                                type="button"
+                                                disabled={busy || order.status === "PREPARING"}
+                                                onClick={() =>
+                                                    void handleStatusChange(order, "PREPARING")
+                                                }
+                                                className={statusActionClass(
+                                                    order.status === "PREPARING",
+                                                    "preparing"
+                                                )}
+                                            >
+                                                <Hourglass size={14} />
+                                                Hazırlanıyor
+                                            </button>
 
-                                            {statusOptionsFor(order).map((o) => (
-                                                <option key={o.value} value={o.value}>
-                                                    {o.label}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            <button
+                                                type="button"
+                                                disabled={busy || order.status === "READY"}
+                                                onClick={() =>
+                                                    void handleStatusChange(order, "READY")
+                                                }
+                                                className={statusActionClass(
+                                                    order.status === "READY",
+                                                    "ready"
+                                                )}
+                                            >
+                                                <CheckCircle2 size={14} />
+                                                Hazır
+                                            </button>
+                                        </div>
 
                                         <button
                                             type="button"
                                             disabled={busy}
                                             onClick={() => setCancelTarget(order)}
-                                            className="rounded-full px-2 py-1 text-xs font-black text-red-600 transition hover:bg-red-500/10 disabled:opacity-50"
+                                            className="inline-flex h-9 w-36 items-center justify-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/5 px-3 text-xs font-black text-red-600 transition hover:bg-red-500/10 disabled:opacity-50"
                                         >
+                                            <XCircle size={14} />
                                             İptal et
                                         </button>
                                     </div>
@@ -571,22 +570,13 @@ export default function KitchenOrderList({
                                         ))}
                                     </ul>
 
-                                    <div className="mt-4 grid gap-2 border-t border-[var(--qresto-border)] pt-4 text-sm md:grid-cols-3">
+                                    <div className="mt-4 grid gap-2 border-t border-[var(--qresto-border)] pt-4 text-sm md:grid-cols-2">
                                         <div className="rounded-2xl bg-[var(--qresto-surface)] px-4 py-3">
                                             <p className="text-xs font-bold text-[var(--qresto-muted)]">
                                                 Ara toplam
                                             </p>
                                             <p className="mt-1 font-black text-[var(--qresto-text)]">
                                                 {safeMoney(order.subtotalAmount)}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-2xl bg-[var(--qresto-surface)] px-4 py-3">
-                                            <p className="text-xs font-bold text-[var(--qresto-muted)]">
-                                                KDV
-                                            </p>
-                                            <p className="mt-1 font-black text-[var(--qresto-text)]">
-                                                {safeMoney(order.vatAmount)}
                                             </p>
                                         </div>
 

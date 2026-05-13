@@ -2,15 +2,14 @@ package com.qresto.kitchen_service.service;
 
 import com.qresto.kitchen_service.client.OrderClient;
 import com.qresto.kitchen_service.dto.client.OrderResponse;
+import com.qresto.kitchen_service.dto.request.CancelKitchenOrderRequest;
 import com.qresto.kitchen_service.dto.request.UpdateKitchenOrderStatusRequest;
 import com.qresto.kitchen_service.entity.KitchenOrder;
 import com.qresto.kitchen_service.entity.enums.KitchenOrderStatus;
-import com.qresto.kitchen_service.exception.ResourceNotFoundException;
 import com.qresto.kitchen_service.repository.KitchenOrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -32,19 +31,17 @@ public class KitchenOrderService {
         return kitchenOrderRepository.findByStatus(status);
     }
 
-    public KitchenOrder updateOrderStatus(
+    public OrderResponse updateOrderStatus(
             Long orderId,
             UpdateKitchenOrderStatusRequest request
     ) {
+        return orderClient.updateOrderStatus(orderId, request.getStatus());
+    }
 
-        KitchenOrder kitchenOrder = kitchenOrderRepository.findById(orderId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Sipariş bulunamadı")
-                );
-
-        kitchenOrder.setStatus(request.getStatus());
-        kitchenOrder.setUpdatedAt(LocalDateTime.now());
-
-        return kitchenOrderRepository.save(kitchenOrder);
+    public OrderResponse cancelOrder(
+            Long orderId,
+            CancelKitchenOrderRequest request
+    ) {
+        return orderClient.cancelOrder(orderId, request.getReason());
     }
 }

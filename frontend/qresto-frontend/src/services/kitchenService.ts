@@ -1,4 +1,5 @@
 import axios from "axios";
+import orderApi from "./orderService";
 
 const kitchenApi = axios.create({
     baseURL: "http://localhost:7076/api",
@@ -15,7 +16,7 @@ kitchenApi.interceptors.request.use((config) => {
 });
 
 export const getKitchenOrders = async () => {
-    const response = await kitchenApi.get("/kitchen/orders");
+    const response = await orderApi.get("/orders/admin/today");
     return response.data;
 };
 
@@ -25,7 +26,7 @@ export const getKitchenOrderById = async (orderId: number) => {
 };
 
 export const updateKitchenOrderStatus = async (orderId: number, status: string) => {
-    const response = await kitchenApi.patch(`/kitchen/orders/${orderId}/status`, {
+    const response = await orderApi.patch(`/orders/${orderId}/status`, {
         status,
     });
 
@@ -33,8 +34,8 @@ export const updateKitchenOrderStatus = async (orderId: number, status: string) 
 };
 
 export const cancelKitchenOrder = async (orderId: number, reason: string) => {
-    const response = await kitchenApi.patch(`/kitchen/orders/${orderId}/cancel`, {
-        reason,
+    const response = await orderApi.patch(`/orders/${orderId}/cancel`, {
+        cancelReason: reason,
     });
 
     return response.data;

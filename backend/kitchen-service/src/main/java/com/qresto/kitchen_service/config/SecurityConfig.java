@@ -44,13 +44,16 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
-                                "/api-docs/**"
+                                "/api-docs/**",
+                                "/error"
                         ).permitAll()
 
                         .requestMatchers("/api/test/**")
                         .permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/api/kitchen/**")
+                        // TEST İÇİN MUTFAK ENDPOINTLERİNİN HEPSİ AÇIK
+                        // GET, POST, PUT, PATCH, DELETE hepsi token istemez
+                        .requestMatchers("/api/kitchen/**")
                         .permitAll()
 
                         .anyRequest().authenticated()

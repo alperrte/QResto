@@ -1,6 +1,7 @@
 package com.qresto.kitchen_service.controller;
 
 import com.qresto.kitchen_service.dto.client.OrderResponse;
+import com.qresto.kitchen_service.dto.request.CancelKitchenOrderRequest;
 import com.qresto.kitchen_service.dto.request.UpdateKitchenOrderStatusRequest;
 import com.qresto.kitchen_service.entity.KitchenOrder;
 import com.qresto.kitchen_service.entity.enums.KitchenOrderStatus;
@@ -37,10 +38,18 @@ public class KitchenOrderController {
     }
 
     @PatchMapping("/{orderId}/status")
-    public KitchenOrder updateOrderStatus(
+    public OrderResponse updateOrderStatus(
             @PathVariable Long orderId,
             @RequestBody UpdateKitchenOrderStatusRequest request
     ) {
         return kitchenOrderService.updateOrderStatus(orderId, request);
+    }
+
+    @PatchMapping("/{orderId}/cancel")
+    public OrderResponse cancelOrder(
+            @PathVariable Long orderId,
+            @RequestBody CancelKitchenOrderRequest request
+    ) {
+        return kitchenOrderService.cancelOrder(orderId, request);
     }
 }

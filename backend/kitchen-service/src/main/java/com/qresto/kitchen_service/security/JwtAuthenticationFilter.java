@@ -22,6 +22,36 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+
+        String path = request.getServletPath();
+        String method = request.getMethod();
+
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            return true;
+        }
+
+        if (path.startsWith("/swagger-ui")
+                || path.startsWith("/v3/api-docs")
+                || path.startsWith("/api-docs")
+                || path.equals("/swagger-ui.html")) {
+            return true;
+        }
+
+        if (path.startsWith("/api/test")) {
+            return true;
+        }
+
+        // TEST İÇİN MUTFAK ENDPOINTLERİ JWT FİLTRESİNE GİRMEYECEK
+        // GET, POST, PUT, PATCH, DELETE hepsi açık
+        if (path.startsWith("/api/kitchen")) {
+            return true;
+        }
+
+        return false;
+    }
+
+    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
@@ -31,7 +61,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-
             filterChain.doFilter(request, response);
             return;
         }
@@ -39,11 +68,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
 
         try {
-
             Claims claims = jwtService.extractClaims(token);
 
             String email = claims.getSubject();
-
             String role = claims.get("role", String.class);
 
             UsernamePasswordAuthenticationToken authentication =
