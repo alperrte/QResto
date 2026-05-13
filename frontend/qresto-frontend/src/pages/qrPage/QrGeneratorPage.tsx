@@ -745,7 +745,7 @@ const QrGeneratorPage = () => {
                         </section>
 
                         <section>
-                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
                                 {filteredTables.map((table) => {
                                     const sessionGuestCount = getSessionGuestCount(table.id);
                                     const tableHasActiveSession = hasActiveSession(table.id);
@@ -778,7 +778,7 @@ const QrGeneratorPage = () => {
                                                 </span>
                                             </div>
 
-                                            <div className="mt-6 grid grid-cols-[1fr_104px] gap-4">
+                                            <div className="mt-6 grid grid-cols-[1fr_112px] gap-4">
                                                 <div className="space-y-4">
                                                     <div>
                                                         <p className="text-xs font-bold text-[var(--qresto-muted)]">
@@ -822,7 +822,7 @@ const QrGeneratorPage = () => {
                                                 </div>
 
                                                 <div
-                                                    className={`flex h-[104px] w-[104px] items-center justify-center rounded-2xl border border-[var(--qresto-border)] bg-white p-2 shadow-sm ${
+                                                    className={`flex h-[112px] w-[112px] items-center justify-center rounded-2xl border border-[var(--qresto-border)] bg-white p-2 shadow-sm ${
                                                         table.active ? "" : "opacity-35 grayscale"
                                                     }`}
                                                 >
@@ -872,20 +872,20 @@ const QrGeneratorPage = () => {
                                                             </button>
                                                         </div>
 
-                                                        <div className="grid grid-cols-[1fr_1fr_44px] gap-2">
+                                                        <div className="grid grid-cols-[auto_minmax(0,1fr)_44px] gap-2">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => openRefreshModal(table)}
-                                                                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] text-xs font-extrabold text-[var(--qresto-text)] transition-all hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
+                                                                className="flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-3 text-xs font-extrabold text-[var(--qresto-text)] transition-all hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
                                                             >
-                                                                <RefreshCw size={15} />
+                                                                <RefreshCw size={15} className="shrink-0" />
                                                                 Masayı Yenile
                                                             </button>
 
                                                             <button
                                                                 type="button"
                                                                 onClick={() => openEditModal(table)}
-                                                                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] text-xs font-extrabold text-[var(--qresto-text)] transition-all hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
+                                                                className="flex h-10 min-w-0 items-center justify-center gap-2 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] text-xs font-extrabold text-[var(--qresto-text)] transition-all hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
                                                             >
                                                                 <Edit3 size={15} />
                                                                 Düzenle
