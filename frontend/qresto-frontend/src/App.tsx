@@ -10,6 +10,7 @@ import { useAuth } from "./auth/AuthContext";
 import LoginPage from "./pages/auth/LoginPage";
 import QrGeneratorPage from "./pages/qrPage/QrGeneratorPage";
 import QrScanPage from "./pages/qrPage/QrScanPage";
+import NotFoundPage from "./pages/notFound/NotFoundPage";
 
 
 function App() {
@@ -47,6 +48,7 @@ function App() {
 
                 {adminRoutes}
 
+                <Route path="*" element={<NotFoundPage />} />
             </Routes>
         </BrowserRouter>
     );

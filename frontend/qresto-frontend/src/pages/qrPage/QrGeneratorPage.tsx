@@ -747,7 +747,7 @@ const QrGeneratorPage = () => {
 
                         <section>
                             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-                                {filteredTables.map((table) => {
+                                {filteredTables.map((table, tableIndex) => {
                                     const sessionGuestCount = getSessionGuestCount(table.id);
                                     const tableHasActiveSession = hasActiveSession(table.id);
                                     const qrImage = cardQrImages[table.id];
