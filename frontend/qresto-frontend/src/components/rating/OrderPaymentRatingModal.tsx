@@ -10,6 +10,7 @@ import { getRatingSettings } from "../../services/ratingService";
 
 import OrderRatingForm from "./OrderRatingForm";
 import { isOrderRatingFlowEnabled } from "./orderRatingFlowGate";
+import { formatExtraDeltaTry, parsePriceAffectingPaidExtras } from "../../utils/parseOrderPaidExtras";
 
 type OrderPaymentRatingModalProps = {
     tableSessionId: number;
@@ -29,7 +30,6 @@ const OrderPaymentRatingModal = ({
     const [isPaying, setIsPaying] = useState(false);
     const [paymentDone, setPaymentDone] = useState(false);
 
-    const [successMessage, setSuccessMessage] = useState("");
     const [errorMessage, setErrorMessage] = useState("");
 
     const [ratingGateResolved, setRatingGateResolved] = useState(false);
@@ -54,7 +54,6 @@ const OrderPaymentRatingModal = ({
         const loadBill = async () => {
             setIsLoadingBill(true);
             setErrorMessage("");
-            setSuccessMessage("");
             setPaymentDone(false);
             setPaidOrders([]);
             setRatingGateResolved(false);
@@ -127,16 +126,12 @@ const OrderPaymentRatingModal = ({
     const handleTableSessionPayment = async () => {
         setIsPaying(true);
         setErrorMessage("");
-        setSuccessMessage("");
 
         try {
             const response = await markTableSessionOrdersPaid(tableSessionId);
 
             setPaidOrders(response);
             setPaymentDone(true);
-            setSuccessMessage("Masa hesabı başarıyla ödendi.");
-
-
         } catch (error) {
             console.error("Masa hesabı ödeme hatası:", error);
             setErrorMessage("Masa hesabı ödenirken hata oluştu.");
@@ -148,19 +143,19 @@ const OrderPaymentRatingModal = ({
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-4">
             <div className="relative max-h-[92vh] w-full max-w-[620px] overflow-hidden rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] text-[var(--qresto-text)] shadow-2xl">
-                <div className="flex items-center justify-between border-b border-[var(--qresto-border)] px-5 py-4">
-                    <div>
-                        <h2 className="text-xl font-extrabold">Masa Hesabı ve Değerlendirme</h2>
-                        <p className="text-sm text-[var(--qresto-muted)]">
-                            Masa oturumu: #{tableSessionId}
-                        </p>
-                    </div>
-
+                <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2 border-b border-[var(--qresto-border)] px-5 py-4">
+                    <span
+                        className="pointer-events-none invisible inline-flex h-10 w-10 shrink-0 select-none"
+                        aria-hidden
+                    />
+                    <h2 className="min-w-0 text-center text-xl font-extrabold text-[var(--qresto-text)]">
+                        {paymentDone ? "Değerlendirme & Yorum" : "Hesap Ödeme"}
+                    </h2>
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={isPaying}
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--qresto-border)] transition hover:bg-[var(--qresto-hover)] disabled:pointer-events-none disabled:opacity-50"
+                        className="flex h-10 w-10 shrink-0 items-center justify-center justify-self-end rounded-full border border-[var(--qresto-border)] transition hover:bg-[var(--qresto-hover)] disabled:pointer-events-none disabled:opacity-50"
                     >
                         <X size={20} />
                     </button>
@@ -176,42 +171,123 @@ const OrderPaymentRatingModal = ({
                     ) : null}
 
                     {!isLoadingBill && bill ? (
-                        <div className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4">
-                            <div className="flex items-start justify-between gap-4">
-                                <div>
-                                    <p className="text-sm text-[var(--qresto-muted)]">
+                        <div
+                            className={`rounded-2xl p-4 ${
+                                paymentDone
+                                    ? "border-0 bg-transparent"
+                                    : "border border-[var(--qresto-border)] bg-[var(--qresto-bg)]"
+                            }`}
+                        >
+                            <div
+                                className={
+                                    paymentDone
+                                        ? "mb-3 flex justify-center"
+                                        : "flex items-center justify-end sm:grid sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] sm:items-center sm:gap-x-4"
+                                }
+                                role="group"
+                                aria-label="Masa özeti"
+                            >
+                                {paymentDone ? null : (
+                                    <h3 className="hidden min-w-0 justify-self-start truncate text-lg font-extrabold leading-tight tracking-tight text-[var(--qresto-text)] sm:block sm:text-xl">
                                         {bill.tableName || "Masa hesabı"}
-                                    </p>
-                                    <p className="text-2xl font-extrabold text-[var(--qresto-primary)]">
+                                    </h3>
+                                )}
+
+                                <div
+                                    className={`flex shrink-0 items-center gap-2 rounded-full bg-[#22c55e] px-4 py-2 text-sm font-bold text-white shadow-sm ${
+                                        paymentDone
+                                            ? ""
+                                            : "hidden justify-self-center sm:flex"
+                                    }`}
+                                    role="status"
+                                >
+                                    {paymentDone ? (
+                                        <>
+                                            <CheckCircle2
+                                                className="h-4 w-4 shrink-0 text-emerald-100"
+                                                aria-hidden
+                                            />
+                                            <span>Ödendi</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span
+                                                className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#bbf7d0] ring-2 ring-white/40"
+                                                aria-hidden
+                                            />
+                                            <span>Online Ödeme</span>
+                                        </>
+                                    )}
+                                </div>
+
+                                {paymentDone ? null : (
+                                    <p className="min-w-0 justify-self-end text-right text-2xl font-extrabold leading-none tabular-nums text-[var(--qresto-primary)]">
                                         {formatPrice(bill.totalAmount)}
                                     </p>
-                                    <p className="mt-1 text-xs font-semibold text-[var(--qresto-muted)]">
-                                        {bill.orderCount} sipariş tek hesapta toplandı.
-                                    </p>
-                                </div>
-
-                                <div className="rounded-full bg-[var(--qresto-hover)] px-4 py-2 text-sm font-bold text-[var(--qresto-primary)]">
-                                    {paymentDone ? "PAID" : "PAYMENT"}
-                                </div>
+                                )}
                             </div>
 
-                            <div className="mt-4 space-y-3">
-                                {billItems.map((item) => (
+                            <div className={paymentDone ? "hidden" : "mt-4 space-y-3"}>
+                                {billItems.map((item) => {
+                                    const paidRows = parsePriceAffectingPaidExtras(
+                                        item.addedIngredients
+                                    );
+                                    return (
                                     <div
                                         key={`${item.orderId}-${item.id}`}
-                                        className="flex items-start justify-between gap-3 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3"
+                                        className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3"
                                     >
-                                        <div>
-                                            <p className="font-bold">{item.productName}</p>
-                                            <p className="text-xs text-[var(--qresto-muted)]">
-                                                {item.quantity} adet • Sipariş No: {item.orderNo}
+                                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1.5">
+                                            <p
+                                                className="col-start-1 font-bold leading-snug text-[var(--qresto-text)]"
+                                                style={{ gridRow: 1 }}
+                                            >
+                                                {item.productName}
+                                                <span className="font-semibold text-[var(--qresto-muted)]">
+                                                    {" "}
+                                                    · {item.quantity} adet
+                                                </span>
                                             </p>
+                                            <p
+                                                className="col-start-2 shrink-0 justify-self-end text-right text-base font-extrabold leading-none tabular-nums text-[var(--qresto-primary)]"
+                                                style={{ gridRow: 1 }}
+                                            >
+                                                {formatPrice(item.lineTotal)}
+                                            </p>
+                                            <p
+                                                className="col-start-1 text-xs leading-snug text-[var(--qresto-muted)]"
+                                                style={{ gridRow: 2 }}
+                                            >
+                                                Sipariş No: {item.orderNo}
+                                            </p>
+                                            <span
+                                                className="col-start-2 block min-h-[1.125rem] shrink-0"
+                                                style={{ gridRow: 2 }}
+                                                aria-hidden
+                                            />
+                                            {paidRows.flatMap((row, i) => {
+                                                const rowNum = 3 + i;
+                                                return [
+                                                    <span
+                                                        key={`${item.id}-opt-l-${i}`}
+                                                        className="col-start-1 text-[13px] leading-snug text-[var(--qresto-muted)]"
+                                                        style={{ gridRow: rowNum }}
+                                                    >
+                                                        - {row.label}
+                                                    </span>,
+                                                    <span
+                                                        key={`${item.id}-opt-r-${i}`}
+                                                        className="col-start-2 shrink-0 justify-self-end text-right text-[13px] font-semibold leading-none tabular-nums text-[var(--qresto-text)]"
+                                                        style={{ gridRow: rowNum }}
+                                                    >
+                                                        {formatExtraDeltaTry(row.extraTry)}
+                                                    </span>,
+                                                ];
+                                            })}
                                         </div>
-                                        <p className="shrink-0 font-extrabold text-[var(--qresto-primary)]">
-                                            {formatPrice(item.lineTotal)}
-                                        </p>
                                     </div>
-                                ))}
+                                    );
+                                })}
                             </div>
 
                             {!paymentDone ? (
@@ -225,8 +301,8 @@ const OrderPaymentRatingModal = ({
                                     {isPaying ? "Masa hesabı ödeniyor..." : "Masa Hesabını Öde"}
                                 </button>
                             ) : (
-                                <div className="mt-4 flex items-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-bold text-green-700">
-                                    <CheckCircle2 size={19} />
+                                <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-center text-sm font-bold text-green-700">
+                                    <CheckCircle2 className="shrink-0" size={19} />
                                     Masa hesabı ödendi. Şimdi değerlendirme yapabilirsiniz.
                                 </div>
                             )}
@@ -236,12 +312,6 @@ const OrderPaymentRatingModal = ({
                     {errorMessage ? (
                         <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
                             {errorMessage}
-                        </div>
-                    ) : null}
-
-                    {successMessage ? (
-                        <div className="mt-4 rounded-2xl border border-green-200 bg-green-50 px-4 py-3 text-sm font-semibold text-green-700">
-                            {successMessage}
                         </div>
                     ) : null}
 

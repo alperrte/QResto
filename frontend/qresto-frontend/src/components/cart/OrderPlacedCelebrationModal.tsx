@@ -9,6 +9,7 @@ type OrderPlacedCelebrationModalProps = {
     orderNo: string;
     onClose: () => void;
     onGoToOrders: () => void;
+    onGoToMenu: () => void;
 };
 
 const OrderPlacedCelebrationModal = ({
@@ -16,6 +17,7 @@ const OrderPlacedCelebrationModal = ({
     orderNo,
     onClose,
     onGoToOrders,
+    onGoToMenu,
 }: OrderPlacedCelebrationModalProps) => {
     useEffect(() => {
         if (!isOpen) return;
@@ -109,10 +111,10 @@ const OrderPlacedCelebrationModal = ({
                 </button>
                 <button
                     type="button"
-                    onClick={onClose}
+                    onClick={onGoToMenu}
                     className="mt-3 w-full py-2 text-center text-sm font-semibold text-emerald-900/70 underline-offset-2 transition hover:text-emerald-950 hover:underline"
                 >
-                    Sepete dön
+                    Menüye dön
                 </button>
             </div>
         </div>

@@ -233,7 +233,13 @@ const Cart = () => {
         onClose={() => setOrderCelebration(null)}
         onGoToOrders={() => {
           setOrderCelebration(null);
+          closeCart();
           navigate("/orders");
+        }}
+        onGoToMenu={() => {
+          setOrderCelebration(null);
+          closeCart();
+          navigate("/menu");
         }}
       />
 
@@ -465,7 +471,7 @@ const Cart = () => {
 
       {createdOrder && (
         <OrderPaymentRatingModal
-          order={createdOrder}
+          tableSessionId={createdOrder.tableSessionId}
           onClose={() => setCreatedOrder(null)}
         />
       )}
