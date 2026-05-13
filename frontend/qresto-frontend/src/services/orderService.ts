@@ -4,9 +4,12 @@ import type {
     AddCartItemRequest,
     CartResponse,
     DemoPaymentRequest,
+    OrderAdminProductSalesRowResponse,
     OrderAdminSummaryResponse,
+    OrderAdminTopProductResponse,
     OrderResponse,
     UpdateCartItemQuantityRequest,
+    TableSessionBillResponse,
 } from "../types/cartTypes";
 
 const ORDER_SERVICE_BASE_URL =
@@ -132,7 +135,8 @@ export const getOrdersByTableSession = async (
     tableSessionId: number
 ): Promise<OrderResponse[]> => {
     const response = await orderApi.get<OrderResponse[]>(
-        `/orders/table-session/${tableSessionId}`
+        `/orders/table-session/${tableSessionId}`,
+        { params: { _t: Date.now() } }
     );
 
     return response.data;
@@ -140,6 +144,28 @@ export const getOrdersByTableSession = async (
 
 export const getAdminOrderSummary = async (): Promise<OrderAdminSummaryResponse> => {
     const response = await orderApi.get<OrderAdminSummaryResponse>("/orders/admin/summary");
+
+    return response.data;
+};
+
+export const getAdminTopProductsToday = async (
+    limit = 8
+): Promise<OrderAdminTopProductResponse[]> => {
+    const response = await orderApi.get<OrderAdminTopProductResponse[]>(
+        "/orders/admin/top-products-today",
+        { params: { limit } }
+    );
+
+    return response.data;
+};
+
+export const getAdminProductSalesToday = async (
+    limit = 50
+): Promise<OrderAdminProductSalesRowResponse[]> => {
+    const response = await orderApi.get<OrderAdminProductSalesRowResponse[]>(
+        "/orders/admin/product-sales-today",
+        { params: { limit } }
+    );
 
     return response.data;
 };
@@ -170,6 +196,26 @@ export const getAdminTodayOrders = async (): Promise<OrderResponse[]> => {
 
 export const getOrderById = async (orderId: number): Promise<OrderResponse> => {
     const response = await orderApi.get<OrderResponse>(`/orders/${orderId}`);
+
+    return response.data;
+};
+
+export const getTableSessionBill = async (
+    tableSessionId: number
+): Promise<TableSessionBillResponse> => {
+    const response = await orderApi.get<TableSessionBillResponse>(
+        `/orders/table-session/${tableSessionId}/bill`
+    );
+
+    return response.data;
+};
+
+export const markTableSessionOrdersPaid = async (
+    tableSessionId: number
+): Promise<OrderResponse[]> => {
+    const response = await orderApi.patch<OrderResponse[]>(
+        `/orders/table-session/${tableSessionId}/mark-paid`
+    );
 
     return response.data;
 };

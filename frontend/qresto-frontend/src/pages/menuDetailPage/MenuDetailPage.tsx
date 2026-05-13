@@ -11,7 +11,8 @@ import MenuDetailNotFound from "./components/MenuDetailNotFound";
 import MenuDetailOrderNote from "./components/MenuDetailOrderNote";
 import MenuDetailOptionGroups, {
     buildDefaultOptionSelection,
-    collectSelectedOptionLabels,
+    collectPaidOptionEntries,
+    serializePaidIngredientsForOrder,
     type MenuDetailOptionSelection,
     sumSelectedOptionExtrasTry,
 } from "./components/MenuDetailOptionGroups";
@@ -90,11 +91,15 @@ const MenuDetailPage = () => {
 
     const addedIngredientsSummary = useMemo(() => {
         if (hasApiOptions && apiGroups) {
-            return collectSelectedOptionLabels(apiGroups, apiOptionSelection).join(", ");
+            return serializePaidIngredientsForOrder(
+                collectPaidOptionEntries(apiGroups, apiOptionSelection)
+            );
         }
-        return [extras.onion ? "Soğan" : null, extras.mushroom ? "Mantar" : null, extras.parmesan ? "Parmesan" : null]
-            .filter(Boolean)
-            .join(", ");
+        const demo: { label: string; deltaTry: number }[] = [];
+        if (extras.onion) demo.push({ label: "Soğan", deltaTry: 25 });
+        if (extras.mushroom) demo.push({ label: "Mantar", deltaTry: 40 });
+        if (extras.parmesan) demo.push({ label: "Parmesan", deltaTry: 35 });
+        return serializePaidIngredientsForOrder(demo);
     }, [hasApiOptions, apiGroups, apiOptionSelection, extras.onion, extras.mushroom, extras.parmesan]);
 
     const handleBackToMenu = () => {

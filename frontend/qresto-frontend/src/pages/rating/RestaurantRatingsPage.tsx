@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import RatingPageHero from "./components/RatingPageHero";
 import type {
     RatingSummaryResponse,
     RestaurantRatingResponse,
@@ -245,26 +246,10 @@ function RestaurantRatingsPage() {
 
     return (
         <div className="space-y-5">
-            <section className="relative overflow-hidden rounded-[26px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-7 py-8 shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
-                <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--qresto-hover)_0%,transparent_70%)] opacity-80" />
-
-                <div className="relative z-10 max-w-[680px]">
-                    <div className="inline-flex items-center gap-2 rounded-full border border-[var(--qresto-border)] bg-[var(--qresto-surface)]/80 px-4 py-2 text-xs font-bold text-[var(--qresto-primary)] backdrop-blur">
-                        <Star size={14} fill="currentColor" />
-                        Müşteri deneyimi analizi
-                    </div>
-
-                    <h2 className="mt-5 text-3xl font-black tracking-tight text-[var(--qresto-text)] xl:text-[38px]">
-                        Restoran Değerlendirmeleri
-                    </h2>
-
-                    <p className="mt-3 text-sm font-medium leading-6 text-[var(--qresto-muted)]">
-                        Restoran puanlarını, müşteri yorumlarını ve genel memnuniyet seviyesini
-                        tek ekrandan takip edin. Son değerlendirmeleri inceleyin ve hizmet
-                        kalitesini yorumlar üzerinden analiz edin.
-                    </p>
-                </div>
-            </section>
+            <RatingPageHero
+                title="Restoran Değerlendirmeleri"
+                description="Restoran puanlarını, müşteri yorumlarını ve genel memnuniyet seviyesini tek ekrandan takip edin."
+            />
 
             {errorMessage && (
                 <section className="rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-500">
@@ -294,7 +279,7 @@ function RestaurantRatingsPage() {
                                             {card.title}
                                         </p>
 
-                                        <p className="mt-2 truncate text-3xl font-black leading-none text-[var(--qresto-text)]">
+                                        <p className="mt-2 truncate text-[30px] font-black leading-none text-[var(--qresto-text)]">
                                             {card.value}
                                         </p>
 

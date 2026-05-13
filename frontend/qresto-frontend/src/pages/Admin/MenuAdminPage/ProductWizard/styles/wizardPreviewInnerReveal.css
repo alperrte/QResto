@@ -1,12 +1,12 @@
 /**
- * WizardProductPreview: iç blokların yukarıdan aşağı sıralı girişi (innerStagger).
+ * WizardProductPreview: iç blokların kısa girişi.
  */
 
 @media (prefers-reduced-motion: no-preference) {
   @keyframes wizard-preview-inner-reveal {
     from {
       opacity: 0;
-      transform: translate3d(0, -12px, 0);
+      transform: translate3d(0, -6px, 0);
     }
     to {
       opacity: 1;
@@ -16,8 +16,8 @@
 
   .wizard-preview-inner-item {
     --wpi-i: 0;
-    animation: wizard-preview-inner-reveal 0.4s cubic-bezier(0.3, 0.95, 0.48, 1) both;
-    animation-delay: calc(0.03s + var(--wpi-i) * 0.055s);
+    animation: wizard-preview-inner-reveal 0.14s cubic-bezier(0.3, 0.95, 0.48, 1) both;
+    animation-delay: calc(var(--wpi-i) * 0.015s);
   }
 }
 

@@ -3,8 +3,7 @@ package com.qresto.order_service.controller;
 import com.qresto.order_service.dto.request.DemoPaymentRequest;
 import com.qresto.order_service.dto.request.OrderCancelRequest;
 import com.qresto.order_service.dto.request.OrderStatusUpdateRequest;
-import com.qresto.order_service.dto.response.OrderAdminSummaryResponse;
-import com.qresto.order_service.dto.response.OrderResponse;
+import com.qresto.order_service.dto.response.*;
 import com.qresto.order_service.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -88,9 +87,34 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getAdminSummary());
     }
 
+    @GetMapping("/admin/top-products-today")
+    public ResponseEntity<List<OrderAdminTopProductResponse>> getAdminTopProductsToday(
+            @RequestParam(name = "limit", defaultValue = "8") int limit
+    ) {
+        return ResponseEntity.ok(orderService.getAdminTopProductsToday(limit));
+    }
+
+    @GetMapping("/admin/product-sales-today")
+    public ResponseEntity<List<OrderAdminProductSalesRowResponse>> getAdminProductSalesToday(
+            @RequestParam(name = "limit", defaultValue = "50") int limit
+    ) {
+        return ResponseEntity.ok(orderService.getAdminProductSalesToday(limit));
+    }
+
+    @GetMapping("/admin/table-heatmap-today")
+    public ResponseEntity<List<OrderAdminTableHeatmapCellResponse>> getAdminTableHeatmapToday(
+            @RequestParam(name = "limit", defaultValue = "12") int limit
+    ) {
+        return ResponseEntity.ok(orderService.getAdminTableHeatmapToday(limit));
+    }
+
     @PatchMapping("/table-session/{tableSessionId}/mark-paid")
     public ResponseEntity<List<OrderResponse>> markTableSessionOrdersPaid(@PathVariable Long tableSessionId) {
         return ResponseEntity.ok(orderService.markTableSessionOrdersPaid(tableSessionId));
     }
 
+    @GetMapping("/table-session/{tableSessionId}/bill")
+    public ResponseEntity<TableSessionBillResponse> getTableSessionBill(@PathVariable Long tableSessionId) {
+        return ResponseEntity.ok(orderService.getTableSessionBill(tableSessionId));
+    }
 }

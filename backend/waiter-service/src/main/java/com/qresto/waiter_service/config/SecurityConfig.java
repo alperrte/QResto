@@ -56,6 +56,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/waiter/calls").permitAll()
                         .requestMatchers(HttpMethod.POST, "/waiter/internal/orders/event").permitAll()
 
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/waiter/table-sessions/**"
+                        ).permitAll()
+
                         .requestMatchers("/waiter/**").hasAnyRole("WAITER", "ADMIN")
 
                         .anyRequest().authenticated()

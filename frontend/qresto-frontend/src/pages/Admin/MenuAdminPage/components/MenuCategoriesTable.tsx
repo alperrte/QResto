@@ -1,5 +1,3 @@
-import type { CSSProperties } from "react";
-
 import { AdminStatusBadge, AdminStatusFlipButton } from "../../components/AdminStatusBadge";
 import AdminSortableTh, { type AdminTableSort } from "../../components/AdminSortableTh";
 import type { MenuCategoryDto } from "../../../menuPage/types/menu.types";
@@ -74,11 +72,10 @@ function MenuCategoriesTable({
                             </td>
                         </tr>
                     ) : (
-                        categories.map((c, rowIndex) => (
+                        categories.map((c) => (
                             <tr
                                 key={c.id}
-                                style={{ "--menu-admin-row-i": rowIndex } as CSSProperties}
-                                className={`menu-admin-table-row-ladder transition-colors ${
+                                className={`transition-colors ${
                                     c.active
                                         ? "hover:bg-surface-bright/60"
                                         : "opacity-[0.72] bg-surface-container-low/70 text-on-surface-variant hover:bg-surface-container-low"

@@ -7,7 +7,13 @@ import com.qresto.order_service.dto.client.QrOrderContextResponse;
 import com.qresto.order_service.dto.request.DemoPaymentRequest;
 import com.qresto.order_service.dto.request.OrderCancelRequest;
 import com.qresto.order_service.dto.request.OrderStatusUpdateRequest;
+import com.qresto.order_service.dto.response.OrderAdminProductSalesAggregateResponse;
+import com.qresto.order_service.dto.response.OrderAdminProductSalesRowResponse;
+import com.qresto.order_service.dto.response.OrderAdminProductYesterdayRevenueRow;
 import com.qresto.order_service.dto.response.OrderAdminSummaryResponse;
+import com.qresto.order_service.dto.response.OrderAdminTableHeatmapAggregateResponse;
+import com.qresto.order_service.dto.response.OrderAdminTableHeatmapCellResponse;
+import com.qresto.order_service.dto.response.OrderAdminTopProductResponse;
 import com.qresto.order_service.dto.response.OrderItemResponse;
 import com.qresto.order_service.dto.response.OrderResponse;
 import com.qresto.order_service.entity.Cart;
@@ -30,16 +36,19 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
-
+import com.qresto.order_service.dto.response.TableSessionBillResponse;
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -47,6 +56,7 @@ public class OrderService {
 
     private final CartRepository cartRepository;
     private final CustomerOrderRepository customerOrderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final QrServiceClient qrServiceClient;
     private final MenuServiceClient menuServiceClient;
 
@@ -106,13 +116,7 @@ public class OrderService {
             orderItem.setOrder(order);
             orderItem.setProductId(productInfo.getId());
             orderItem.setProductName(productInfo.getName());
-
-              //  CONFLİCT OLABİLİR --->> silinen satır
-              //  orderItem.setProductPrice(currentPrice);
-
-              // eklenen -->>   orderItem.setProductPrice(unitPrice);
-
-
+            orderItem.setProductImageUrl(productInfo.getImageUrl());
             orderItem.setProductPrice(unitPrice);
             orderItem.setProductImageUrl(productInfo.getImageUrl());
             orderItem.setVatIncluded(productInfo.getVatIncluded());
@@ -187,6 +191,7 @@ public class OrderService {
                 .map(this::toResponse)
                 .toList();
     }
+
 
     public OrderResponse updateOrderStatus(Long orderId, OrderStatusUpdateRequest request) {
         CustomerOrder order = customerOrderRepository.findById(orderId)
@@ -492,6 +497,199 @@ public class OrderService {
         return response;
     }
 
+    @Transactional(readOnly = true)
+    public List<OrderAdminTopProductResponse> getAdminTopProductsToday(int limit) {
+        int safeLimit = Math.min(50, Math.max(1, limit));
+        LocalDate today = LocalDate.now();
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = today.plusDays(1).atStartOfDay();
+        List<OrderStatus> completedStatuses = List.of(
+                OrderStatus.PAID,
+                OrderStatus.COMPLETED
+        );
+
+        List<OrderAdminTopProductResponse> rows = orderItemRepository.findTopProductsByRevenue(
+                start,
+                end,
+                completedStatuses,
+                OrderItemStatus.ACTIVE,
+                PageRequest.of(0, safeLimit)
+        );
+        return rows.stream()
+                .map(r -> {
+                    String resolved = resolveProductImageSnapshot(
+                            r.getProductId(),
+                            r.getProductImageUrl()
+                    );
+                    String normalizedResolved =
+                            resolved == null || resolved.isBlank() ? null : resolved.trim();
+                    String normalizedExisting = r.getProductImageUrl() == null
+                            || r.getProductImageUrl().isBlank()
+                            ? null
+                            : r.getProductImageUrl().trim();
+                    if (Objects.equals(normalizedExisting, normalizedResolved)) {
+                        return r;
+                    }
+                    return new OrderAdminTopProductResponse(
+                            r.getProductId(),
+                            r.getProductName(),
+                            r.getQuantitySold(),
+                            r.getRevenue(),
+                            normalizedResolved
+                    );
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderAdminProductSalesRowResponse> getAdminProductSalesToday(int limit) {
+        int safeLimit = Math.min(100, Math.max(1, limit));
+        LocalDate today = LocalDate.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime todayEnd = today.plusDays(1).atStartOfDay();
+        LocalDateTime yesterdayStart = yesterday.atStartOfDay();
+        LocalDateTime yesterdayEnd = today.atStartOfDay();
+
+        List<OrderStatus> completedStatuses = List.of(
+                OrderStatus.PAID,
+                OrderStatus.COMPLETED
+        );
+
+        List<OrderAdminProductSalesAggregateResponse> todayRows =
+                orderItemRepository.findProductSalesAggregates(
+                        todayStart,
+                        todayEnd,
+                        completedStatuses,
+                        OrderItemStatus.ACTIVE,
+                        PageRequest.of(0, safeLimit)
+                );
+
+        if (todayRows.isEmpty()) {
+            return List.of();
+        }
+
+        List<Long> productIds = todayRows.stream()
+                .map(OrderAdminProductSalesAggregateResponse::getProductId)
+                .distinct()
+                .toList();
+
+        Map<Long, BigDecimal> yesterdayRevenue = new HashMap<>();
+        if (!productIds.isEmpty()) {
+            for (OrderAdminProductYesterdayRevenueRow row : orderItemRepository.findYesterdayRevenueByProductIds(
+                    yesterdayStart,
+                    yesterdayEnd,
+                    completedStatuses,
+                    OrderItemStatus.ACTIVE,
+                    productIds
+            )) {
+                yesterdayRevenue.put(row.getProductId(), row.getRevenue());
+            }
+        }
+
+        return todayRows.stream()
+                .map(t -> {
+                    BigDecimal yRev = yesterdayRevenue.getOrDefault(t.getProductId(), BigDecimal.ZERO);
+                    String trend = computeSalesTrend(t.getRevenue(), yRev);
+                    return new OrderAdminProductSalesRowResponse(
+                            t.getProductId(),
+                            t.getProductName(),
+                            t.getQuantitySold(),
+                            t.getRevenue(),
+                            t.getOrderCount(),
+                            trend
+                    );
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderAdminTableHeatmapCellResponse> getAdminTableHeatmapToday(int limit) {
+        int safeLimit = Math.min(24, Math.max(1, limit));
+        LocalDate today = LocalDate.now();
+        LocalDateTime start = today.atStartOfDay();
+        LocalDateTime end = today.plusDays(1).atStartOfDay();
+        List<OrderStatus> completedStatuses = List.of(
+                OrderStatus.PAID,
+                OrderStatus.COMPLETED
+        );
+
+        List<OrderAdminTableHeatmapAggregateResponse> aggregates =
+                customerOrderRepository.findTableHeatmapAggregates(start, end, completedStatuses);
+
+        if (aggregates.isEmpty()) {
+            return List.of();
+        }
+
+        long maxCount = aggregates.stream()
+                .mapToLong(OrderAdminTableHeatmapAggregateResponse::getOrderCount)
+                .max()
+                .orElse(0L);
+
+        return aggregates.stream()
+                .limit(safeLimit)
+                .map(a -> new OrderAdminTableHeatmapCellResponse(
+                        a.getTableId(),
+                        resolveTableLabel(a.getTableId(), a.getTableName()),
+                        a.getOrderCount(),
+                        heatmapLevel(a.getOrderCount(), maxCount)
+                ))
+                .toList();
+    }
+
+    private static String computeSalesTrend(BigDecimal todayRev, BigDecimal yesterdayRev) {
+        BigDecimal t = todayRev != null ? todayRev : BigDecimal.ZERO;
+        BigDecimal y = yesterdayRev != null ? yesterdayRev : BigDecimal.ZERO;
+
+        if (y.compareTo(BigDecimal.ZERO) == 0) {
+            return t.compareTo(BigDecimal.ZERO) > 0 ? "up" : "flat";
+        }
+
+        BigDecimal change = t.subtract(y).divide(y, 4, RoundingMode.HALF_UP);
+        if (change.compareTo(new BigDecimal("0.05")) > 0) {
+            return "up";
+        }
+        if (change.compareTo(new BigDecimal("-0.05")) < 0) {
+            return "down";
+        }
+        return "flat";
+    }
+
+    private static String heatmapLevel(long orderCount, long maxCount) {
+        if (maxCount <= 0L || orderCount <= 0L) {
+            return "low";
+        }
+        double ratio = orderCount / (double) maxCount;
+        if (ratio >= 0.66d) {
+            return "high";
+        }
+        if (ratio >= 0.33d) {
+            return "medium";
+        }
+        return "low";
+    }
+
+    private static String resolveTableLabel(Long tableId, String tableName) {
+        if (tableName != null && !tableName.isBlank()) {
+            return tableName.trim();
+        }
+        return "Masa " + tableId;
+    }
+
+    private String resolveProductImageSnapshot(Long productId, String fromLine) {
+        if (fromLine != null && !fromLine.isBlank()) {
+            return fromLine.trim();
+        }
+        try {
+            MenuProductOrderInfoResponse info = menuServiceClient.getProductOrderInfo(productId);
+            if (info.getImageUrl() != null && !info.getImageUrl().isBlank()) {
+                return info.getImageUrl().trim();
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
     public List<OrderResponse> markTableSessionOrdersPaid(Long tableSessionId) {
         List<CustomerOrder> orders = customerOrderRepository.findByTableSessionId(tableSessionId);
 
@@ -531,4 +729,54 @@ public class OrderService {
                 .map(this::toResponse)
                 .toList();
     }
+
+    @Transactional(readOnly = true)
+    public TableSessionBillResponse getTableSessionBill(Long tableSessionId) {
+        List<OrderStatus> payableStatuses = List.of(
+                OrderStatus.RECEIVED,
+                OrderStatus.PREPARING,
+                OrderStatus.READY,
+                OrderStatus.SERVED,
+                OrderStatus.COMPLETED,
+                OrderStatus.PAYMENT_PENDING
+        );
+
+        List<CustomerOrder> orders = customerOrderRepository
+                .findByTableSessionIdAndStatusIn(tableSessionId, payableStatuses);
+
+        if (orders.isEmpty()) {
+            throw new IllegalArgumentException("Bu masa oturumuna ait ödenecek sipariş bulunamadı: " + tableSessionId);
+        }
+
+        BigDecimal subtotalAmount = orders.stream()
+                .map(CustomerOrder::getSubtotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal vatAmount = orders.stream()
+                .map(CustomerOrder::getVatAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalAmount = orders.stream()
+                .map(CustomerOrder::getTotalAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        CustomerOrder firstOrder = orders.get(0);
+
+        TableSessionBillResponse response = new TableSessionBillResponse();
+        response.setTableSessionId(tableSessionId);
+        response.setTableId(firstOrder.getTableId());
+        response.setTableName(firstOrder.getTableName());
+        response.setSubtotalAmount(subtotalAmount);
+        response.setVatAmount(vatAmount);
+        response.setTotalAmount(totalAmount);
+        response.setOrderCount(orders.size());
+        response.setOrders(
+                orders.stream()
+                        .map(this::toResponse)
+                        .toList()
+        );
+
+        return response;
+    }
+
 }

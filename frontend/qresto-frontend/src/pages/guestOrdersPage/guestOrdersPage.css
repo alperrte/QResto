@@ -28,3 +28,33 @@
     transform: none !important;
   }
 }
+
+/* Sipariş satırı: ücretli ekler paneli açılır / kapanır */
+.guest-orders-line-details {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.24s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.guest-orders-line-details--open {
+  grid-template-rows: 1fr;
+}
+
+.guest-orders-line-details-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guest-orders-line-details {
+    transition: none;
+  }
+}
+
+/* Tarayıcı <button> varsayılan min yükseklik / padding — satırı düz div ile aynı inceltir */
+.guest-orders-line-trigger {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 0;
+  font-weight: 400;
+}

@@ -21,5 +21,8 @@ public interface ProductRatingRepository extends JpaRepository<ProductRating, Lo
             """)
     Double calculateAverageRatingByProductId(Long productId);
 
+    @Query("SELECT COALESCE(AVG(p.rating), 0) FROM ProductRating p")
+    Double calculateAverageRatingAll();
+
     Long countByProductId(Long productId);
 }

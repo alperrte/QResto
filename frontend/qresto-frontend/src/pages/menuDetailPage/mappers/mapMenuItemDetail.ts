@@ -1,3 +1,4 @@
+import { MENU_ITEM_FALLBACK_IMAGE } from "../../../constants/defaultMedia";
 import type { MenuItem } from "../../menuPage/menuItems";
 import type { MenuItemDetailResponse } from "../types/menuDetail.types";
 
@@ -18,9 +19,7 @@ export const mapDetailResponseToMenuItem = (dto: MenuItemDetailResponse): MenuIt
         name: dto.name,
         description: dto.description ?? "Açıklama bulunmuyor.",
         priceLabel: `₺${price.toFixed(2)}`,
-        imageUrl:
-            dto.imageUrl ||
-            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=900&q=80",
+        imageUrl: dto.imageUrl || MENU_ITEM_FALLBACK_IMAGE,
         prepMinutes: optionalPositiveMeta(dto.prepTimeMin),
         kcal: optionalPositiveMeta(dto.calorie),
         gram: optionalPositiveMeta(dto.gram),

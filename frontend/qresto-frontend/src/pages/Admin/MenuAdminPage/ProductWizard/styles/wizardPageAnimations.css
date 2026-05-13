@@ -7,7 +7,7 @@
   @keyframes wizard-drop-rise {
     from {
       opacity: 0;
-      transform: translate3d(0, -22px, 0);
+      transform: translate3d(0, -10px, 0);
     }
     to {
       opacity: 1;
@@ -73,22 +73,22 @@
   @keyframes wizard-pane-forward {
     from {
       opacity: 0;
-      transform: translate3d(40px, 14px, 0) scale(0.99);
+      transform: translate3d(16px, 8px, 0);
     }
     to {
       opacity: 1;
-      transform: translate3d(0, 0, 0) scale(1);
+      transform: translate3d(0, 0, 0);
     }
   }
 
   @keyframes wizard-pane-backward {
     from {
       opacity: 0;
-      transform: translate3d(-36px, 14px, 0) scale(0.99);
+      transform: translate3d(-16px, 8px, 0);
     }
     to {
       opacity: 1;
-      transform: translate3d(0, 0, 0) scale(1);
+      transform: translate3d(0, 0, 0);
     }
   }
 
@@ -146,251 +146,204 @@
   }
 
   .wizard-page-header-enter {
-    animation: wizard-slide-from-left 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: 0.04s;
+    animation: wizard-slide-from-left 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0s;
   }
 
   .wizard-stepper-bar-enter {
-    animation: wizard-drop-rise 0.42s cubic-bezier(0.28, 0.92, 0.48, 1) both;
-    animation-delay: 0.08s;
+    animation: wizard-drop-rise 0.15s cubic-bezier(0.28, 0.92, 0.48, 1) both;
+    animation-delay: 0s;
   }
 
   .wizard-step-item-enter {
     --wsi: 0;
-    animation: wizard-step-item-drift 0.44s cubic-bezier(0.28, 0.92, 0.48, 1) both;
-    animation-delay: calc(0.12s + var(--wsi) * 0.07s);
+    animation: wizard-step-item-drift 0.16s cubic-bezier(0.28, 0.92, 0.48, 1) both;
+    animation-delay: calc(var(--wsi) * 0.02s);
   }
 
   .wizard-stepper-line-anim {
-    animation: wizard-line-fade-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: 0.06s;
+    animation: wizard-line-fade-in 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0s;
   }
 
   .wizard-step-pane-forward {
-    animation: wizard-pane-forward 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: wizard-pane-forward 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .wizard-step-pane-backward {
-    animation: wizard-pane-backward 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: wizard-pane-backward 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
   }
 
   .wizard-footer-enter {
-    animation: wizard-footer-rise 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: 0.12s;
+    animation: wizard-footer-rise 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0.02s;
   }
 
-  /* İki / üç ana sütun: sol “form” soldan, sağ önizleme sağdan (ileri akış hissi) */
+  /* İki / üç ana sütun */
   .wizard-reveal-cols-2 > *:nth-child(1) {
-    animation: wizard-col-from-left 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: 0.05s;
+    animation: wizard-col-from-left 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0s;
   }
 
   .wizard-reveal-cols-2 > *:nth-child(2) {
-    animation: wizard-col-from-right 0.48s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: 0.12s;
+    animation: wizard-col-from-right 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0.03s;
   }
 
   .wizard-reveal-cols-2 > *:nth-child(3) {
-    animation: wizard-col-from-right 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: 0.18s;
+    animation: wizard-col-from-right 0.16s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0.05s;
   }
 
-  /* Dikey bloklar: sırayla hafif sol / sağ */
+  /* Dikey bloklar — kısa, neredeyse aynı anda */
   .wizard-reveal-stack > *:nth-child(odd) {
-    animation: wizard-slide-soft-l 0.42s cubic-bezier(0.28, 0.92, 0.48, 1) both;
+    animation: wizard-slide-soft-l 0.15s cubic-bezier(0.28, 0.92, 0.48, 1) both;
   }
 
   .wizard-reveal-stack > *:nth-child(even) {
-    animation: wizard-slide-soft-r 0.42s cubic-bezier(0.28, 0.92, 0.48, 1) both;
+    animation: wizard-slide-soft-r 0.15s cubic-bezier(0.28, 0.92, 0.48, 1) both;
   }
 
   .wizard-reveal-stack > *:nth-child(1) {
-    animation-delay: 0.04s;
+    animation-delay: 0s;
   }
 
   .wizard-reveal-stack > *:nth-child(2) {
-    animation-delay: 0.09s;
+    animation-delay: 0.015s;
   }
 
   .wizard-reveal-stack > *:nth-child(3) {
-    animation-delay: 0.14s;
+    animation-delay: 0.03s;
   }
 
   .wizard-reveal-stack > *:nth-child(4) {
-    animation-delay: 0.19s;
+    animation-delay: 0.045s;
   }
 
   .wizard-reveal-stack > *:nth-child(5) {
-    animation-delay: 0.24s;
+    animation-delay: 0.06s;
   }
 
   .wizard-reveal-stack > *:nth-child(6) {
-    animation-delay: 0.29s;
+    animation-delay: 0.075s;
   }
 
   .wizard-reveal-stack > *:nth-child(7) {
-    animation-delay: 0.34s;
+    animation-delay: 0.09s;
   }
 
   .wizard-reveal-stack > *:nth-child(8) {
-    animation-delay: 0.39s;
+    animation-delay: 0.105s;
   }
 
   /* Adım 1 sol kart: başlık → alanlar → görsel */
   .wizard-card-section-stagger > * {
-    animation: wizard-drop-rise 0.38s cubic-bezier(0.28, 0.92, 0.48, 1) both;
+    animation: wizard-drop-rise 0.14s cubic-bezier(0.28, 0.92, 0.48, 1) both;
   }
 
   .wizard-card-section-stagger > *:nth-child(1) {
-    animation-delay: 0.05s;
+    animation-delay: 0s;
   }
 
   .wizard-card-section-stagger > *:nth-child(2) {
-    animation-delay: 0.1s;
+    animation-delay: 0.02s;
   }
 
   .wizard-card-section-stagger > *:nth-child(3) {
-    animation-delay: 0.15s;
+    animation-delay: 0.04s;
   }
 
   .wizard-card-section-stagger > *:nth-child(4) {
-    animation-delay: 0.2s;
+    animation-delay: 0.06s;
   }
 
   .wizard-card-section-stagger > *:nth-child(5) {
-    animation-delay: 0.25s;
+    animation-delay: 0.08s;
   }
 
   /* İç grid: tek tek hafif zıt yönde */
   .wizard-inner-fields-stagger > *:nth-child(odd) {
-    animation: wizard-slide-soft-l 0.38s cubic-bezier(0.28, 0.92, 0.48, 1) both;
+    animation: wizard-slide-soft-l 0.14s cubic-bezier(0.28, 0.92, 0.48, 1) both;
   }
 
   .wizard-inner-fields-stagger > *:nth-child(even) {
-    animation: wizard-slide-soft-r 0.38s cubic-bezier(0.28, 0.92, 0.48, 1) both;
+    animation: wizard-slide-soft-r 0.14s cubic-bezier(0.28, 0.92, 0.48, 1) both;
   }
 
   .wizard-inner-fields-stagger > *:nth-child(1) {
-    animation-delay: 0.04s;
+    animation-delay: 0s;
   }
 
   .wizard-inner-fields-stagger > *:nth-child(2) {
-    animation-delay: 0.07s;
+    animation-delay: 0.015s;
   }
 
   .wizard-inner-fields-stagger > *:nth-child(3) {
-    animation-delay: 0.1s;
+    animation-delay: 0.03s;
   }
 
   .wizard-inner-fields-stagger > *:nth-child(4) {
-    animation-delay: 0.13s;
+    animation-delay: 0.045s;
   }
 
   .wizard-inner-fields-stagger > *:nth-child(5) {
-    animation-delay: 0.16s;
-  }
-
-  .wizard-inner-fields-stagger > *:nth-child(6) {
-    animation-delay: 0.19s;
-  }
-
-  .wizard-inner-fields-stagger > *:nth-child(7) {
-    animation-delay: 0.22s;
-  }
-
-  .wizard-inner-fields-stagger > *:nth-child(8) {
-    animation-delay: 0.25s;
-  }
-
-  .wizard-preview-head-reveal {
-    animation: wizard-slide-from-right 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
     animation-delay: 0.06s;
   }
 
+  .wizard-inner-fields-stagger > *:nth-child(6) {
+    animation-delay: 0.075s;
+  }
+
+  .wizard-inner-fields-stagger > *:nth-child(7) {
+    animation-delay: 0.09s;
+  }
+
+  .wizard-inner-fields-stagger > *:nth-child(8) {
+    animation-delay: 0.105s;
+  }
+
+  .wizard-preview-head-reveal {
+    animation: wizard-slide-from-right 0.14s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: 0s;
+  }
+
   .wizard-preview-stack-reveal > *:nth-child(odd) {
-    animation: wizard-slide-soft-l 0.4s cubic-bezier(0.28, 0.92, 0.48, 1) both;
+    animation: wizard-slide-soft-l 0.14s cubic-bezier(0.28, 0.92, 0.48, 1) both;
   }
 
   .wizard-preview-stack-reveal > *:nth-child(even) {
-    animation: wizard-slide-soft-r 0.4s cubic-bezier(0.28, 0.92, 0.48, 1) both;
+    animation: wizard-slide-soft-r 0.14s cubic-bezier(0.28, 0.92, 0.48, 1) both;
   }
 
   .wizard-preview-stack-reveal > *:nth-child(1) {
-    animation-delay: 0.05s;
+    animation-delay: 0s;
   }
 
   .wizard-preview-stack-reveal > *:nth-child(2) {
-    animation-delay: 0.1s;
+    animation-delay: 0.02s;
   }
 
   .wizard-preview-stack-reveal > *:nth-child(3) {
-    animation-delay: 0.15s;
+    animation-delay: 0.04s;
   }
 
   .wizard-preview-stack-reveal > *:nth-child(4) {
-    animation-delay: 0.2s;
+    animation-delay: 0.06s;
   }
 
   .wizard-preview-stack-reveal > *:nth-child(5) {
-    animation-delay: 0.25s;
+    animation-delay: 0.08s;
   }
 
   .wizard-op-card-enter {
     --wog: 0;
-    animation: wizard-col-from-right 0.46s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: calc(0.05s + var(--wog) * 0.055s);
+    animation: wizard-col-from-right 0.18s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--wog) * 0.02s);
   }
 
   .wizard-op-rows-stagger > * {
-    animation: wizard-slide-from-right 0.34s cubic-bezier(0.33, 1, 0.55, 1) both;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(1) {
-    animation-delay: 0.02s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(2) {
-    animation-delay: 0.05s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(3) {
-    animation-delay: 0.08s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(4) {
-    animation-delay: 0.11s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(5) {
-    animation-delay: 0.14s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(6) {
-    animation-delay: 0.17s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(7) {
-    animation-delay: 0.2s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(8) {
-    animation-delay: 0.23s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(9) {
-    animation-delay: 0.26s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(10) {
-    animation-delay: 0.29s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(11) {
-    animation-delay: 0.32s;
-  }
-
-  .wizard-op-rows-stagger > *:nth-child(12) {
-    animation-delay: 0.35s;
+    animation: wizard-slide-from-right 0.12s cubic-bezier(0.33, 1, 0.55, 1) both;
+    animation-delay: 0s;
   }
 }
 

@@ -1,13 +1,9 @@
-import type { CSSProperties } from "react";
-
 import { AdminStatusBadge } from "../../components/AdminStatusBadge";
 import AdminInfoSpeechBubble from "../../components/AdminInfoSpeechBubble";
 import type { MenuAdminProductRow } from "../types/menuAdmin.types";
 
 type MenuAdminProductTableRowProps = {
     product: MenuAdminProductRow;
-    /** Liste giriş animasyonu (merdiven); verilmezse animasyon yok */
-    ladderIndex?: number;
     rowSelected: boolean;
     rowPassive: boolean;
     rowMenuOpen: boolean;
@@ -20,7 +16,6 @@ type MenuAdminProductTableRowProps = {
 
 function MenuAdminProductTableRow({
     product,
-    ladderIndex,
     rowSelected,
     rowPassive,
     rowMenuOpen,
@@ -33,18 +28,10 @@ function MenuAdminProductTableRow({
     /** Pasif satırda rozetler + ⋮ menü hariç metin/görsel solukluğu */
     const dimIfPassive = rowPassive ? "opacity-[0.5]" : "";
 
-    const ladderStyle =
-        ladderIndex !== undefined
-            ? ({ "--menu-admin-row-i": ladderIndex } as CSSProperties)
-            : undefined;
-    const ladderClass =
-        ladderIndex !== undefined ? "menu-admin-table-row-ladder menu-admin-table-row-after-head" : "";
-
     return (
         <tr
             onClick={onRowClick}
-            style={ladderStyle}
-            className={`${ladderClass} relative cursor-pointer border-l-4 transition-[background-color,box-shadow] ${
+            className={`relative cursor-pointer border-l-4 transition-[background-color,box-shadow] ${
                 rowMenuOpen ? "z-30" : "z-0"
             } ${
                 rowSelected
@@ -71,10 +58,9 @@ function MenuAdminProductTableRow({
                         alt={product.name}
                         width={48}
                         height={48}
+                        loading="lazy"
                         decoding="async"
-                        className={`w-full h-full object-cover transition-[filter] ${
-                            rowPassive ? "grayscale-[0.72] brightness-[0.82] contrast-[0.92]" : ""
-                        }`}
+                        className="h-full w-full object-cover"
                     />
                 </div>
             </td>

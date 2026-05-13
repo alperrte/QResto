@@ -98,6 +98,7 @@ export type OrderResponse = {
 
 export type DemoPaymentRequest = {
     guestSessionId: number;
+    items?: OrderItemResponse[];
 };
 
 export type OrderAdminSummaryResponse = {
@@ -109,3 +110,32 @@ export type OrderAdminSummaryResponse = {
     operationDensity: number;
 };
 
+/** Admin dashboard: bugün PAID/COMPLETED siparişlerde ciro bazlı üst ürünler. */
+export type OrderAdminTopProductResponse = {
+    productId: number;
+    productName: string;
+    quantitySold: number;
+    revenue: number;
+    productImageUrl?: string | null;
+};
+
+/** Admin: bugünkü ürün bazlı satış (dünkü ciroya göre trend). */
+export type OrderAdminProductSalesRowResponse = {
+    productId: number;
+    productName: string;
+    quantitySold: number;
+    revenue: number;
+    orderCount: number;
+    trend: "up" | "down" | "flat";
+};
+
+export type TableSessionBillResponse = {
+    tableSessionId: number;
+    tableId: number;
+    tableName: string;
+    subtotalAmount: number;
+    vatAmount: number;
+    totalAmount: number;
+    orderCount: number;
+    orders: OrderResponse[];
+};

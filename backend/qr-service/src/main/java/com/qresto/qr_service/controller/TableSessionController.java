@@ -32,4 +32,13 @@ public class TableSessionController {
     public TableSessionResponse closeAfterPayment(@PathVariable Long tableSessionId) {
         return tableSessionService.closeAfterPayment(tableSessionId);
     }
+    @PatchMapping("/active/table/{tableId}/close-by-waiter")
+    public void closeActiveSessionByTableByWaiter(@PathVariable Long tableId) {
+        tableSessionService.closeActiveSessionByTableByWaiter(tableId);
+    }
+    @PatchMapping("/{tableSessionId}/close-by-waiter")
+    public void closeSessionByWaiter(@PathVariable Long tableSessionId) {
+        tableSessionService.closeSessionByWaiter(tableSessionId);
+    }
+
 }

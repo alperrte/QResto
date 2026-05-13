@@ -16,7 +16,7 @@ function MenuCategoriesCatalogToolbar({
     onCategoryStatusFilterChange,
 }: MenuCategoriesCatalogToolbarProps) {
     return (
-        <div className="menu-admin-enter-slide-left-soft flex flex-wrap items-stretch gap-3">
+        <div className="flex flex-wrap items-stretch gap-3">
             <div className="relative flex-1 min-w-[200px] max-w-md">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">
                     search
