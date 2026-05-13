@@ -36,3 +36,20 @@ export interface QrPreview {
     qr: TableQrCodeResponse;
     imageUrl: string;
 }
+
+export interface TableSessionResponse {
+    id: number;
+    tableId: number;
+    sessionCode?: string;
+    status?: string;
+    startedAt?: string;
+    lastActivityAt?: string;
+    closedAt?: string | null;
+
+    activeGuestCount?: number;
+    guestCount?: number;
+    sessionGuestCount?: number;
+    activeSessionGuestCount?: number;
+    activeSessionCount?: number;
+}
+
