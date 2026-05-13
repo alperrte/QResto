@@ -53,7 +53,7 @@ public class OrderClient {
     }
     public List<OrderDetailResponse> getActiveOrders(String token) {
 
-        String url = orderServiceUrl + "/api/order/orders/active";
+        String url = orderServiceUrl + "/api/order/orders/admin/active";
 
         HttpEntity<Void> entity = new HttpEntity<>(createHeaders(token));
 
