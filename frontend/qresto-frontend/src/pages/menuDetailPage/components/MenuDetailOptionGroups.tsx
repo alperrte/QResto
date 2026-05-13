@@ -239,3 +239,46 @@ export const collectSelectedOptionLabels = (
     }
     return labels;
 };
+
+/** Sipariş / sepet `addedIngredients` alanında kullanılacak ücretli ek satırları. */
+export type PaidOptionEntry = { label: string; deltaTry: number };
+
+/** Virgülle birleştirilmiş tek dize: `Etiket +₺12.00, Diğer +₺5.00` (negatif: `Etiket -₺3.00`). */
+export const serializePaidIngredientsForOrder = (entries: PaidOptionEntry[]): string =>
+    entries
+        .map(({ label, deltaTry }) => {
+            const n = Number(deltaTry);
+            if (!label.trim()) return "";
+            if (n >= 0) return `${label.trim()} +₺${n.toFixed(2)}`;
+            return `${label.trim()} -₺${Math.abs(n).toFixed(2)}`;
+        })
+        .filter(Boolean)
+        .join(", ");
+
+/** Sipariş satırına yazılacak: yalnızca birim fiyata ek getiren seçimler (delta ≠ 0, hasPrice). */
+export const collectPaidOptionEntries = (
+    groups: MenuProductOptionGroupDto[],
+    sel: MenuDetailOptionSelection
+): PaidOptionEntry[] => {
+    const out: PaidOptionEntry[] = [];
+    for (const g of groups) {
+        if (!g.hasPrice) continue;
+        if (g.kind === "portion" || g.kind === "single") {
+            const cid = sel.radioByGroupId[String(g.id)];
+            const ch = g.choices.find((c) => c.id === cid);
+            const delta = Number(ch?.priceDelta ?? 0);
+            if (ch?.label.trim() && delta !== 0) {
+                out.push({ label: ch.label.trim(), deltaTry: delta });
+            }
+        } else {
+            const ids = new Set(sel.multiByGroupId[String(g.id)] ?? []);
+            for (const ch of g.choices) {
+                const delta = Number(ch.priceDelta ?? 0);
+                if (ids.has(ch.id) && ch.label.trim() && delta !== 0) {
+                    out.push({ label: ch.label.trim(), deltaTry: delta });
+                }
+            }
+        }
+    }
+    return out;
+};
