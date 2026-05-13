@@ -37,6 +37,7 @@ import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -335,6 +336,7 @@ public class OrderService {
             Map<String, Object> payload = new HashMap<>();
             payload.put("orderId", order.getId());
             payload.put("tableId", order.getTableId());
+            payload.put("tableSessionId", order.getTableSessionId());
             payload.put("tableNumber", null);
             payload.put("orderNumber", order.getOrderNo());
             payload.put("status", order.getStatus().name());
@@ -415,6 +417,25 @@ public class OrderService {
         );
 
         return customerOrderRepository.findByStatusIn(completedStatuses)
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderResponse> getRecentCompletedOrders(int limit) {
+        int safeLimit = Math.min(100, Math.max(1, limit));
+        List<OrderStatus> completedStatuses = List.of(
+                OrderStatus.PAID,
+                OrderStatus.COMPLETED
+        );
+
+        return customerOrderRepository
+                .findByStatusIn(
+                        completedStatuses,
+                        PageRequest.of(0, safeLimit, Sort.by(Sort.Direction.DESC, "createdAt"))
+                )
+                .getContent()
                 .stream()
                 .map(this::toResponse)
                 .toList();
@@ -690,6 +711,7 @@ public class OrderService {
         return null;
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public List<OrderResponse> markTableSessionOrdersPaid(Long tableSessionId) {
         List<CustomerOrder> orders = customerOrderRepository.findByTableSessionId(tableSessionId);
 
@@ -704,13 +726,27 @@ public class OrderService {
                 .filter(order -> order.getStatus() != OrderStatus.PAID)
                 .toList();
 
+        final List<CustomerOrder> savedOrders;
+        if (payableOrders.isEmpty()) {
+            try {
+                qrServiceClient.closeTableSessionAfterPayment(tableSessionId);
+            } catch (Exception exception) {
+                throw new RuntimeException("Masa oturumu kapatılamadı", exception);
+            }
+            return orders.stream()
+                    .filter(order -> order.getStatus() == OrderStatus.PAID
+                            || order.getStatus() == OrderStatus.COMPLETED)
+                    .map(this::toResponse)
+                    .toList();
+        }
+
         for (CustomerOrder order : payableOrders) {
             order.setStatus(OrderStatus.PAID);
             order.setPaidAt(now);
             order.setCompletedAt(now);
         }
 
-        List<CustomerOrder> savedOrders = customerOrderRepository.saveAll(payableOrders);
+        savedOrders = customerOrderRepository.saveAll(payableOrders);
 
         try {
             qrServiceClient.closeTableSessionAfterPayment(tableSessionId);

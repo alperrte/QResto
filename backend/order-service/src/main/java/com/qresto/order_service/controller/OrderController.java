@@ -72,6 +72,13 @@ public class OrderController {
         return ResponseEntity.ok(orderService.getAdminCompletedOrders());
     }
 
+    @GetMapping("/admin/completed/recent")
+    public ResponseEntity<List<OrderResponse>> getRecentCompletedOrders(
+            @RequestParam(name = "limit", defaultValue = "40") int limit
+    ) {
+        return ResponseEntity.ok(orderService.getRecentCompletedOrders(limit));
+    }
+
     @GetMapping("/admin/cancelled")
     public ResponseEntity<List<OrderResponse>> getAdminCancelledOrders() {
         return ResponseEntity.ok(orderService.getAdminCancelledOrders());

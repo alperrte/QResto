@@ -220,4 +220,12 @@ export const markTableSessionOrdersPaid = async (
     return response.data;
 };
 
+export const getRecentCompletedOrders = async (limit = 40): Promise<OrderResponse[]> => {
+    const response = await orderApi.get<OrderResponse[]>(`/orders/admin/completed/recent`, {
+        params: { limit },
+    });
+
+    return response.data;
+};
+
 export default orderApi;

@@ -9,13 +9,10 @@ import com.qresto.qr_service.dto.response.TableSessionResponse;
 import com.qresto.qr_service.entity.RestaurantTable;
 import com.qresto.qr_service.entity.TableQrCode;
 import com.qresto.qr_service.entity.TableSession;
-import com.qresto.qr_service.entity.enums.TableSessionStatus;
 import com.qresto.qr_service.repository.TableQrCodeRepository;
 import com.qresto.qr_service.repository.TableSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -55,26 +52,9 @@ public class QrService {
             throw new RuntimeException("Table is inactive");
         }
 
-        List<TableSessionStatus> activeStatuses = List.of(
-                TableSessionStatus.ACTIVE,
-                TableSessionStatus.ORDERED,
-                TableSessionStatus.PAYMENT_PENDING
-        );
-
-        TableSession tableSession = tableSessionRepository
-                .findByRestaurantTableIdAndStatusIn(table.getId(), activeStatuses)
-                .stream()
-                .findFirst()
-                .orElse(null);
-
-        Long tableSessionId;
-
-        if (tableSession == null) {
-            TableSessionResponse createdSession = tableSessionService.createTableSession(table.getId(), qrCode.getId());
-            tableSessionId = createdSession.getId();
-        } else {
-            tableSessionId = tableSession.getId();
-        }
+        TableSessionResponse resolvedSession =
+                tableSessionService.resolveActiveSessionForQrScan(table.getId(), qrCode.getId());
+        Long tableSessionId = resolvedSession.getId();
 
         GuestSessionResponse guestSessionResponse = guestSessionService.createGuestSession(
                 tableSessionId,

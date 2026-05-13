@@ -15,9 +15,10 @@ import com.qresto.qr_service.repository.TableSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -59,6 +60,89 @@ public class TableSessionService {
         TableSession savedSession = tableSessionRepository.save(tableSession);
 
         return mapToResponse(savedSession);
+    }
+
+    /** Aktif masa + misafir oturumlarını kapatır (QR yenileme / yeni QR taraması). */
+    @Transactional
+    public void closeActiveTableSessionsWithGuests(
+            Long tableId,
+            TableSessionStatus newSessionStatus,
+            String tableSessionCloseReason,
+            String guestSessionCloseReason
+    ) {
+        List<TableSessionStatus> activeStatuses = List.of(
+                TableSessionStatus.ACTIVE,
+                TableSessionStatus.ORDERED,
+                TableSessionStatus.PAYMENT_PENDING
+        );
+
+        List<TableSession> activeSessions =
+                tableSessionRepository.findByRestaurantTableIdAndStatusIn(tableId, activeStatuses);
+
+        if (activeSessions.isEmpty()) {
+            return;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Long> tableSessionIds = activeSessions.stream()
+                .map(TableSession::getId)
+                .toList();
+
+        List<GuestSession> guestSessions =
+                guestSessionRepository.findByTableSessionIdIn(tableSessionIds);
+
+        for (GuestSession guestSession : guestSessions) {
+            guestSession.setStatus(GuestSessionStatus.CLOSED);
+            guestSession.setClosedAt(now);
+            guestSession.setCloseReason(guestSessionCloseReason);
+        }
+
+        guestSessionRepository.saveAll(guestSessions);
+
+        for (TableSession tableSession : activeSessions) {
+            tableSession.setStatus(newSessionStatus);
+            tableSession.setClosedAt(now);
+            tableSession.setCloseReason(tableSessionCloseReason);
+        }
+
+        tableSessionRepository.saveAll(activeSessions);
+    }
+
+    /**
+     * QR taraması için oturum: aynı QR ile aktif varsa döner; yoksa masadaki diğer aktifleri kapatıp yeni açar.
+     * Masaya pessimistic lock ile yarışta çift aktif oturum engellenir.
+     */
+    @Transactional
+    public TableSessionResponse resolveActiveSessionForQrScan(Long tableId, Long qrCodeId) {
+        restaurantTableRepository.findByIdForUpdate(tableId)
+                .orElseThrow(() -> new RuntimeException("Table not found: " + tableId));
+
+        List<TableSessionStatus> activeStatuses = List.of(
+                TableSessionStatus.ACTIVE,
+                TableSessionStatus.ORDERED,
+                TableSessionStatus.PAYMENT_PENDING
+        );
+
+        Optional<TableSession> forThisQr = tableSessionRepository
+                .findFirstByRestaurantTableIdAndTableQrCode_IdAndStatusInOrderByIdDesc(
+                        tableId,
+                        qrCodeId,
+                        activeStatuses
+                );
+
+        if (forThisQr.isPresent()) {
+            return mapToResponse(forThisQr.get());
+        }
+
+        closeActiveTableSessionsWithGuests(
+                tableId,
+                TableSessionStatus.CLOSED_BY_ADMIN,
+                "Superseded by QR scan",
+                "Superseded by QR scan"
+        );
+
+        return createTableSession(tableId, qrCodeId);
     }
 
     public TableSessionResponse getActiveSessionByTable(Long tableId) {
