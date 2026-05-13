@@ -141,38 +141,38 @@ export function statusBadgeConfig(status: OrderResponse["status"]): {
             return {
                 label: "YENİ",
                 className:
-                    "bg-orange-500/15 text-orange-600 ring-1 ring-orange-500/25",
+                    "bg-orange-500/15 text-orange-700 ring-1 ring-orange-500/25 dark:text-orange-300",
                 Icon: ShoppingCart,
-                iconWrap: "bg-orange-500/15 text-orange-600",
+                iconWrap: "bg-orange-500/15 text-orange-700 dark:text-orange-300",
             };
 
         case "PREPARING":
             return {
                 label: "HAZIRLANIYOR",
                 className:
-                    "bg-sky-500/15 text-sky-700 ring-1 ring-sky-500/25 dark:text-sky-300",
+                    "bg-blue-500 text-white shadow-sm shadow-blue-500/20 ring-1 ring-blue-600/20",
                 Icon: Hourglass,
-                iconWrap: "bg-sky-500/15 text-sky-700 dark:text-sky-300",
+                iconWrap: "bg-blue-500 text-white shadow-sm shadow-blue-500/20",
             };
 
         case "READY":
             return {
                 label: "HAZIR",
                 className:
-                    "bg-emerald-500/15 text-emerald-700 ring-1 ring-emerald-500/25 dark:text-emerald-300",
+                    "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20 ring-1 ring-emerald-600/20",
                 Icon: CheckCircle2,
                 iconWrap:
-                    "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+                    "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20",
             };
 
         case "CANCELLED":
             return {
                 label: "İPTAL EDİLDİ",
                 className:
-                    "bg-violet-500/12 text-violet-700 ring-1 ring-violet-500/20 dark:text-violet-300",
+                    "bg-red-500 text-white shadow-sm shadow-red-500/20 ring-1 ring-red-600/20",
                 Icon: XCircle,
                 iconWrap:
-                    "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+                    "bg-red-500 text-white shadow-sm shadow-red-500/20",
             };
 
         default:
