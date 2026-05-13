@@ -117,34 +117,64 @@ export default function KitchenCancelledOrdersPage() {
     );
 
     return (
-        <div className="space-y-6">
-            <section className="rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-[0_12px_32px_rgba(15,23,42,0.08)]">
-                <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                    <div>
-                        <p className="text-xs font-black uppercase tracking-wide text-[var(--qresto-primary)]">
-                            Mutfak kayıtları
-                        </p>
-                        <h2 className="mt-2 text-2xl font-black text-[var(--qresto-text)] md:text-3xl">
-                            İptal Edilen Siparişler
-                        </h2>
-                        <p className="mt-2 max-w-2xl text-sm font-medium text-[var(--qresto-muted)]">
-                            Hangi masanın siparişinin iptal edildiğini, iptal nedenini ve siparişteki ürünleri buradan takip edin.
-                        </p>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <div className="rounded-2xl border border-red-500/15 bg-red-500/5 px-4 py-3">
-                            <p className="text-xs font-bold text-[var(--qresto-muted)]">İptal sayısı</p>
-                            <p className="mt-1 text-2xl font-black text-red-600">{sortedOrders.length}</p>
-                        </div>
-                        <div className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-4 py-3">
-                            <p className="text-xs font-bold text-[var(--qresto-muted)]">İptal tutarı</p>
-                            <p className="mt-1 text-2xl font-black text-[var(--qresto-text)]">
-                                {safeMoney(totalCancelledAmount)}
+        <div className="space-y-5">
+            <section className="grid gap-4 lg:grid-cols-3">
+                <article className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+                    <div className="flex items-center gap-4">
+                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-[var(--qresto-primary)]">
+                            <PackageX size={25} />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-[var(--qresto-text)]">
+                                İptal Edilen Siparişler
+                            </p>
+                            <p className="mt-1 text-3xl font-black text-[var(--qresto-primary)]">
+                                {sortedOrders.length}
+                            </p>
+                            <p className="mt-0.5 text-xs font-semibold text-[var(--qresto-muted)]">
+                                Kayıtlı iptal
                             </p>
                         </div>
                     </div>
-                </div>
+                </article>
+
+                <article className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+                    <div className="flex items-center gap-4">
+                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-600">
+                            <CircleDollarSign size={25} />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-[var(--qresto-text)]">
+                                İptal Tutarı
+                            </p>
+                            <p className="mt-1 text-3xl font-black text-[var(--qresto-text)]">
+                                {safeMoney(totalCancelledAmount)}
+                            </p>
+                            <p className="mt-0.5 text-xs font-semibold text-[var(--qresto-muted)]">
+                                Toplam değer
+                            </p>
+                        </div>
+                    </div>
+                </article>
+
+                <article className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+                    <div className="flex items-center gap-4">
+                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600">
+                            <ClipboardList size={25} />
+                        </span>
+                        <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-[var(--qresto-text)]">
+                                Ürün Detayı
+                            </p>
+                            <p className="mt-1 text-3xl font-black text-violet-600">
+                                {sortedOrders.reduce((sum, order) => sum + (order.items?.length ?? 0), 0)}
+                            </p>
+                            <p className="mt-0.5 text-xs font-semibold text-[var(--qresto-muted)]">
+                                İptal satırı
+                            </p>
+                        </div>
+                    </div>
+                </article>
             </section>
 
             {error ? (
@@ -180,10 +210,10 @@ export default function KitchenCancelledOrdersPage() {
                                 key={order.id}
                                 className="overflow-hidden rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-[0_12px_32px_rgba(15,23,42,0.06)]"
                             >
-                                <div className="grid gap-4 border-b border-[var(--qresto-border)] bg-red-500/5 px-6 py-5 lg:grid-cols-[1fr_auto] lg:items-start">
+                                <div className="grid gap-4 border-b border-[var(--qresto-border)] bg-[var(--qresto-bg)]/60 px-6 py-5 lg:grid-cols-[1fr_auto] lg:items-start">
                                     <div className="min-w-0">
                                         <div className="flex flex-wrap items-center gap-3">
-                                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-red-500/10 text-red-600">
+                                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500/10 text-[var(--qresto-primary)]">
                                                 <PackageX size={20} />
                                             </span>
                                             <div className="min-w-0">
@@ -196,8 +226,8 @@ export default function KitchenCancelledOrdersPage() {
                                             </div>
                                         </div>
 
-                                        <div className="mt-4 rounded-2xl border border-red-500/15 bg-red-500/10 px-4 py-3">
-                                            <p className="text-xs font-black uppercase tracking-wide text-red-600">
+                                        <div className="mt-4 rounded-2xl border border-orange-500/20 bg-orange-500/10 px-4 py-3">
+                                            <p className="text-xs font-black uppercase tracking-wide text-[var(--qresto-primary)]">
                                                 İptal nedeni
                                             </p>
                                             <p className="mt-1 text-sm font-bold text-[var(--qresto-text)]">
