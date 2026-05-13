@@ -13,6 +13,7 @@ import WelcomeServiceModal, {
 import { createTableCall } from "../../services/waiterService";
 import { getOrdersByTableSession } from "../../services/orderService";
 import type { OrderResponse } from "../../types/cartTypes";
+import { parseBackendLocalDateTime } from "../../utils/parseBackendLocalDateTime";
 import {
   DEV_PREVIEW_TABLE,
   HERO_IMAGE_URL,
@@ -35,7 +36,9 @@ const pickOrderForOnlinePay = (orders: OrderResponse[]): OrderResponse | null =>
   const eligible = orders.filter((o) => o.status !== "PAID" && o.status !== "CANCELLED");
   if (eligible.length === 0) return null;
   return [...eligible].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    (a, b) =>
+      parseBackendLocalDateTime(b.createdAt).getTime() -
+      parseBackendLocalDateTime(a.createdAt).getTime()
   )[0];
 };
 
