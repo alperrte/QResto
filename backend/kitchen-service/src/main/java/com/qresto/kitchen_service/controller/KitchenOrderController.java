@@ -45,6 +45,7 @@ public class KitchenOrderController {
     ) {
         return kitchenOrderService.updateOrderStatus(orderId, request);
     }
+
     @GetMapping("/ready")
     public List<KitchenOrderResponse> getReadyOrdersForWaiter() {
         return kitchenOrderService.getReadyOrdersForWaiter();
@@ -56,11 +57,10 @@ public class KitchenOrderController {
     }
 
     @PatchMapping("/{orderId}/served")
-    public String markOrderServedForWaiter(
+    public OrderResponse markOrderServedForWaiter(
             @PathVariable Long orderId
     ) {
-        kitchenOrderService.markOrderServedForWaiter(orderId);
-        return "Sipariş servis edildi olarak işaretlendi";
+        return kitchenOrderService.markOrderServedForWaiter(orderId);
     }
 
     @PatchMapping("/{orderId}/cancel")
