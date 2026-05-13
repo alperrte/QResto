@@ -2,7 +2,9 @@ import type { CSSProperties } from "react";
 import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
+  ArchiveX,
   ChevronDown,
+  ChefHat,
   LayoutDashboard,
   LogOut,
   MessageSquareText,
@@ -42,26 +44,23 @@ function MainSidebar() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [ratingMenuOpen, setRatingMenuOpen] = useState(false);
   const [menuDropdownOpen, setMenuDropdownOpen] = useState(false);
+
   const { user, logout } = useAuth();
   const location = useLocation();
   const prevPathRef = useRef<string | null>(null);
 
   const isMenuProductsSection = inMenuProductsSection(location.pathname);
 
-  const normalizedPath =
-    location.pathname.replace(/\/+$/, "") || "/";
-  const isGeneralMenuListPath =
-    normalizedPath === "/app/admin/menu-products";
+  const normalizedPath = location.pathname.replace(/\/+$/, "") || "/";
+  const isGeneralMenuListPath = normalizedPath === "/app/admin/menu-products";
 
-  /** Başka bir ana sekmeye geçince akordeonları kapat; ilgili bölüme ilk girişte aç. */
   useEffect(() => {
     const path = location.pathname;
     const prev = prevPathRef.current;
     prevPathRef.current = path;
 
     const nowMenu = inMenuProductsSection(path);
-    const prevMenu =
-      prev !== null && inMenuProductsSection(prev);
+    const prevMenu = prev !== null && inMenuProductsSection(prev);
 
     if (!nowMenu) {
       setMenuDropdownOpen(false);
@@ -137,16 +136,18 @@ function MainSidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-6">
-        <NavLink
-          to={getRoleHomePath(user.role)}
-          className={({ isActive }) =>
-            `${navLinkClass({ isActive })} main-sidebar-nav-item`
-          }
-          style={staggerStyle(0)}
-        >
-          <LayoutDashboard size={19} />
-          Kontrol Paneli
-        </NavLink>
+        {user.role !== "KITCHEN" ? (
+          <NavLink
+            to={getRoleHomePath(user.role)}
+            className={({ isActive }) =>
+              `${navLinkClass({ isActive })} main-sidebar-nav-item`
+            }
+            style={staggerStyle(0)}
+          >
+            <LayoutDashboard size={19} />
+            Kontrol Paneli
+          </NavLink>
+        ) : null}
 
         {user.role === "ADMIN" ? (
           <>
@@ -158,6 +159,7 @@ function MainSidebar() {
                   setMenuDropdownOpen(false);
                   return;
                 }
+
                 setMenuDropdownOpen(true);
               }}
               className={({ isActive }) =>
@@ -213,6 +215,7 @@ function MainSidebar() {
                 >
                   Genel Menü
                 </NavLink>
+
                 <NavLink
                   to="/app/admin/menu-categories"
                   className={({ isActive }) =>
@@ -225,6 +228,7 @@ function MainSidebar() {
                 >
                   Kategoriler
                 </NavLink>
+
                 <NavLink
                   to="/app/admin/menu-products/create"
                   className={({ isActive }) =>
@@ -265,12 +269,15 @@ function MainSidebar() {
               Siparişler
             </NavLink>
 
-            <div className="main-sidebar-nav-item space-y-2" style={staggerStyle(220)}>
+            <div
+              className="main-sidebar-nav-item space-y-2"
+              style={staggerStyle(220)}
+            >
               <NavLink
                 to="/app/rating-service"
                 className={({ isActive }) =>
                   `flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 hover:-translate-y-[2px] ${
-                    isActive
+                    isActive || inRatingSection(location.pathname)
                       ? "bg-[var(--qresto-primary)] text-white shadow-lg shadow-orange-200/70"
                       : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] hover:shadow-lg hover:shadow-orange-200/20"
                   }`
@@ -305,7 +312,7 @@ function MainSidebar() {
                 </button>
               </NavLink>
 
-              {ratingMenuOpen && (
+              {ratingMenuOpen ? (
                 <div className="ml-3 space-y-1.5 border-l border-[var(--qresto-border)] pl-3">
                   <NavLink
                     to="/app/rating-service/restaurant-ratings"
@@ -323,13 +330,50 @@ function MainSidebar() {
                     <span>Ürün Değerlendirmeleri</span>
                   </NavLink>
                 </div>
-              )}
+              ) : null}
             </div>
+          </>
+        ) : null}
+
+        {user.role === "KITCHEN" ? (
+          <>
+            <NavLink
+              to="/app/kitchen/dashboard"
+              className={({ isActive }) =>
+                `${navLinkClass({ isActive })} main-sidebar-nav-item`
+              }
+              style={staggerStyle(0)}
+            >
+              <ChefHat size={19} />
+              Mutfak Paneli
+            </NavLink>
+
+            <NavLink
+              to="/app/kitchen/orders"
+              className={({ isActive }) =>
+                `${navLinkClass({ isActive })} main-sidebar-nav-item`
+              }
+              style={staggerStyle(55)}
+            >
+              <ShoppingBag size={19} />
+              Siparişler
+            </NavLink>
+
+            <NavLink
+              to="/app/kitchen/cancelled-orders"
+              className={({ isActive }) =>
+                `${navLinkClass({ isActive })} main-sidebar-nav-item`
+              }
+              style={staggerStyle(110)}
+            >
+              <ArchiveX size={19} />
+              İptal Edilen Siparişler
+            </NavLink>
           </>
         ) : null}
       </nav>
 
-      <div className="border-t border-[var(--qresto-border)] p-4">
+      <div className="space-y-4 border-t border-[var(--qresto-border)] p-4">
         <button
           type="button"
           onClick={() => {

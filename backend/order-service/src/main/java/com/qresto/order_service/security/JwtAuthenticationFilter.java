@@ -1,14 +1,15 @@
-package com.qresto.kitchen_service.security;
+package com.qresto.order_service.security;
 
-import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,70 +23,54 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
 
     @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-
-        String path = request.getServletPath();
-        String method = request.getMethod();
-
-        if ("OPTIONS".equalsIgnoreCase(method)) {
-            return true;
-        }
-
-        if (path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs")
-                || path.startsWith("/api-docs")
-                || path.equals("/swagger-ui.html")) {
-            return true;
-        }
-
-        if (path.startsWith("/api/test")) {
-            return true;
-        }
-
-        // TEST İÇİN MUTFAK ENDPOINTLERİ JWT FİLTRESİNE GİRMEYECEK
-        // GET, POST, PUT, PATCH, DELETE hepsi açık
-        if (path.startsWith("/api/kitchen")) {
-            return true;
-        }
-
-        return false;
-    }
-
-    @Override
     protected void doFilterInternal(
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain
     ) throws ServletException, IOException {
 
-        String authHeader = request.getHeader("Authorization");
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        String authHeader = request.getHeader(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        String token = authHeader.substring(7);
+        String token = authHeader.substring(7).trim();
 
-        try {
-            Claims claims = jwtService.extractClaims(token);
+        if (token.isBlank() || !jwtService.isTokenValid(token)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
-            String email = claims.getSubject();
-            String role = claims.get("role", String.class);
+        String email = jwtService.extractEmail(token);
+        String role = jwtService.extractRole(token);
+
+        if (email == null || email.isBlank() || role == null || role.isBlank()) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            String normalizedRole = role.trim().toUpperCase();
+            String authority = normalizedRole.startsWith("ROLE_")
+                    ? normalizedRole
+                    : "ROLE_" + normalizedRole;
 
             UsernamePasswordAuthenticationToken authentication =
                     new UsernamePasswordAuthenticationToken(
                             email,
                             null,
-                            List.of(new SimpleGrantedAuthority(role))
+                            List.of(new SimpleGrantedAuthority(authority))
                     );
 
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            return;
         }
 
         filterChain.doFilter(request, response);

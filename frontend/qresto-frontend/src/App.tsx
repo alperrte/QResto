@@ -41,13 +41,11 @@ function App() {
                     {waiterRoutes}
                 </Route>
 
-                <Route element={<RoleRoute allowedRoles={["ADMIN"]} />}>
-                    {adminRoutes}
-                </Route>
-
                 <Route element={<RoleRoute allowedRoles={["KITCHEN", "ADMIN"]} />}>
                     {kitchenRoutes}
                 </Route>
+
+                {adminRoutes}
 
             </Routes>
         </BrowserRouter>
