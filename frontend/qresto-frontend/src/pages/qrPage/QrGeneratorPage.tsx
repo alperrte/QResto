@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useRef, type CSSProperties, type ReactNode } from "react";
 import QRCode from "qrcode";
 import {
     ArrowLeft,
@@ -39,6 +39,7 @@ import type {
     QrPreview,
     TableSessionResponse,
 } from "../../types/qr.types";
+import AdminCountdownConfirmModal from "../Admin/components/AdminCountdownConfirmModal";
 import "./qrGeneratorAnimations.css";
 
 type ActiveView = "main" | "create" | "preview";
@@ -56,6 +57,64 @@ type ModalType =
     | "delete"
     | "edit"
     | null;
+
+type StatCardVariant = "blue" | "green" | "orange" | "purple";
+
+type StatCardProps = {
+    icon: ReactNode;
+    title: string;
+    value: number;
+    description: string;
+    variant: StatCardVariant;
+};
+
+const StatCard = ({
+                      icon,
+                      title,
+                      value,
+                      description,
+                      variant,
+                  }: StatCardProps) => {
+    const variantClass = {
+        blue:
+            "bg-[#0b3a4d] text-[#38bdf8] ring-1 ring-[#155e75]",
+        green:
+            "bg-[#063f2e] text-[#23a559] ring-1 ring-[#1f8b4c]",
+        orange:
+            "bg-[#3b2a22] text-[#ff9f43] ring-1 ring-[#7c3d1f]",
+        purple:
+            "bg-[#2e2454] text-[#c4b5fd] ring-1 ring-[#6d5bd0]",
+    }[variant];
+
+    const cardClass =
+        "border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-[0_14px_34px_rgba(15,23,42,0.06)] dark:shadow-[0_12px_30px_rgba(0,0,0,0.18)]";
+
+    return (
+        <div className={`rounded-[22px] border p-6 ${cardClass}`}>
+            <div className="flex items-center gap-5">
+                <div
+                    className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${variantClass}`}
+                >
+                    {icon}
+                </div>
+
+                <div>
+                    <p className="text-sm font-extrabold text-[var(--qresto-text)]">
+                        {title}
+                    </p>
+
+                    <h3 className="mt-1 text-3xl font-black leading-none text-[var(--qresto-text)]">
+                        {value}
+                    </h3>
+
+                    <p className="mt-2 text-sm text-[var(--qresto-muted)]">
+                        {description}
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const QrGeneratorPage = () => {
     const [tables, setTables] = useState<RestaurantTableResponse[]>([]);
@@ -87,6 +146,7 @@ const QrGeneratorPage = () => {
     const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
     const [refreshAllCountdown, setRefreshAllCountdown] = useState(0);
     const refreshAllCountdownTimerRef = useRef<number | null>(null);
+    const refreshAllSuccessTimerRef = useRef<number | null>(null);
 
     const activeCount = tables.filter((table) => table.active).length;
     const passiveCount = tables.filter((table) => !table.active).length;
@@ -282,9 +342,33 @@ const QrGeneratorPage = () => {
         }
     };
 
+    const clearRefreshAllSuccessTimer = () => {
+        if (refreshAllSuccessTimerRef.current) {
+            window.clearTimeout(refreshAllSuccessTimerRef.current);
+            refreshAllSuccessTimerRef.current = null;
+        }
+    };
+
     useEffect(() => {
-        return () => clearRefreshAllCountdownTimer();
+        return () => {
+            clearRefreshAllCountdownTimer();
+            clearRefreshAllSuccessTimer();
+        };
     }, []);
+
+    useEffect(() => {
+        if (modalType !== "refreshAllSuccess") {
+            clearRefreshAllSuccessTimer();
+            return;
+        }
+
+        refreshAllSuccessTimerRef.current = window.setTimeout(() => {
+            setRefreshAllCountdown(0);
+            setModalType(null);
+        }, 3000);
+
+        return () => clearRefreshAllSuccessTimer();
+    }, [modalType]);
 
     const createQrImage = async (
         table: RestaurantTableResponse,
@@ -365,7 +449,7 @@ const QrGeneratorPage = () => {
     const openRefreshAllModal = () => {
         setOpenMenuTableId(null);
         setSelectedTable(null);
-        setRefreshAllCountdown(5);
+        setRefreshAllCountdown(3);
         clearRefreshAllCountdownTimer();
         refreshAllCountdownTimerRef.current = window.setInterval(() => {
             setRefreshAllCountdown((current) => {
@@ -627,6 +711,7 @@ const QrGeneratorPage = () => {
 
     const closeModal = () => {
         clearRefreshAllCountdownTimer();
+        clearRefreshAllSuccessTimer();
         setRefreshAllCountdown(0);
         setModalType(null);
         setSelectedTable(null);
@@ -638,60 +723,6 @@ const QrGeneratorPage = () => {
         }
 
         return "border border-slate-200 bg-slate-100 text-slate-600 shadow-sm dark:border-slate-600/40 dark:bg-slate-700/50 dark:text-slate-300";
-    };
-
-    const StatCard = ({
-                          icon,
-                          title,
-                          value,
-                          description,
-                          variant,
-                      }: {
-        icon: ReactNode;
-        title: string;
-        value: number;
-        description: string;
-        variant: "blue" | "green" | "orange" | "purple";
-    }) => {
-        const variantClass = {
-            blue:
-                "bg-[#0b3a4d] text-[#38bdf8] ring-1 ring-[#155e75]",
-            green:
-                "bg-[#063f2e] text-[#23a559] ring-1 ring-[#1f8b4c]",
-            orange:
-                "bg-[#3b2a22] text-[#ff9f43] ring-1 ring-[#7c3d1f]",
-            purple:
-                "bg-[#2e2454] text-[#c4b5fd] ring-1 ring-[#6d5bd0]",
-        }[variant];
-
-        const cardClass =
-            "border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-[0_14px_34px_rgba(15,23,42,0.06)] dark:shadow-[0_12px_30px_rgba(0,0,0,0.18)]";
-
-        return (
-            <div className={`rounded-[22px] border p-6 ${cardClass}`}>
-                <div className="flex items-center gap-5">
-                    <div
-                        className={`flex h-16 w-16 shrink-0 items-center justify-center rounded-full ${variantClass}`}
-                    >
-                        {icon}
-                    </div>
-
-                    <div>
-                        <p className="text-sm font-extrabold text-[var(--qresto-text)]">
-                            {title}
-                        </p>
-
-                        <h3 className="mt-1 text-3xl font-black leading-none text-[var(--qresto-text)]">
-                            {value}
-                        </h3>
-
-                        <p className="mt-2 text-sm text-[var(--qresto-muted)]">
-                            {description}
-                        </p>
-                    </div>
-                </div>
-            </div>
-        );
     };
 
     return (
@@ -1307,7 +1338,44 @@ const QrGeneratorPage = () => {
                 )}
             </div>
 
-            {modalType && (
+            <AdminCountdownConfirmModal
+                open={modalType === "refreshAll" || modalType === "refreshAllSuccess"}
+                onClose={closeModal}
+                busy={loading}
+                step={modalType === "refreshAllSuccess" ? "success" : "confirm"}
+                confirmHeading="Tüm masaları yenile"
+                confirmHeadingTone="danger"
+                confirmDescription={
+                    <p className="mb-0">
+                        Tüm masalardaki aktif oturumlar kapatılacaktır. Bu işlem yeni QR oluşturmaz.
+                    </p>
+                }
+                confirmBeforeCountdown={
+                    <p className="mb-0">
+                        Müşteriler aynı QR kodu tekrar okuttuğunda yeni masa oturumu başlar.
+                    </p>
+                }
+                countdown={refreshAllCountdown}
+                countdownCaption={
+                    <span>
+                        Onay süresi dolana kadar <span className="font-semibold">Onayla</span> butonu devre dışı
+                        olacaktır.
+                    </span>
+                }
+                confirmLabel="Onayla"
+                confirmBusyLabel="İşleniyor..."
+                onConfirm={confirmRefreshAllTables}
+                confirmButtonClassName="bg-red-600 text-white hover:bg-red-700"
+                confirmDisabled={refreshAllCountdown > 0}
+                successHeading="Tüm masalar yenilendi"
+                successBody={
+                    <p className="mb-0">
+                        Tüm masalar başarıyla yenilendi. Aktif masa oturumları kapatıldı.
+                    </p>
+                }
+            />
+
+            {modalType && modalType !== "refreshAll" && modalType !== "refreshAllSuccess" && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
                     <div className="w-full max-w-md rounded-[28px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-7 shadow-2xl">
                         <h2 className="mb-3 text-2xl font-black text-[var(--qresto-text)]">
@@ -1354,33 +1422,27 @@ const QrGeneratorPage = () => {
                                 onClick={closeModal}
                                 className="flex-1 rounded-2xl bg-[var(--qresto-bg)] py-3 font-bold text-[var(--qresto-text)] transition-all hover:bg-[var(--qresto-hover)]"
                             >
-                                {modalType === "refreshSuccess" || modalType === "refreshAllSuccess" ? "Kapat" : "Vazgeç"}
+                                {modalType === "refreshSuccess" ? "Kapat" : "Vazgeç"}
                             </button>
 
-                            {modalType !== "refreshSuccess" && modalType !== "refreshAllSuccess" && (
+                            {modalType !== "refreshSuccess" && (
                                 <button
                                     type="button"
-                                    disabled={loading || (modalType === "refreshAll" && refreshAllCountdown > 0)}
+                                    disabled={loading}
                                     onClick={
                                         modalType === "download"
                                             ? downloadQr
                                             : modalType === "refresh"
                                                 ? confirmRefreshTable
-                                                : modalType === "refreshAll"
-                                                    ? confirmRefreshAllTables
-                                                    : modalType === "delete"
-                                                        ? confirmDeleteTable
-                                                        : modalType === "edit"
-                                                            ? confirmEditTable
-                                                            : confirmTableStatusChange
+                                                : modalType === "delete"
+                                                    ? confirmDeleteTable
+                                                    : modalType === "edit"
+                                                        ? confirmEditTable
+                                                        : confirmTableStatusChange
                                     }
                                     className="flex-1 rounded-2xl bg-[var(--qresto-primary)] py-3 font-bold text-white transition-all hover:opacity-90 disabled:opacity-60"
                                 >
-                                    {loading
-                                        ? "İşleniyor..."
-                                        : modalType === "refreshAll" && refreshAllCountdown > 0
-                                            ? `${refreshAllCountdown} sn`
-                                            : "Onayla"}
+                                    {loading ? "İşleniyor..." : "Onayla"}
                                 </button>
                             )}
                         </div>
