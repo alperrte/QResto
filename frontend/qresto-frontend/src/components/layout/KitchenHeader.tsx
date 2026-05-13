@@ -57,36 +57,48 @@ function KitchenHeader() {
 
     return (
         <>
-            <header className="sticky top-0 z-40 flex h-[92px] items-center justify-between border-b border-[var(--qresto-border-strong)] bg-[var(--qresto-surface)] px-7 shadow-[0_1px_10px_rgba(15,23,42,0.06)] transition-colors duration-300">
-                <div>
-                    <h1 className="text-3xl font-bold text-[var(--qresto-text)]">
-                        Mutfak Paneli
-                    </h1>
+            <header className="sticky top-0 z-40 flex min-h-[96px] items-center justify-between gap-5 border-b border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-7 shadow-[0_8px_28px_rgba(15,23,42,0.04)] transition-colors duration-300">
+                <div className="flex min-w-0 items-center gap-4">
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-orange-500/15 bg-orange-500/10 text-[var(--qresto-primary)] shadow-[0_10px_24px_rgba(249,115,22,0.12)]">
+                        <ChefHat size={28} />
+                    </span>
 
-                    <p className="mt-1 text-sm text-[var(--qresto-muted)]">
-                        Siparişleri hazırlayın, stokları yönetin.
-                    </p>
+                    <div className="min-w-0">
+                        <h1 className="truncate text-2xl font-black text-[var(--qresto-text)] md:text-3xl">
+                            Mutfak Paneli
+                        </h1>
+
+                        <p className="mt-1 truncate text-sm font-medium text-[var(--qresto-muted)]">
+                            Siparişleri hazırlayın, süreçleri yönetin.
+                        </p>
+                    </div>
                 </div>
 
-                <div className="flex items-center gap-4">
+                <div className="flex shrink-0 items-center gap-3">
                     <button
                         type="button"
                         onClick={toggleTheme}
-                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] text-[var(--qresto-text)] transition-all duration-200 hover:-translate-y-[2px] hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
+                        className="flex h-12 w-12 items-center justify-center rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] text-[var(--qresto-text)] shadow-sm transition-all duration-200 hover:-translate-y-[1px] hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
+                        aria-label="Temayı değiştir"
                     >
                         {isDark ? <Sun size={20} /> : <Moon size={20} />}
                     </button>
 
-                    <div className="flex items-center gap-2 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-sm font-medium text-[var(--qresto-text)]">
+                    <div className="hidden h-12 items-center gap-2 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 text-sm font-black text-[var(--qresto-text)] shadow-sm sm:flex">
                         <CalendarDays size={18} className="text-[var(--qresto-muted)]" />
                         {currentDate}
+                        <ChevronDown size={15} className="text-[var(--qresto-muted)]" />
                     </div>
 
                     <div className="relative">
                         <button
                             type="button"
                             onClick={() => setKitchenDropdownOpen((prev) => !prev)}
-                            className="flex items-center gap-3 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-sm font-semibold text-[var(--qresto-text)] transition-all duration-200 hover:-translate-y-[2px] hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
+                            className={`flex h-12 items-center gap-3 rounded-xl border px-4 text-sm font-black shadow-sm transition-all duration-200 hover:-translate-y-[1px] ${
+                                kitchenOpen
+                                    ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300"
+                                    : "border-red-500/20 bg-red-500/10 text-red-700 dark:text-red-300"
+                            }`}
                         >
                             <span
                                 className={`h-2.5 w-2.5 rounded-full ${

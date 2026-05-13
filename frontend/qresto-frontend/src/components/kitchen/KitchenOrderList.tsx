@@ -3,10 +3,11 @@ import {
     CalendarDays,
     CheckCircle2,
     ChevronDown,
-    ChevronRight,
+    ClipboardList,
     Hourglass,
     ImageOff,
     Loader2,
+    ShoppingCart,
     XCircle,
 } from "lucide-react";
 
@@ -22,9 +23,9 @@ import {
     formatOrderClock,
     formatRelativeTr,
     itemCountLabel,
+    countByStatus,
     statusBadgeConfig,
     summarizeOrderItems,
-    tabLabel,
     type KitchenPipelineStatus,
     type KitchenTab,
     uniqueTableNames,
@@ -58,6 +59,8 @@ type KitchenOrderListProps = {
     listTitle?: string;
     dateKey: string;
     onDateChange: (iso: string) => void;
+    showSelectedDetail?: boolean;
+    initialTab?: KitchenTab;
 };
 
 type ProductImageThumbProps = {
@@ -213,29 +216,53 @@ export default function KitchenOrderList({
                                              listTitle = "Sipariş Listesi",
                                              dateKey,
                                              onDateChange,
+                                             showSelectedDetail = true,
+                                             initialTab = "all",
                                          }: KitchenOrderListProps) {
-    const [tab, setTab] = useState<KitchenTab>("all");
+    const [tab, setTab] = useState<KitchenTab>(initialTab);
     const [tableFilter, setTableFilter] = useState<string>("all");
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [cancelTarget, setCancelTarget] = useState<OrderResponse | null>(null);
     const [busyId, setBusyId] = useState<number | null>(null);
 
     const tables = useMemo(() => uniqueTableNames(orders), [orders]);
+    const counts = useMemo(() => countByStatus(orders, dateKey), [orders, dateKey]);
 
     const visible = useMemo(
         () => filterOrdersForKitchenView(orders, tab, tableFilter, dateKey),
         [orders, tab, tableFilter, dateKey]
     );
 
-    const toggleRow = (id: number) => {
-        setExpandedId((prev) => (prev === id ? null : id));
+    const selectedOrder = useMemo(
+        () => visible.find((order) => order.id === expandedId) ?? visible[0] ?? null,
+        [visible, expandedId]
+    );
+
+    const filterTabs = [
+        { key: "received", label: "Aktif Siparişler", count: counts.received },
+        { key: "preparing", label: "Hazırlanıyor", count: counts.preparing },
+        { key: "ready", label: "Hazır", count: counts.ready },
+        { key: "cancelled", label: "İptal Edilen", count: counts.cancelledToday },
+        { key: "all", label: "Tümü", count: orders.length },
+    ] as const;
+
+    const selectRow = (id: number) => {
+        setExpandedId(id);
     };
 
     const handleStatusChange = async (
         order: OrderResponse,
         next: KitchenPipelineStatus
     ) => {
-        if (order.status === "CANCELLED") {
+        if (order.status === "CANCELLED" || order.status === "READY") {
+            return;
+        }
+
+        if (next === "PREPARING" && order.status !== "RECEIVED") {
+            return;
+        }
+
+        if (next === "READY" && order.status !== "PREPARING") {
             return;
         }
 
@@ -273,28 +300,31 @@ export default function KitchenOrderList({
 
     const statusActionClass = (active: boolean, tone: "preparing" | "ready") => {
         const base =
-            "inline-flex h-9 items-center justify-center gap-1.5 rounded-full border px-3 text-xs font-black transition disabled:cursor-not-allowed disabled:opacity-60";
-
-        if (active && tone === "preparing") {
-            return `${base} border-sky-500/30 bg-sky-500/15 text-sky-700 dark:text-sky-300`;
+            "inline-flex h-8 min-w-[76px] items-center justify-center gap-1 rounded-xl border px-2 text-[11px] font-black shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60";
+        if (tone === "preparing") {
+            return active
+                ? `${base} border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-600/25`
+                : `${base} border-blue-500 bg-blue-500 text-white shadow-lg shadow-blue-500/20 hover:border-blue-600 hover:bg-blue-600`;
         }
 
-        if (active && tone === "ready") {
-            return `${base} border-emerald-500/30 bg-emerald-500/15 text-emerald-700 dark:text-emerald-300`;
+        if (tone === "ready") {
+            return active
+                ? `${base} border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/25`
+                : `${base} border-emerald-500 bg-emerald-500 text-white shadow-lg shadow-emerald-500/20 hover:border-emerald-600 hover:bg-emerald-600`;
         }
 
         return `${base} border-[var(--qresto-border)] bg-[var(--qresto-bg)] text-[var(--qresto-text)] hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]`;
     };
 
     return (
-        <section className="overflow-hidden rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-[0_12px_32px_rgba(15,23,42,0.06)]">
-            <div className="flex flex-col gap-4 border-b border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-6 py-5 md:flex-row md:items-center md:justify-between">
+        <section className="overflow-hidden rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-[0_14px_36px_rgba(15,23,42,0.08)]">
+            <div className="flex flex-col gap-4 border-b border-[var(--qresto-border)] bg-[var(--qresto-bg)]/45 px-6 py-5 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <h2 className="text-xl font-black text-[var(--qresto-text)]">
+                    <h2 className="text-xl font-black text-[var(--qresto-text)] md:text-2xl">
                         {listTitle}
                     </h2>
                     <p className="mt-1 text-xs font-semibold text-[var(--qresto-muted)]">
-                        Gelen siparişleri takip edin, durumu güncelleyin ve ürün detaylarını görüntüleyin.
+                        Toplam {orders.length} sipariş içinde {visible.length} kayıt gösteriliyor.
                     </p>
                 </div>
 
@@ -331,28 +361,36 @@ export default function KitchenOrderList({
                 </div>
             </div>
 
-            <div className="flex gap-6 overflow-x-auto border-b border-[var(--qresto-border)] px-6">
-                {(["all", "preparing", "ready", "cancelled"] as const).map((t) => {
-                    const active = tab === t;
+            <div className="border-b border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-6 py-4">
+                <div className="flex gap-2 overflow-x-auto rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-1">
+                    {filterTabs.map((filter) => {
+                        const active = tab === filter.key;
 
                     return (
                         <button
-                            key={t}
+                            key={filter.key}
                             type="button"
-                            onClick={() => setTab(t)}
-                            className={`relative whitespace-nowrap pb-3 pt-3 text-sm font-black transition-colors ${
+                            onClick={() => setTab(filter.key)}
+                            className={`flex min-w-fit items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black transition ${
+                                filter.key === "all" ? "ml-auto" : ""
+                            } ${
                                 active
-                                    ? "text-[var(--qresto-primary)]"
-                                    : "text-[var(--qresto-muted)] hover:text-[var(--qresto-text)]"
+                                    ? "bg-[var(--qresto-surface)] text-[var(--qresto-primary)] shadow-sm"
+                                    : "text-[var(--qresto-muted)] hover:bg-[var(--qresto-surface)] hover:text-[var(--qresto-text)]"
                             }`}
                         >
-                            {tabLabel(t)}
-                            {active ? (
-                                <span className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full bg-[var(--qresto-primary)]" />
-                            ) : null}
+                            <span>{filter.label}</span>
+                            <span className={`rounded-full px-2 py-0.5 text-[11px] ${
+                                active
+                                    ? "bg-[var(--qresto-primary)] text-white"
+                                    : "bg-[var(--qresto-surface)] text-[var(--qresto-muted)]"
+                            }`}>
+                                {filter.count}
+                            </span>
                         </button>
-                    );
-                })}
+                        );
+                    })}
+                </div>
             </div>
 
             {error ? (
@@ -374,36 +412,48 @@ export default function KitchenOrderList({
                 </p>
             ) : null}
 
-            <ul className="divide-y divide-[var(--qresto-border)]">
+            <div
+                className={`grid gap-4 bg-[var(--qresto-bg)]/35 p-4 ${
+                    showSelectedDetail ? "xl:grid-cols-[minmax(0,1fr)_390px]" : ""
+                }`}
+            >
+            <ul className="space-y-3">
                 {visible.map((order) => {
                     const cfg = statusBadgeConfig(order.status);
                     const Icon = cfg.Icon;
                     const expanded = expandedId === order.id;
+                    const selected = showSelectedDetail && selectedOrder?.id === order.id;
                     const busy = busyId === order.id;
                     const firstItem = order.items?.[0];
                     const createdDate = orderCreatedDate(order);
+                    const showActions =
+                        enableStatusControls &&
+                        order.status !== "CANCELLED" &&
+                        order.status !== "READY";
 
                     return (
                         <li
                             key={order.id}
-                            className="bg-[var(--qresto-surface)] transition-colors hover:bg-[var(--qresto-hover)]/45"
+                            className={`overflow-hidden rounded-2xl border bg-[var(--qresto-surface)] shadow-[0_8px_22px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.07)] ${
+                                selected
+                                    ? "border-orange-500/35 ring-4 ring-orange-500/10"
+                                    : "border-[var(--qresto-border)]"
+                            }`}
                         >
-                            <div className="flex items-stretch gap-3 px-4 py-4 md:px-6">
-                                <button
-                                    type="button"
-                                    aria-expanded={expanded}
-                                    aria-label={expanded ? "Detayı gizle" : "Detayı göster"}
-                                    onClick={() => toggleRow(order.id)}
-                                    className="flex w-9 shrink-0 items-center justify-center rounded-xl border border-transparent text-[var(--qresto-muted)] transition hover:border-[var(--qresto-border)] hover:bg-[var(--qresto-surface)] hover:text-[var(--qresto-primary)]"
-                                >
-                                    <ChevronRight
-                                        size={20}
-                                        className={`transition-transform duration-200 ${
-                                            expanded ? "rotate-90" : ""
-                                        }`}
-                                    />
-                                </button>
-
+                            <div
+                                className={`grid gap-3 px-3 py-3 md:px-4 ${
+                                    showSelectedDetail ? "cursor-pointer" : ""
+                                } ${
+                                    showActions
+                                        ? "lg:grid-cols-[auto_minmax(150px,0.9fr)_minmax(220px,1.3fr)_110px_95px_115px_auto] lg:items-center"
+                                        : "lg:grid-cols-[auto_minmax(150px,0.9fr)_minmax(220px,1.4fr)_110px_95px_115px] lg:items-center"
+                                }`}
+                                onClick={() => {
+                                    if (showSelectedDetail) {
+                                        selectRow(order.id);
+                                    }
+                                }}
+                            >
                                 <ProductImageThumb
                                     imageUrl={firstItem?.productImageUrl}
                                     productName={firstItem?.productName}
@@ -411,57 +461,58 @@ export default function KitchenOrderList({
                                     fallbackClassName={cfg.iconWrap}
                                 />
 
-                                <div className="min-w-0 flex-1">
-                                    <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div className="min-w-0">
-                                            <p className="truncate text-base font-black text-[var(--qresto-text)]">
-                                                {order.tableName || `Masa #${order.tableId}`}
-                                            </p>
+                                <div className="min-w-0">
+                                    <p className="truncate text-base font-black text-[var(--qresto-text)]">
+                                        {order.tableName || `Masa #${order.tableId}`}
+                                    </p>
 
-                                            <p className="mt-0.5 truncate text-xs font-bold text-[var(--qresto-muted)]">
-                                                #{order.orderNo || order.id}
-                                            </p>
-                                        </div>
-
-                                        <span
-                                            className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-[11px] font-black tracking-wide ${cfg.className}`}
-                                        >
-                                            {cfg.label}
-                                        </span>
-                                    </div>
-
-                                    <div className="mt-2">
-                                        <p className="text-sm font-black text-[var(--qresto-text)]">
-                                            {itemCountLabel(order)}
-                                        </p>
-
-                                        <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-[var(--qresto-muted)]">
-                                            {summarizeOrderItems(order)}
-                                        </p>
-                                    </div>
-
-                                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-bold text-[var(--qresto-muted)]">
-                                        <span className="rounded-full bg-[var(--qresto-bg)] px-2.5 py-1 text-[var(--qresto-text)]">
-                                            {formatOrderClock(createdDate)}
-                                        </span>
-
-                                        <span>{formatRelativeTr(createdDate)}</span>
-
-                                        <span className="text-[var(--qresto-primary)]">
-                                            Toplam: {safeMoney(order.totalAmount)}
-                                        </span>
-                                    </div>
+                                    <p className="mt-0.5 truncate text-xs font-bold text-[var(--qresto-muted)]">
+                                        #{order.orderNo || order.id}
+                                    </p>
                                 </div>
 
-                                {enableStatusControls && order.status !== "CANCELLED" ? (
-                                    <div className="flex shrink-0 flex-col items-end gap-2">
-                                        <div className="flex w-36 flex-col gap-2">
+                                <div className="min-w-0">
+                                    <p className="text-sm font-black text-[var(--qresto-text)]">
+                                        {itemCountLabel(order)}
+                                    </p>
+
+                                    <p className="mt-1 line-clamp-2 text-xs font-semibold text-[var(--qresto-muted)]">
+                                        {summarizeOrderItems(order)}
+                                    </p>
+                                </div>
+
+                                <div className="text-sm font-black text-[var(--qresto-primary)] lg:text-left">
+                                    {safeMoney(order.totalAmount)}
+                                </div>
+
+                                <div className="text-xs font-bold text-[var(--qresto-muted)] lg:text-left">
+                                    <p className="font-black text-[var(--qresto-text)]">
+                                        {formatOrderClock(createdDate)}
+                                    </p>
+
+                                    <p className="mt-1">
+                                        {formatRelativeTr(createdDate)}
+                                    </p>
+                                </div>
+
+                                <div className="lg:text-left">
+        <span
+            className={`inline-flex shrink-0 items-center rounded-full px-3 py-1 text-[11px] font-black tracking-wide ${cfg.className}`}
+        >
+            {cfg.label}
+        </span>
+                                </div>
+
+                                {showActions ? (
+                                    <div
+                                        className="flex shrink-0 items-center gap-1.5 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-1.5"
+                                        onClick={(event) => event.stopPropagation()}
+                                    >
+                                        <div className="flex gap-2">
                                             <button
                                                 type="button"
-                                                disabled={busy || order.status === "PREPARING"}
-                                                onClick={() =>
-                                                    void handleStatusChange(order, "PREPARING")
-                                                }
+                                                disabled={busy || order.status !== "RECEIVED"}
+                                                onClick={() => void handleStatusChange(order, "PREPARING")}
                                                 className={statusActionClass(
                                                     order.status === "PREPARING",
                                                     "preparing"
@@ -473,14 +524,9 @@ export default function KitchenOrderList({
 
                                             <button
                                                 type="button"
-                                                disabled={busy || order.status === "READY"}
-                                                onClick={() =>
-                                                    void handleStatusChange(order, "READY")
-                                                }
-                                                className={statusActionClass(
-                                                    order.status === "READY",
-                                                    "ready"
-                                                )}
+                                                disabled={busy || order.status !== "PREPARING"}
+                                                onClick={() => void handleStatusChange(order, "READY")}
+                                                className={statusActionClass(false, "ready")}
                                             >
                                                 <CheckCircle2 size={14} />
                                                 Hazır
@@ -489,9 +535,9 @@ export default function KitchenOrderList({
 
                                         <button
                                             type="button"
-                                            disabled={busy}
+                                            disabled={busy || order.status === "CANCELLED" || order.status === "READY"}
                                             onClick={() => setCancelTarget(order)}
-                                            className="inline-flex h-9 w-36 items-center justify-center gap-1.5 rounded-full border border-red-500/20 bg-red-500/5 px-3 text-xs font-black text-red-600 transition hover:bg-red-500/10 disabled:opacity-50"
+                                            className="inline-flex h-8 min-w-[82px] items-center justify-center gap-1.5 rounded-xl border border-red-500 bg-red-500 px-3 text-xs font-black text-white shadow-lg shadow-red-500/20 transition hover:border-red-600 hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-60"
                                         >
                                             <XCircle size={14} />
                                             İptal et
@@ -500,8 +546,8 @@ export default function KitchenOrderList({
                                 ) : null}
                             </div>
 
-                            {expanded ? (
-                                <div className="border-t border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-4 py-4 md:px-10">
+                            {false && expanded ? (
+                                <div className="border-t border-[var(--qresto-border)] bg-[var(--qresto-bg)]/70 px-4 py-4 md:px-6">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <p className="text-xs font-black uppercase tracking-wide text-[var(--qresto-primary)]">
                                             Sipariş detayı
@@ -516,7 +562,7 @@ export default function KitchenOrderList({
                                         {(order.items ?? []).map((line, index) => (
                                             <li
                                                 key={lineKey(line, index)}
-                                                className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-3 text-sm shadow-[0_6px_18px_rgba(15,23,42,0.04)]"
+                                                className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-4 text-sm shadow-[0_6px_18px_rgba(15,23,42,0.04)]"
                                             >
                                                 <div className="flex gap-3">
                                                     <ProductImageThumb
@@ -595,6 +641,185 @@ export default function KitchenOrderList({
                     );
                 })}
             </ul>
+
+            {showSelectedDetail ? (
+            <aside className="sticky top-28 h-fit rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-4 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
+                <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-lg font-black text-[var(--qresto-text)]">
+                        Seçili Sipariş Detayı
+                    </h3>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--qresto-bg)] text-[var(--qresto-muted)]">
+                        <ClipboardList size={18} />
+                    </span>
+                </div>
+
+                {selectedOrder ? (
+                    <div className="mt-4 space-y-4">
+                        {(() => {
+                            const cfg = statusBadgeConfig(selectedOrder.status);
+                            const createdDate = orderCreatedDate(selectedOrder);
+                            const progressIndex = selectedOrder.status === "READY"
+                                ? 3
+                                : selectedOrder.status === "PREPARING"
+                                    ? 2
+                                    : selectedOrder.status === "RECEIVED"
+                                        ? 1
+                                        : 0;
+                            const progressSteps = [
+                                { number: 1, label: "Alındı" },
+                                { number: 2, label: "Hazırlanıyor" },
+                                { number: 3, label: "Hazır" },
+                            ] as const;
+
+                            return (
+                                <>
+                                    <div className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4">
+                                        <div className="flex items-start gap-3">
+                                            <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${cfg.iconWrap}`}>
+                                                <ShoppingCart size={20} />
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-start justify-between gap-2">
+                                                    <div className="min-w-0">
+                                                        <p className="truncate text-base font-black text-[var(--qresto-text)]">
+                                                            {selectedOrder.tableName || `Masa #${selectedOrder.tableId}`}
+                                                        </p>
+                                                        <p className="mt-0.5 truncate text-xs font-bold text-[var(--qresto-muted)]">
+                                                            #{selectedOrder.orderNo || selectedOrder.id}
+                                                        </p>
+                                                    </div>
+                                                    <span className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black ${cfg.className}`}>
+                                                        {cfg.label}
+                                                    </span>
+                                                </div>
+                                                <p className="mt-2 text-xs font-bold text-[var(--qresto-muted)]">
+                                                    {formatRelativeTr(createdDate)} · {formatOrderClock(createdDate)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rounded-2xl border border-[var(--qresto-border)] p-4">
+                                        <p className="text-xs font-black uppercase tracking-wide text-[var(--qresto-primary)]">
+                                            Sipariş Süreci
+                                        </p>
+
+                                        <div className="mt-4 flex items-start">
+                                            {progressSteps.map((step, index) => {
+                                                const complete = progressIndex >= step.number;
+                                                const isLast = index === progressSteps.length - 1;
+
+                                                return (
+                                                    <div
+                                                        key={step.number}
+                                                        className="flex flex-1 items-start"
+                                                    >
+                                                        <div className="flex min-w-0 flex-1 flex-col items-center text-center">
+                                                            <span
+                                                                className={`flex h-9 w-9 items-center justify-center rounded-full text-sm font-black transition ${
+                                                                    complete
+                                                                        ? "bg-[var(--qresto-primary)] text-white shadow-[0_8px_18px_rgba(249,115,22,0.22)]"
+                                                                        : "bg-[var(--qresto-bg)] text-[var(--qresto-muted)] ring-1 ring-[var(--qresto-border)]"
+                                                                }`}
+                                                            >
+                                                                {complete ? (
+                                                                    <CheckCircle2 size={17} />
+                                                                ) : (
+                                                                    step.number
+                                                                )}
+                                                            </span>
+                                                            <span
+                                                                className={`mt-2 text-[11px] font-black ${
+                                                                    complete
+                                                                        ? "text-[var(--qresto-text)]"
+                                                                        : "text-[var(--qresto-muted)]"
+                                                                }`}
+                                                            >
+                                                                {step.label}
+                                                            </span>
+                                                        </div>
+
+                                                        {!isLast ? (
+                                                            <span
+                                                                className={`mt-4 h-0.5 flex-1 rounded-full ${
+                                                                    progressIndex > step.number
+                                                                        ? "bg-[var(--qresto-primary)]"
+                                                                        : "bg-[var(--qresto-border)]"
+                                                                }`}
+                                                            />
+                                                        ) : null}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {selectedOrder.status === "CANCELLED" ? (
+                                            <p className="mt-3 rounded-xl bg-red-500/10 px-3 py-2 text-xs font-bold text-red-600">
+                                                Bu sipariş iptal edildiği için hazırlık süreci durduruldu.
+                                            </p>
+                                        ) : null}
+                                    </div>
+
+                                    <div className="rounded-2xl border border-[var(--qresto-border)] p-4">
+                                        <p className="text-xs font-black uppercase tracking-wide text-[var(--qresto-primary)]">
+                                            Sipariş İçeriği
+                                        </p>
+                                        <ul className="mt-3 space-y-3">
+                                            {(selectedOrder.items ?? []).map((line, index) => (
+                                                <li
+                                                    key={lineKey(line, index)}
+                                                    className="flex items-start justify-between gap-3 text-sm"
+                                                >
+                                                    <div className="min-w-0">
+                                                        <p className="font-black text-[var(--qresto-text)]">
+                                                            {line.quantity}x {line.productName}
+                                                        </p>
+                                                        {line.addedIngredients ? (
+                                                            <p className="mt-0.5 text-xs font-semibold text-[var(--qresto-muted)]">
+                                                                {line.addedIngredients}
+                                                            </p>
+                                                        ) : null}
+                                                        {line.note ? (
+                                                            <p className="mt-0.5 text-xs font-semibold text-[var(--qresto-muted)]">
+                                                                Not: {line.note}
+                                                            </p>
+                                                        ) : null}
+                                                    </div>
+                                                    <span className="shrink-0 font-black text-[var(--qresto-primary)]">
+                                                        {safeMoney(line.lineTotal)}
+                                                    </span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div className="rounded-2xl bg-[var(--qresto-bg)] px-4 py-3">
+                                            <p className="text-xs font-bold text-[var(--qresto-muted)]">Ürün</p>
+                                            <p className="mt-1 font-black text-[var(--qresto-text)]">
+                                                {itemCountLabel(selectedOrder)}
+                                            </p>
+                                        </div>
+                                        <div className="rounded-2xl bg-[var(--qresto-bg)] px-4 py-3">
+                                            <p className="text-xs font-bold text-[var(--qresto-muted)]">Toplam</p>
+                                            <p className="mt-1 font-black text-[var(--qresto-primary)]">
+                                                {safeMoney(selectedOrder.totalAmount)}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </>
+                            );
+                        })()}
+                    </div>
+                ) : (
+                    <p className="mt-4 rounded-2xl bg-[var(--qresto-bg)] px-4 py-8 text-center text-sm font-bold text-[var(--qresto-muted)]">
+                        Detay görüntülemek için bir sipariş seçin.
+                    </p>
+                )}
+
+            </aside>
+            ) : null}
+            </div>
 
             <CancelOrderModal
                 open={Boolean(cancelTarget)}

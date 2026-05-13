@@ -1,0 +1,83 @@
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes qr-admin-fade-down {
+    from {
+      opacity: 0;
+      transform: translate3d(0, -14px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes qr-admin-fade-up {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 18px, 0);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0);
+    }
+  }
+
+  @keyframes qr-admin-card-rise {
+    from {
+      opacity: 0;
+      transform: translate3d(0, 20px, 0) scale(0.985);
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  .qr-admin-header-enter {
+    animation: qr-admin-fade-down 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .qr-admin-toolbar-enter {
+    animation: qr-admin-fade-up 440ms cubic-bezier(0.22, 1, 0.36, 1) 90ms both;
+  }
+
+  .qr-admin-panel-enter {
+    animation: qr-admin-card-rise 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .qr-admin-stats-stagger > * {
+    animation: qr-admin-card-rise 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  .qr-admin-stats-stagger > *:nth-child(1) {
+    animation-delay: 60ms;
+  }
+
+  .qr-admin-stats-stagger > *:nth-child(2) {
+    animation-delay: 110ms;
+  }
+
+  .qr-admin-stats-stagger > *:nth-child(3) {
+    animation-delay: 160ms;
+  }
+
+  .qr-admin-stats-stagger > *:nth-child(4) {
+    animation-delay: 210ms;
+  }
+
+  .qr-admin-table-grid > * {
+    animation: qr-admin-card-rise 430ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(150ms + var(--qr-card-delay, 0ms));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qr-admin-header-enter,
+  .qr-admin-toolbar-enter,
+  .qr-admin-panel-enter,
+  .qr-admin-stats-stagger > *,
+  .qr-admin-table-grid > * {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

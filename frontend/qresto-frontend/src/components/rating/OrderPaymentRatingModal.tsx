@@ -6,6 +6,7 @@ import {
     getTableSessionBill,
     markTableSessionOrdersPaid,
 } from "../../services/orderService";
+import { clearGuestPaymentSessionKeys } from "../../utils/clearGuestTableSessionStorage";
 import { getRatingSettings } from "../../services/ratingService";
 
 import OrderRatingForm from "./OrderRatingForm";
@@ -132,6 +133,7 @@ const OrderPaymentRatingModal = ({
 
             setPaidOrders(response);
             setPaymentDone(true);
+            clearGuestPaymentSessionKeys();
         } catch (error) {
             console.error("Masa hesabı ödeme hatası:", error);
             setErrorMessage("Masa hesabı ödenirken hata oluştu.");

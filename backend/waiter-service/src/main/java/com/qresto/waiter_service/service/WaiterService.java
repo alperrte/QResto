@@ -214,6 +214,7 @@ public class WaiterService {
 
         response.setOrderId(order.getId());
         response.setTableId(order.getTableId());
+        response.setTableSessionId(order.getTableSessionId());
         response.setTableNumber(null);
         response.setOrderNumber(order.getOrderNo());
         response.setStatus(order.getStatus());

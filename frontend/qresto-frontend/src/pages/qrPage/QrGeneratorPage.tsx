@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 import QRCode from "qrcode";
 import {
     ArrowLeft,
@@ -39,6 +39,7 @@ import type {
     QrPreview,
     TableSessionResponse,
 } from "../../types/qr.types";
+import "./qrGeneratorAnimations.css";
 
 type ActiveView = "main" | "create" | "preview";
 type TableFilter = "all" | "active" | "passive";
@@ -696,7 +697,7 @@ const QrGeneratorPage = () => {
     return (
         <div className="min-h-full w-full bg-[var(--qresto-bg)] px-1 text-[var(--qresto-text)] transition-colors duration-300">
             <div className="w-full space-y-7 pb-8">
-                <header className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <header className="qr-admin-header-enter flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                     <div>
                         {(activeView === "create" || activeView === "preview") && (
                             <button
@@ -750,7 +751,7 @@ const QrGeneratorPage = () => {
 
                 {activeView === "main" && (
                     <>
-                        <section className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+                        <section className="qr-admin-stats-stagger grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
                             <StatCard
                                 icon={<Table2 size={28} />}
                                 title="Toplam Masa"
@@ -784,7 +785,7 @@ const QrGeneratorPage = () => {
                             />
                         </section>
 
-                        <section className="rounded-[24px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-3 shadow-[0_10px_30px_rgba(15,23,42,0.055)]">
+                        <section className="qr-admin-toolbar-enter rounded-[24px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-3 shadow-[0_10px_30px_rgba(15,23,42,0.055)]">
                             <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                                 <div className="flex w-full flex-col gap-3 md:flex-row xl:w-auto">
                                     <div className="relative w-full xl:w-[430px]">
@@ -865,8 +866,8 @@ const QrGeneratorPage = () => {
                         </section>
 
                         <section>
-                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                                {filteredTables.map((table) => {
+                            <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                                {filteredTables.map((table, tableIndex) => {
                                     const sessionGuestCount = getSessionGuestCount(table.id);
                                     const tableHasActiveSession = hasActiveSession(table.id);
                                     const qrImage = cardQrImages[table.id];
@@ -874,6 +875,11 @@ const QrGeneratorPage = () => {
                                     return (
                                         <div
                                             key={table.id}
+                                            style={
+                                                {
+                                                    "--qr-card-delay": `${Math.min(tableIndex, 10) * 42}ms`,
+                                                } as CSSProperties
+                                            }
                                             className="group rounded-[24px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-4 shadow-[0_10px_30px_rgba(15,23,42,0.055)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_18px_45px_rgba(15,23,42,0.09)]"
                                         >
                                             <div className="flex items-start justify-between gap-4">
@@ -898,7 +904,7 @@ const QrGeneratorPage = () => {
                                                 </span>
                                             </div>
 
-                                            <div className="mt-6 grid grid-cols-[1fr_104px] gap-4">
+                                            <div className="mt-6 grid grid-cols-[1fr_112px] gap-4">
                                                 <div className="space-y-4">
                                                     <div>
                                                         <p className="text-xs font-bold text-[var(--qresto-muted)]">
@@ -942,7 +948,7 @@ const QrGeneratorPage = () => {
                                                 </div>
 
                                                 <div
-                                                    className={`flex h-[104px] w-[104px] items-center justify-center rounded-2xl border border-[var(--qresto-border)] bg-white p-2 shadow-sm ${
+                                                    className={`flex h-[112px] w-[112px] items-center justify-center rounded-2xl border border-[var(--qresto-border)] bg-white p-2 shadow-sm ${
                                                         table.active ? "" : "opacity-35 grayscale"
                                                     }`}
                                                 >
@@ -992,20 +998,20 @@ const QrGeneratorPage = () => {
                                                             </button>
                                                         </div>
 
-                                                        <div className="grid grid-cols-[1fr_1fr_44px] gap-2">
+                                                        <div className="grid grid-cols-[auto_minmax(0,1fr)_44px] gap-2">
                                                             <button
                                                                 type="button"
                                                                 onClick={() => openRefreshModal(table)}
-                                                                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] text-xs font-extrabold text-[var(--qresto-text)] transition-all hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
+                                                                className="flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-3 text-xs font-extrabold text-[var(--qresto-text)] transition-all hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
                                                             >
-                                                                <RefreshCw size={15} />
+                                                                <RefreshCw size={15} className="shrink-0" />
                                                                 Masayı Yenile
                                                             </button>
 
                                                             <button
                                                                 type="button"
                                                                 onClick={() => openEditModal(table)}
-                                                                className="flex h-10 items-center justify-center gap-2 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] text-xs font-extrabold text-[var(--qresto-text)] transition-all hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
+                                                                className="flex h-10 min-w-0 items-center justify-center gap-2 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] text-xs font-extrabold text-[var(--qresto-text)] transition-all hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)]"
                                                             >
                                                                 <Edit3 size={15} />
                                                                 Düzenle
@@ -1168,7 +1174,7 @@ const QrGeneratorPage = () => {
                 )}
 
                 {activeView === "create" && (
-                    <section className="mx-auto max-w-3xl rounded-[28px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-8 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                    <section className="qr-admin-panel-enter mx-auto max-w-3xl rounded-[28px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-8 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
                         <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--qresto-hover)] text-[var(--qresto-primary)]">
                             <Plus size={30} />
                         </div>
@@ -1221,7 +1227,7 @@ const QrGeneratorPage = () => {
                 )}
 
                 {activeView === "preview" && (
-                    <section className="rounded-[28px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+                    <section className="qr-admin-panel-enter rounded-[28px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
                         {!selectedQr ? (
                             <div className="py-20 text-center">
                                 <h2 className="text-3xl font-black text-[var(--qresto-text)]">

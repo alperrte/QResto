@@ -6,6 +6,8 @@ export type MenuDetailCartFeedbackVariant = "error" | "info";
 type MenuDetailCartFeedbackModalProps = {
     isOpen: boolean;
     variant: MenuDetailCartFeedbackVariant;
+    /** Boşsa varsayılan: hata için «Bir sorun oluştu», bilgi için «Bilgi». */
+    title?: string;
     message: string;
     onClose: () => void;
 };
@@ -13,6 +15,7 @@ type MenuDetailCartFeedbackModalProps = {
 const MenuDetailCartFeedbackModal = ({
     isOpen,
     variant,
+    title: titleProp,
     message,
     onClose,
 }: MenuDetailCartFeedbackModalProps) => {
@@ -40,7 +43,9 @@ const MenuDetailCartFeedbackModal = ({
 
     const isError = variant === "error";
 
-    const title = isError ? "Bir sorun oluştu" : "Bilgi";
+    const title =
+        titleProp?.trim() ||
+        (isError ? "Bir sorun oluştu" : "Bilgi");
 
     const panel = (
         <div

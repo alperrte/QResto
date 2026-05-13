@@ -11,6 +11,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+
 public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Long> {
 
     Optional<CustomerOrder> findByOrderNo(String orderNo);
@@ -30,6 +33,9 @@ public interface CustomerOrderRepository extends JpaRepository<CustomerOrder, Lo
     List<CustomerOrder> findByStatus(OrderStatus status);
 
     List<CustomerOrder> findByStatusIn(List<OrderStatus> statuses);
+
+    Page<CustomerOrder> findByStatusIn(List<OrderStatus> statuses, Pageable pageable);
+
     List<CustomerOrder> findByStatusInOrderByCreatedAtDesc(List<OrderStatus> statuses);
 
     List<CustomerOrder> findByCreatedAtBetween(LocalDateTime start, LocalDateTime end);

@@ -232,10 +232,12 @@ function RatingSettingsPage() {
 
     return (
         <div className="space-y-5">
-            <RatingPageHero
-                title="Değerlendirme Servisi Ayarları"
-                description="Ürün ve restoran değerlendirme akışlarını bu sayfadan yönetin."
-            />
+            <div className="qr-admin-header-enter">
+                <RatingPageHero
+                    title="Değerlendirme Servisi Ayarları"
+                    description="Ürün ve restoran değerlendirme akışlarını bu sayfadan yönetin."
+                />
+            </div>
 
             {errorMessage && (
                 <section className="rounded-2xl border border-red-500/30 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-500">
@@ -249,7 +251,7 @@ function RatingSettingsPage() {
                 </section>
             ) : settingsData ? (
                 <>
-                    <section className="grid gap-4 rounded-[24px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] md:grid-cols-3">
+                    <section className="qr-admin-stats-stagger grid gap-4 rounded-[24px] border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_8px_24px_rgba(15,23,42,0.06)] md:grid-cols-3">
                         <article className="flex items-center gap-4 md:border-r md:border-[var(--qresto-border)] md:pr-5">
                             <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[var(--qresto-hover)] text-[var(--qresto-primary)]">
                                 <LayoutGrid size={24} />
@@ -307,7 +309,7 @@ function RatingSettingsPage() {
                         </article>
                     </section>
 
-                    <section className="grid gap-4 lg:grid-cols-2">
+                    <section className="qr-admin-table-grid grid gap-4 lg:grid-cols-2">
                         {settings.map((setting) => {
                             const active = settingsData[setting.key];
                             const isSaving = savingKey === setting.key;

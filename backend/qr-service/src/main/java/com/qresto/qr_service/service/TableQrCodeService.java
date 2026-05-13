@@ -3,23 +3,16 @@ package com.qresto.qr_service.service;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.qrcode.QRCodeWriter;
 import com.qresto.qr_service.dto.response.TableQrCodeResponse;
-import com.qresto.qr_service.entity.GuestSession;
 import com.qresto.qr_service.entity.RestaurantTable;
 import com.qresto.qr_service.entity.TableQrCode;
-import com.qresto.qr_service.entity.TableSession;
-import com.qresto.qr_service.entity.enums.GuestSessionStatus;
 import com.qresto.qr_service.entity.enums.TableSessionStatus;
-import com.qresto.qr_service.repository.GuestSessionRepository;
 import com.qresto.qr_service.repository.RestaurantTableRepository;
 import com.qresto.qr_service.repository.TableQrCodeRepository;
-import com.qresto.qr_service.repository.TableSessionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -31,8 +24,7 @@ public class TableQrCodeService {
 
     private final TableQrCodeRepository qrRepository;
     private final RestaurantTableRepository tableRepository;
-    private final TableSessionRepository tableSessionRepository;
-    private final GuestSessionRepository guestSessionRepository;
+    private final TableSessionService tableSessionService;
 
     public TableQrCodeResponse generateQrCode(Long tableId) {
         RestaurantTable table = tableRepository.findById(tableId)
@@ -92,43 +84,12 @@ public class TableQrCodeService {
     }
 
     private void closeActiveSessionsForTable(Long tableId) {
-        List<TableSessionStatus> activeStatuses = List.of(
-                TableSessionStatus.ACTIVE,
-                TableSessionStatus.ORDERED,
-                TableSessionStatus.PAYMENT_PENDING
+        tableSessionService.closeActiveTableSessionsWithGuests(
+                tableId,
+                TableSessionStatus.CLOSED_BY_ADMIN,
+                "Closed because QR was refreshed",
+                "Closed because QR was refreshed"
         );
-
-        List<TableSession> activeSessions =
-                tableSessionRepository.findByRestaurantTableIdAndStatusIn(tableId, activeStatuses);
-
-        if (activeSessions.isEmpty()) {
-            return;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-
-        List<Long> tableSessionIds = activeSessions.stream()
-                .map(TableSession::getId)
-                .toList();
-
-        List<GuestSession> guestSessions =
-                guestSessionRepository.findByTableSessionIdIn(tableSessionIds);
-
-        guestSessions.forEach(guestSession -> {
-            guestSession.setStatus(GuestSessionStatus.CLOSED);
-            guestSession.setClosedAt(now);
-            guestSession.setCloseReason("Closed because QR was refreshed");
-        });
-
-        guestSessionRepository.saveAll(guestSessions);
-
-        activeSessions.forEach(tableSession -> {
-            tableSession.setStatus(TableSessionStatus.CLOSED_BY_ADMIN);
-            tableSession.setClosedAt(now);
-            tableSession.setCloseReason("Closed because QR was refreshed");
-        });
-
-        tableSessionRepository.saveAll(activeSessions);
     }
 
     private TableQrCodeResponse createNewQr(RestaurantTable table, int version) {

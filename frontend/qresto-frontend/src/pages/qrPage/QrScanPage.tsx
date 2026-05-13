@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { scanQr } from "../../services/qrService";
+import { clearGuestTableSessionStorage } from "../../utils/clearGuestTableSessionStorage";
 
 const generateDeviceToken = () => {
     let token = sessionStorage.getItem("deviceToken");
@@ -14,38 +15,34 @@ const generateDeviceToken = () => {
 };
 
 const QrScanPage = () => {
-    const [params] = useSearchParams();
+    const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const didScanRef = useRef(false);
+    const qrToken = searchParams.get("token");
+    /** Aynı token için başarılı taramayı tekrarlamayı önler; token değişince yeni QR mutlaka işlenir. */
+    const lastSuccessfulScanTokenRef = useRef<string | null>(null);
 
     useEffect(() => {
-        if (didScanRef.current) return;
-        didScanRef.current = true;
-
-        const token = params.get("token");
-
-        if (!token) {
+        if (!qrToken) {
             alert("QR geçersiz");
             return;
         }
 
+        if (lastSuccessfulScanTokenRef.current === qrToken) {
+            return;
+        }
+
+        let cancelled = false;
+
         const handleScan = async () => {
             try {
-                sessionStorage.removeItem("tableId");
-                sessionStorage.removeItem("tableNo");
-                sessionStorage.removeItem("tableName");
-                sessionStorage.removeItem("tableSessionId");
-                sessionStorage.removeItem("guestSessionId");
-
-                sessionStorage.removeItem("qresto_table_id");
-                sessionStorage.removeItem("qresto_table_no");
-                sessionStorage.removeItem("qresto_table_name");
-                sessionStorage.removeItem("qresto_table_session_id");
-                sessionStorage.removeItem("qresto_guest_session_id");
-                sessionStorage.removeItem("qresto_cart_id");
+                clearGuestTableSessionStorage();
 
                 const deviceToken = generateDeviceToken();
-                const data = await scanQr(token, deviceToken);
+                const data = await scanQr(qrToken, deviceToken);
+
+                if (cancelled) {
+                    return;
+                }
 
                 sessionStorage.setItem("tableId", String(data.table.id));
                 sessionStorage.setItem("tableNo", String(data.table.tableNo));
@@ -76,6 +73,7 @@ const QrScanPage = () => {
                     guestSessionId: data.guestSession.id,
                 });
 
+                lastSuccessfulScanTokenRef.current = qrToken;
                 navigate("/welcome");
             } catch (err) {
                 console.error(err);
@@ -83,8 +81,12 @@ const QrScanPage = () => {
             }
         };
 
-        handleScan();
-    }, [params, navigate]);
+        void handleScan();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [qrToken, navigate]);
 
     return (
         <div className="h-screen flex items-center justify-center bg-[#1F1713] text-white">
