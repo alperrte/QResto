@@ -4,6 +4,7 @@ import type {
     RestaurantTableResponse,
     TableQrCodeResponse,
     UpdateRestaurantTableRequest,
+    TableSessionResponse,
 } from "../types/qr.types";
 import { authStorage } from "../auth/authStorage";
 
@@ -96,3 +97,19 @@ export const scanQr = async (qrToken: string, deviceToken: string) => {
 
     return response.data;
 };
+
+export const getActiveSessionByTable = async (
+    tableId: number
+): Promise<TableSessionResponse | null> => {
+    try {
+        const response = await qrApi.get(`/table-sessions/active/table/${tableId}`);
+        return response.data;
+    } catch (error) {
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+            return null;
+        }
+
+        throw error;
+    }
+};
+
