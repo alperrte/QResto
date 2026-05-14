@@ -1,4 +1,5 @@
 import axios from "axios";
+import { getValidAccessToken } from "../auth/authToken";
 
 import type {
     AddCartItemRequest,
@@ -20,6 +21,16 @@ const orderApi = axios.create({
     headers: {
         "Content-Type": "application/json",
     },
+});
+
+orderApi.interceptors.request.use(async (config) => {
+    const token = await getValidAccessToken();
+
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
 });
 
 export const demoPayment = async (

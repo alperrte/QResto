@@ -114,4 +114,18 @@ public class OrderClient {
                 .retrieve()
                 .body(new ParameterizedTypeReference<List<OrderResponse>>() {});
     }
+
+    public OrderDetailResponse markOrderServed(Long orderId, String token) {
+        return restClientBuilder.build()
+                .patch()
+                .uri(orderServiceUrl + "/api/order/orders/{orderId}/status", orderId)
+                .headers(headers -> {
+                    if (token != null && !token.isBlank()) {
+                        headers.setBearerAuth(token);
+                    }
+                })
+                .body(java.util.Map.of("status", "SERVED"))
+                .retrieve()
+                .body(OrderDetailResponse.class);
+    }
 }

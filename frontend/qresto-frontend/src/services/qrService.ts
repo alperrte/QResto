@@ -6,14 +6,14 @@ import type {
     UpdateRestaurantTableRequest,
     TableSessionResponse,
 } from "../types/qr.types";
-import { authStorage } from "../auth/authStorage";
+import { getValidAccessToken } from "../auth/authToken";
 
 const qrApi = axios.create({
     baseURL: import.meta.env.VITE_QR_SERVICE_URL || "http://localhost:7072/api",
 });
 
-qrApi.interceptors.request.use((config) => {
-    const accessToken = authStorage.getAccessToken();
+qrApi.interceptors.request.use(async (config) => {
+    const accessToken = await getValidAccessToken();
 
     if (accessToken) {
         config.headers.Authorization = `Bearer ${accessToken}`;
@@ -105,7 +105,7 @@ export const getActiveSessionByTable = async (
         const response = await qrApi.get(`/table-sessions/active/table/${tableId}`);
         return response.data;
     } catch (error) {
-        if (axios.isAxiosError(error) && error.response?.status === 404) {
+        if (axios.isAxiosError(error) && (error.response?.status === 400 || error.response?.status === 404)) {
             return null;
         }
 

@@ -62,10 +62,12 @@ public class KitchenOrderService {
     }
 
     public void markOrderServedForWaiter(Long orderId) {
-        KitchenOrder kitchenOrder = kitchenOrderRepository.findById(orderId)
+        KitchenOrder kitchenOrder = kitchenOrderRepository.findByOrderId(orderId)
                 .orElseThrow(() ->
                         new ResourceNotFoundException("Sipariş bulunamadı")
                 );
+
+        orderClient.updateOrderStatus(orderId, "SERVED");
 
         kitchenOrder.setStatus(KitchenOrderStatus.SERVIS_EDILDI);
         kitchenOrder.setUpdatedAt(LocalDateTime.now());

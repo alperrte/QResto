@@ -11,6 +11,7 @@ import WelcomeServiceModal, {
 } from "./components/WelcomeServiceModal";
 import { createTableCall } from "../../services/waiterService";
 import { getOrdersByTableSession } from "../../services/orderService";
+import { getActiveSessionByTable } from "../../services/qrService";
 import type { OrderResponse } from "../../types/cartTypes";
 
 import {
@@ -32,6 +33,9 @@ const readTableSessionId = (): number | null => {
 };
 
 const countSessionOrdersForListButton = (orders: OrderResponse[]): number =>
+  orders.filter((o) => o.status !== "CANCELLED").length;
+
+const countBillableSessionOrders = (orders: OrderResponse[]): number =>
   orders.filter((o) => o.status !== "CANCELLED").length;
 
 /** Bildirim + sallanma: ödendi (PAID) ve iptal hariç */
@@ -222,6 +226,40 @@ const WelcomePage = () => {
     const callType: "WAITER_CALL" | "BILL_REQUEST" =
         activeServiceModal === "bill" ? "BILL_REQUEST" : "WAITER_CALL";
 
+    let activeSessionId: number | null = null;
+
+    try {
+      const activeSession = await getActiveSessionByTable(tableId);
+      activeSessionId = activeSession?.id ?? null;
+    } catch (error) {
+      console.error(error);
+      setServiceModalError("Masa oturumu kontrol edilemedi. Lütfen tekrar deneyin.");
+      return;
+    }
+
+    if (!activeSessionId) {
+      setServiceModalError(
+          callType === "BILL_REQUEST"
+              ? "Masa oturumu kapandığı için hesap talep edemezsiniz."
+              : "Masa oturumu kapandığı için garson çağıramazsınız."
+      );
+      return;
+    }
+
+    if (callType === "BILL_REQUEST") {
+      try {
+        const activeSessionOrders = await getOrdersByTableSession(activeSessionId);
+        if (countBillableSessionOrders(activeSessionOrders) === 0) {
+          setServiceModalError("Sipariş vermeden hesap talep edemezsiniz.");
+          return;
+        }
+      } catch (error) {
+        console.error(error);
+        setServiceModalError("Sipariş bilgisi kontrol edilemedi. Lütfen tekrar deneyin.");
+        return;
+      }
+    }
+
     const message =
         callType === "WAITER_CALL"
             ? "Garson çağırma talebi"
@@ -319,6 +357,7 @@ const WelcomePage = () => {
         modalType={activeServiceModal}
         step={serviceModalStep}
         tableName={tableName}
+        errorMessage={serviceModalError}
         onClose={handleCloseServiceModal}
         onConfirm={handleConfirmServiceCall}
       />
