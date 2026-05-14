@@ -2,21 +2,22 @@ import { useEffect, useMemo, useState } from "react";
 import {
     ArchiveX,
     CalendarClock,
-    CircleDollarSign,
-    ClipboardList,
+    Clock3,
     Loader2,
-    MapPin,
     PackageX,
+    Search,
+    Table2,
+    XCircle,
 } from "lucide-react";
 
 import { getAdminCancelledOrders } from "../../services/orderService";
-import type { OrderItemResponse, OrderResponse } from "../../types/cartTypes";
+import type { OrderResponse } from "../../types/cartTypes";
 import {
     formatOrderClock,
     formatRelativeTr,
     itemCountLabel,
-    summarizeOrderItems,
 } from "./kitchenOrderUi";
+import "../../styles/adminPageAnimations.css";
 
 function parseBackendDate(iso?: string | null): Date | null {
     if (!iso) {
@@ -46,10 +47,6 @@ function formatCancelledDate(iso?: string | null): string {
     });
 }
 
-function safeMoney(value?: number | null): string {
-    return `${Number(value ?? 0).toFixed(2)} ₺`;
-}
-
 function cancelledSortTime(order: OrderResponse): number {
     return (
         parseBackendDate(order.cancelledAt)?.getTime() ||
@@ -59,26 +56,46 @@ function cancelledSortTime(order: OrderResponse): number {
     );
 }
 
-function cancelledReasonForOrder(order: OrderResponse): string {
-    return order.cancelReason?.trim() || "İptal nedeni belirtilmedi.";
+function cancelledAtForOrder(order: OrderResponse): string | null {
+    return order.cancelledAt || order.updatedAt || order.createdAt || null;
 }
 
-function cancelledReasonForItem(
-    item: OrderItemResponse,
-    order: OrderResponse
-): string {
-    return item.cancelReason?.trim() || order.cancelReason?.trim() || "İptal nedeni belirtilmedi.";
+function cancelledReasonForOrder(order: OrderResponse): string {
+    return order.cancelReason?.trim() || "İptal nedeni belirtilmedi";
+}
+
+function orderProductsText(order: OrderResponse, limit = 2): string {
+    const items = order.items ?? [];
+
+    if (items.length === 0) {
+        return "Ürün bilgisi yok";
+    }
+
+    const visibleItems = items
+        .slice(0, limit)
+        .map((item) => `${item.quantity}x ${item.productName}`);
+    const hiddenCount = items.length - visibleItems.length;
+
+    return hiddenCount > 0
+        ? `${visibleItems.join(", ")} +${hiddenCount} ürün`
+        : visibleItems.join(", ");
+}
+
+function normalizeSearch(value?: string | number | null): string {
+    return String(value ?? "").toLocaleLowerCase("tr-TR").trim();
 }
 
 export default function KitchenCancelledOrdersPage() {
     const [orders, setOrders] = useState<OrderResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [searchQuery, setSearchQuery] = useState("");
+
 
     useEffect(() => {
         let cancelled = false;
 
-        async function loadCancelledOrders() {
+        async function load() {
             try {
                 setError(null);
                 const data = await getAdminCancelledOrders();
@@ -99,7 +116,7 @@ export default function KitchenCancelledOrdersPage() {
             }
         }
 
-        void loadCancelledOrders();
+        void load();
 
         return () => {
             cancelled = true;
@@ -111,72 +128,130 @@ export default function KitchenCancelledOrdersPage() {
         [orders]
     );
 
-    const totalCancelledAmount = useMemo(
-        () => sortedOrders.reduce((sum, order) => sum + Number(order.totalAmount ?? 0), 0),
+    const filteredOrders = useMemo(() => {
+        const query = normalizeSearch(searchQuery);
+
+        return sortedOrders.filter((order) => {
+            const tableName = order.tableName || `Masa #${order.tableId}`;
+            const reason = cancelledReasonForOrder(order);
+
+            const searchableText = [
+                order.orderNo,
+                order.id,
+                tableName,
+                reason,
+                ...(order.items ?? []).flatMap((item) => [
+                    item.productName,
+                    item.note,
+                    item.addedIngredients,
+                    item.removedIngredients,
+                ]),
+            ].map(normalizeSearch).join(" ");
+
+            return !query || searchableText.includes(query);
+        });
+    }, [searchQuery, sortedOrders]);
+
+    const cancelledItemCount = useMemo(
+        () => sortedOrders.reduce((sum, order) => sum + (order.items?.length ?? 0), 0),
         [sortedOrders]
     );
 
+
+    const affectedTableCount = useMemo(
+        () =>
+            new Set(
+                sortedOrders.map((order) => order.tableName || `Masa #${order.tableId}`)
+            ).size,
+        [sortedOrders]
+    );
+
+
+    const summaryCards = [
+        {
+            title: "Toplam İptal",
+            value: sortedOrders.length,
+            description: "Kayıtlı iptal",
+            Icon: XCircle,
+            className: "bg-red-500/10 text-red-600 ring-red-500/15 dark:text-red-300",
+        },
+        {
+            title: "İptal Edilen Ürün",
+            value: cancelledItemCount,
+            description: "Toplam ürün",
+            Icon: PackageX,
+            className: "bg-orange-500/10 text-[var(--qresto-primary)] ring-orange-500/15",
+        },
+        {
+            title: "Etkilenen Masa",
+            value: affectedTableCount,
+            description: "Farklı masa",
+            Icon: Table2,
+            className: "bg-sky-500/10 text-sky-600 ring-sky-500/15 dark:text-sky-300",
+        },
+    ] as const;
+
     return (
-        <div className="space-y-5">
-            <section className="grid gap-4 lg:grid-cols-3">
-                <article className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                    <div className="flex items-center gap-4">
-                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-[var(--qresto-primary)]">
-                            <PackageX size={25} />
-                        </span>
-                        <div className="min-w-0">
-                            <p className="truncate text-sm font-black text-[var(--qresto-text)]">
-                                İptal Edilen Siparişler
-                            </p>
-                            <p className="mt-1 text-3xl font-black text-[var(--qresto-primary)]">
-                                {sortedOrders.length}
-                            </p>
-                            <p className="mt-0.5 text-xs font-semibold text-[var(--qresto-muted)]">
-                                Kayıtlı iptal
-                            </p>
-                        </div>
-                    </div>
-                </article>
+        <div className="admin-page-enter min-h-full space-y-5">
+            <section className="flex flex-col gap-4 rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_14px_36px_rgba(15,23,42,0.06)] lg:flex-row lg:items-center lg:justify-between">
+                <div className="min-w-0">
+                    <h1 className="text-2xl font-black text-[var(--qresto-text)] md:text-3xl">
+                        İptal Edilen Siparişler
+                    </h1>
+                    <p className="mt-1 text-sm font-semibold text-[var(--qresto-muted)]">
+                        İptal edilen siparişleri, nedenlerini ve detaylarını görüntüleyin.
+                    </p>
+                </div>
 
-                <article className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                    <div className="flex items-center gap-4">
-                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-orange-500/10 text-orange-600">
-                            <CircleDollarSign size={25} />
-                        </span>
-                        <div className="min-w-0">
-                            <p className="truncate text-sm font-black text-[var(--qresto-text)]">
-                                İptal Tutarı
-                            </p>
-                            <p className="mt-1 text-3xl font-black text-[var(--qresto-text)]">
-                                {safeMoney(totalCancelledAmount)}
-                            </p>
-                            <p className="mt-0.5 text-xs font-semibold text-[var(--qresto-muted)]">
-                                Toplam değer
-                            </p>
-                        </div>
-                    </div>
-                </article>
-
-                <article className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
-                    <div className="flex items-center gap-4">
-                        <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-600">
-                            <ClipboardList size={25} />
-                        </span>
-                        <div className="min-w-0">
-                            <p className="truncate text-sm font-black text-[var(--qresto-text)]">
-                                Ürün Detayı
-                            </p>
-                            <p className="mt-1 text-3xl font-black text-violet-600">
-                                {sortedOrders.reduce((sum, order) => sum + (order.items?.length ?? 0), 0)}
-                            </p>
-                            <p className="mt-0.5 text-xs font-semibold text-[var(--qresto-muted)]">
-                                İptal satırı
-                            </p>
-                        </div>
-                    </div>
-                </article>
             </section>
 
+            <section className="grid gap-4 md:grid-cols-3">
+                {summaryCards.map((card) => (
+                    <article
+                        key={card.title}
+                        className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-[0_10px_28px_rgba(15,23,42,0.05)] transition hover:-translate-y-0.5 hover:border-[var(--qresto-border-strong)] hover:shadow-[0_16px_34px_rgba(15,23,42,0.08)]"
+                    >
+                        <div className="flex items-center gap-4">
+                            <span className={`flex h-13 w-13 shrink-0 items-center justify-center rounded-2xl ring-1 ${card.className}`}>
+                                <card.Icon size={24} />
+                            </span>
+                            <div className="min-w-0">
+                                <p className="truncate text-sm font-black text-[var(--qresto-text)]">
+                                    {card.title}
+                                </p>
+                                <p className="mt-1 text-3xl font-black text-[var(--qresto-text)]">
+                                    {loading ? "..." : card.value}
+                                </p>
+                                <p className="mt-0.5 text-xs font-semibold text-[var(--qresto-muted)]">
+                                    {card.description}
+                                </p>
+                            </div>
+                        </div>
+                    </article>
+                ))}
+            </section>
+
+            <section className="rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-4 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+                <div className="max-w-md">
+                    <label className="block">
+            <span className="mb-1.5 block text-xs font-black text-[var(--qresto-muted)]">
+                Arama
+            </span>
+
+                        <span className="flex h-12 items-center gap-2 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-3 transition focus-within:border-[var(--qresto-primary)] focus-within:ring-4 focus-within:ring-orange-500/10">
+                <Search size={17} className="shrink-0 text-[var(--qresto-primary)]" />
+
+                <input
+                    type="search"
+                    value={searchQuery}
+                    onChange={(event) => setSearchQuery(event.target.value)}
+                    placeholder="Sipariş No, Masa No, Ürün Ara..."
+                    className="min-w-0 flex-1 bg-transparent text-sm font-bold text-[var(--qresto-text)] outline-none placeholder:text-[var(--qresto-muted)]"
+                />
+            </span>
+                    </label>
+                </div>
+            </section>
             {error ? (
                 <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm font-bold text-red-600">
                     {error}
@@ -200,178 +275,87 @@ export default function KitchenCancelledOrdersPage() {
             ) : null}
 
             {!loading && !error && sortedOrders.length > 0 ? (
-                <section className="space-y-4">
-                    {sortedOrders.map((order) => {
-                        const cancelledAt = order.cancelledAt || order.updatedAt || order.createdAt;
-                        const reason = cancelledReasonForOrder(order);
+                <section className="overflow-hidden rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-[0_14px_36px_rgba(15,23,42,0.06)]">
 
-                        return (
-                            <article
-                                key={order.id}
-                                className="overflow-hidden rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] shadow-[0_12px_32px_rgba(15,23,42,0.06)]"
-                            >
-                                <div className="grid gap-4 border-b border-[var(--qresto-border)] bg-[var(--qresto-bg)]/60 px-6 py-5 lg:grid-cols-[1fr_auto] lg:items-start">
+
+                    <div className="divide-y divide-[var(--qresto-border)]">
+                        {filteredOrders.map((order, index) => {
+                            const cancelledAt = cancelledAtForOrder(order);
+                            const reason = cancelledReasonForOrder(order);
+
+                            return (
+                                <article
+                                    key={order.id}
+                                    className="grid gap-4 bg-[var(--qresto-surface)] px-4 py-4 transition hover:bg-[var(--qresto-hover)] lg:grid-cols-[minmax(220px,1.1fr)_minmax(260px,1.2fr)_minmax(220px,1fr)_minmax(190px,0.85fr)] lg:items-center lg:px-5"
+                                    style={{ "--admin-page-item-delay": `${index * 28}ms` } as React.CSSProperties}
+                                >
+                                    <div className="flex min-w-0 items-center gap-3">
+                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500/10 text-red-600 ring-1 ring-red-500/20 dark:text-red-300">
+                                            <XCircle size={19} />
+                                        </span>
+                                        <div className="min-w-0">
+                                            <p className="truncate text-sm font-black text-[var(--qresto-text)]">
+                                                #{order.orderNo || order.id}
+                                            </p>
+                                            <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-bold text-[var(--qresto-muted)]">
+                                                <Table2 size={13} />
+                                                {order.tableName || `Masa #${order.tableId}`}
+                                            </p>
+                                        </div>
+                                    </div>
+
                                     <div className="min-w-0">
-                                        <div className="flex flex-wrap items-center gap-3">
-                                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-orange-500/10 text-[var(--qresto-primary)]">
-                                                <PackageX size={20} />
-                                            </span>
-                                            <div className="min-w-0">
-                                                <h3 className="truncate text-lg font-black text-[var(--qresto-text)]">
-                                                    {order.tableName || `Masa #${order.tableId}`}
-                                                </h3>
-                                                <p className="mt-0.5 text-xs font-bold text-[var(--qresto-muted)]">
-                                                    #{order.orderNo || order.id}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="mt-4 rounded-2xl border border-orange-500/20 bg-orange-500/10 px-4 py-3">
-                                            <p className="text-xs font-black uppercase tracking-wide text-[var(--qresto-primary)]">
-                                                İptal nedeni
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <p className="min-w-0 truncate text-sm font-black text-[var(--qresto-text)]">
+                                                {orderProductsText(order, 2)}
                                             </p>
-                                            <p className="mt-1 text-sm font-bold text-[var(--qresto-text)]">
-                                                {reason}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="grid gap-2 text-sm sm:grid-cols-2 lg:min-w-80 lg:grid-cols-1">
-                                        <div className="flex items-center gap-2 rounded-2xl bg-[var(--qresto-surface)] px-4 py-3">
-                                            <CalendarClock size={18} className="text-[var(--qresto-primary)]" />
-                                            <div>
-                                                <p className="text-xs font-bold text-[var(--qresto-muted)]">
-                                                    İptal zamanı
-                                                </p>
-                                                <p className="font-black text-[var(--qresto-text)]">
-                                                    {formatCancelledDate(cancelledAt)} - {formatOrderClock(cancelledAt)}
-                                                </p>
-                                                <p className="text-xs font-bold text-[var(--qresto-muted)]">
-                                                    {formatRelativeTr(cancelledAt)}
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-2 rounded-2xl bg-[var(--qresto-surface)] px-4 py-3">
-                                            <CircleDollarSign size={18} className="text-[var(--qresto-primary)]" />
-                                            <div>
-                                                <p className="text-xs font-bold text-[var(--qresto-muted)]">
-                                                    Sipariş tutarı
-                                                </p>
-                                                <p className="font-black text-[var(--qresto-text)]">
-                                                    {safeMoney(order.totalAmount)}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="grid gap-5 px-6 py-5 lg:grid-cols-[1.2fr_1fr]">
-                                    <div>
-                                        <div className="flex items-center justify-between gap-3">
-                                            <p className="text-xs font-black uppercase tracking-wide text-[var(--qresto-primary)]">
-                                                İptal edilen ürünler
-                                            </p>
-                                            <span className="rounded-full bg-[var(--qresto-bg)] px-3 py-1 text-xs font-black text-[var(--qresto-text)]">
+                                            <span className="shrink-0 rounded-full bg-[var(--qresto-bg)] px-2.5 py-1 text-[11px] font-black text-[var(--qresto-text)] ring-1 ring-[var(--qresto-border)]">
                                                 {itemCountLabel(order)}
                                             </span>
                                         </div>
-
-                                        <ul className="mt-3 space-y-3">
-                                            {(order.items ?? []).map((item, index) => (
-                                                <li
-                                                    key={item.id ?? `${item.productId}-${index}`}
-                                                    className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4"
-                                                >
-                                                    <div className="flex items-start justify-between gap-3">
-                                                        <div className="min-w-0">
-                                                            <p className="font-black text-[var(--qresto-text)]">
-                                                                {item.quantity}x {item.productName}
-                                                            </p>
-                                                            <p className="mt-1 text-xs font-bold text-[var(--qresto-muted)]">
-                                                                Ürün iptal nedeni: {cancelledReasonForItem(item, order)}
-                                                            </p>
-                                                        </div>
-                                                        <p className="shrink-0 text-sm font-black text-red-600">
-                                                            {safeMoney(item.lineTotal)}
-                                                        </p>
-                                                    </div>
-
-                                                    {item.note ? (
-                                                        <p className="mt-2 rounded-xl bg-[var(--qresto-surface)] px-3 py-2 text-xs font-semibold text-[var(--qresto-muted)]">
-                                                            Not: {item.note}
-                                                        </p>
-                                                    ) : null}
-
-                                                    {item.addedIngredients ? (
-                                                        <p className="mt-2 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs font-bold text-emerald-700">
-                                                            Eklenen: {item.addedIngredients}
-                                                        </p>
-                                                    ) : null}
-
-                                                    {item.removedIngredients ? (
-                                                        <p className="mt-2 rounded-xl bg-red-500/10 px-3 py-2 text-xs font-bold text-red-600">
-                                                            Çıkarılan: {item.removedIngredients}
-                                                        </p>
-                                                    ) : null}
-                                                </li>
-                                            ))}
-                                        </ul>
                                     </div>
 
-                                    <div className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4">
-                                        <p className="text-xs font-black uppercase tracking-wide text-[var(--qresto-primary)]">
-                                            Sipariş özeti
+                                    <div className="min-w-0">
+                                        <span className="inline-flex max-w-full rounded-full bg-red-500/10 px-2.5 py-1 text-[11px] font-black text-red-600 ring-1 ring-red-500/15 dark:text-red-300">
+                                            <span className="truncate">İptal nedeni</span>
+                                        </span>
+                                        <p className="mt-1.5 line-clamp-2 text-xs font-semibold text-[var(--qresto-muted)]">
+                                            {reason}
                                         </p>
-
-                                        <div className="mt-4 space-y-3 text-sm">
-                                            <div className="flex items-center justify-between gap-3">
-                                                <span className="inline-flex items-center gap-2 font-bold text-[var(--qresto-muted)]">
-                                                    <MapPin size={16} />
-                                                    Masa
-                                                </span>
-                                                <span className="font-black text-[var(--qresto-text)]">
-                                                    {order.tableName || `Masa #${order.tableId}`}
-                                                </span>
-                                            </div>
-
-                                            <div className="flex items-center justify-between gap-3">
-                                                <span className="inline-flex items-center gap-2 font-bold text-[var(--qresto-muted)]">
-                                                    <ClipboardList size={16} />
-                                                    İçerik
-                                                </span>
-                                                <span className="text-right font-black text-[var(--qresto-text)]">
-                                                    {summarizeOrderItems(order, 48)}
-                                                </span>
-                                            </div>
-
-                                            <div className="border-t border-[var(--qresto-border)] pt-3">
-                                                <div className="flex items-center justify-between gap-3">
-                                                    <span className="font-bold text-[var(--qresto-muted)]">
-                                                        Ara toplam
-                                                    </span>
-                                                    <span className="font-black text-[var(--qresto-text)]">
-                                                        {safeMoney(order.subtotalAmount)}
-                                                    </span>
-                                                </div>
-
-                                                <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-[var(--qresto-surface)] px-3 py-2">
-                                                    <span className="font-black text-[var(--qresto-text)]">
-                                                        İptal edilen toplam
-                                                    </span>
-                                                    <span className="font-black text-red-600">
-                                                        {safeMoney(order.totalAmount)}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
                                     </div>
-                                </div>
-                            </article>
-                        );
-                    })}
+
+                                    <div className="text-xs font-bold text-[var(--qresto-muted)]">
+                                        <p className="inline-flex items-center gap-1.5 font-black text-[var(--qresto-text)]">
+                                            <CalendarClock size={14} className="text-[var(--qresto-primary)]" />
+                                            {formatCancelledDate(cancelledAt)} - {formatOrderClock(cancelledAt)}
+                                        </p>
+                                        <p className="mt-1 inline-flex items-center gap-1.5 text-red-600 dark:text-red-300">
+                                            <Clock3 size={13} />
+                                            {formatRelativeTr(cancelledAt)}
+                                        </p>
+                                    </div>
+
+                                </article>
+                            );
+                        })}
+                    </div>
+
+                    {filteredOrders.length === 0 ? (
+                        <div className="px-6 py-12 text-center">
+                            <ArchiveX size={34} className="mx-auto text-[var(--qresto-muted)]" />
+                            <p className="mt-3 text-sm font-black text-[var(--qresto-text)]">
+                                Filtrelere uygun iptal siparişi bulunamadı.
+                            </p>
+                        </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-5 py-4 text-sm font-bold text-[var(--qresto-muted)]">
+                        <span>{filteredOrders.length} iptal siparişi gösteriliyor</span>
+                        <span>Toplam kayıt: {sortedOrders.length}</span>
+                    </div>
                 </section>
             ) : null}
+
         </div>
     );
 }

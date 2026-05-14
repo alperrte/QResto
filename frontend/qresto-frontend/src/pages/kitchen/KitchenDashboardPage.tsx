@@ -1,14 +1,12 @@
-import { useState } from "react";
 import { CheckCircle2, ChefHat, ShoppingCart, XCircle } from "lucide-react";
 
 import KitchenOrderList from "../../components/kitchen/KitchenOrderList";
 import { useKitchenBoardOrders } from "../../hooks/useKitchenBoardOrders";
-import { countByStatus, todayIsoDate } from "./kitchenOrderUi";
+import { countByStatus } from "./kitchenOrderUi";
 
 function KitchenDashboardPage() {
     const { orders, loading, error, reload } = useKitchenBoardOrders();
-    const [dateKey, setDateKey] = useState(todayIsoDate);
-    const counts = countByStatus(orders, dateKey);
+    const counts = countByStatus(orders);
 
     const kitchenCards = [
         {
@@ -81,8 +79,7 @@ function KitchenDashboardPage() {
                 enableStatusControls={false}
                 onMutateSuccess={() => reload()}
                 listTitle="Sipariş Listesi"
-                dateKey={dateKey}
-                onDateChange={setDateKey}
+                initialTab="received"
             />
         </div>
     );

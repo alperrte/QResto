@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import {
-    CalendarDays,
     CheckCircle2,
     ChevronDown,
-    ClipboardList,
     Hourglass,
     ImageOff,
     Loader2,
+    Search,
     ShoppingCart,
     XCircle,
 } from "lucide-react";
@@ -28,7 +27,6 @@ import {
     summarizeOrderItems,
     type KitchenPipelineStatus,
     type KitchenTab,
-    uniqueTableNames,
 } from "../../pages/kitchen/kitchenOrderUi";
 
 const MENU_SERVICE_BASE_URL =
@@ -57,8 +55,6 @@ type KitchenOrderListProps = {
     enableStatusControls: boolean;
     onMutateSuccess: () => void | Promise<void>;
     listTitle?: string;
-    dateKey: string;
-    onDateChange: (iso: string) => void;
     showSelectedDetail?: boolean;
     initialTab?: KitchenTab;
 };
@@ -125,7 +121,7 @@ function CancelOrderModal({
     busy: boolean;
     instanceKey: string;
 }) {
-    const [reason, setReason] = useState("Mutfak iptali");
+    const [reason, setReason] = useState("");
 
     useEffect(() => {
         if (!open) {
@@ -133,7 +129,7 @@ function CancelOrderModal({
         }
 
         const timeoutId = window.setTimeout(() => {
-            setReason("Mutfak iptali");
+            setReason("");
         }, 0);
 
         return () => {
@@ -162,6 +158,7 @@ function CancelOrderModal({
                 <textarea
                     value={reason}
                     onChange={(e) => setReason(e.target.value)}
+                    placeholder="İptal nedenini yazın"
                     rows={3}
                     className="mt-4 w-full resize-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-4 py-3 text-sm font-medium text-[var(--qresto-text)] outline-none transition focus:border-[var(--qresto-primary)] focus:ring-4 focus:ring-orange-500/10"
                 />
@@ -207,6 +204,33 @@ function lineKey(line: OrderItemResponse, index: number): string {
     return String(line.id ?? `${line.productId}-${index}`);
 }
 
+function normalizeSearch(value?: string | number | null): string {
+    return String(value ?? "").toLocaleLowerCase("tr-TR").trim();
+}
+
+function orderMatchesSearch(order: OrderResponse, query: string): boolean {
+    if (!query) {
+        return true;
+    }
+
+    const searchableText = [
+        order.tableName,
+        order.tableId,
+        order.orderNo,
+        order.id,
+        ...(order.items ?? []).flatMap((item) => [
+            item.productName,
+            item.note,
+            item.addedIngredients,
+            item.removedIngredients,
+        ]),
+    ]
+        .map(normalizeSearch)
+        .join(" ");
+
+    return searchableText.includes(query);
+}
+
 export default function KitchenOrderList({
                                              orders,
                                              loading,
@@ -214,40 +238,44 @@ export default function KitchenOrderList({
                                              enableStatusControls,
                                              onMutateSuccess,
                                              listTitle = "Sipariş Listesi",
-                                             dateKey,
-                                             onDateChange,
                                              showSelectedDetail = true,
                                              initialTab = "all",
                                          }: KitchenOrderListProps) {
     const [tab, setTab] = useState<KitchenTab>(initialTab);
-    const [tableFilter, setTableFilter] = useState<string>("all");
+    const [searchQuery, setSearchQuery] = useState("");
     const [expandedId, setExpandedId] = useState<number | null>(null);
     const [cancelTarget, setCancelTarget] = useState<OrderResponse | null>(null);
     const [busyId, setBusyId] = useState<number | null>(null);
 
-    const tables = useMemo(() => uniqueTableNames(orders), [orders]);
-    const counts = useMemo(() => countByStatus(orders, dateKey), [orders, dateKey]);
+    const counts = useMemo(() => countByStatus(orders), [orders]);
+    const normalizedSearchQuery = useMemo(
+        () => normalizeSearch(searchQuery),
+        [searchQuery]
+    );
 
     const visible = useMemo(
-        () => filterOrdersForKitchenView(orders, tab, tableFilter, dateKey),
-        [orders, tab, tableFilter, dateKey]
+        () =>
+            filterOrdersForKitchenView(orders, tab, "all").filter((order) =>
+                orderMatchesSearch(order, normalizedSearchQuery)
+            ),
+        [orders, tab, normalizedSearchQuery]
     );
 
     const selectedOrder = useMemo(
-        () => visible.find((order) => order.id === expandedId) ?? visible[0] ?? null,
+        () => visible.find((order) => order.id === expandedId) ?? null,
         [visible, expandedId]
     );
 
     const filterTabs = [
-        { key: "received", label: "Aktif Siparişler", count: counts.received },
+        { key: "received", label: "Aktif Siparişler", count: counts.received + counts.preparing },
         { key: "preparing", label: "Hazırlanıyor", count: counts.preparing },
         { key: "ready", label: "Hazır", count: counts.ready },
         { key: "cancelled", label: "İptal Edilen", count: counts.cancelledToday },
         { key: "all", label: "Tümü", count: orders.length },
     ] as const;
 
-    const selectRow = (id: number) => {
-        setExpandedId(id);
+    const toggleRow = (id: number) => {
+        setExpandedId((currentId) => (currentId === id ? null : id));
     };
 
     const handleStatusChange = async (
@@ -323,42 +351,18 @@ export default function KitchenOrderList({
                     <h2 className="text-xl font-black text-[var(--qresto-text)] md:text-2xl">
                         {listTitle}
                     </h2>
-                    <p className="mt-1 text-xs font-semibold text-[var(--qresto-muted)]">
-                        Toplam {orders.length} sipariş içinde {visible.length} kayıt gösteriliyor.
-                    </p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3">
-                    <label className="flex items-center gap-2 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-3 py-2 text-sm font-semibold text-[var(--qresto-text)] transition focus-within:border-[var(--qresto-primary)] focus-within:ring-4 focus-within:ring-orange-500/10">
-                        <CalendarDays size={18} className="text-[var(--qresto-primary)]" />
-                        <input
-                            type="date"
-                            value={dateKey}
-                            onChange={(e) => onDateChange(e.target.value)}
-                            className="bg-transparent font-medium outline-none"
-                        />
-                    </label>
-
-                    <div className="relative">
-                        <select
-                            value={tableFilter}
-                            onChange={(e) => setTableFilter(e.target.value)}
-                            className="appearance-none rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] py-2.5 pl-4 pr-10 text-sm font-bold text-[var(--qresto-text)] outline-none transition focus:border-[var(--qresto-primary)] focus:ring-4 focus:ring-orange-500/10"
-                        >
-                            <option value="all">Tüm Masalar</option>
-                            {tables.map((t) => (
-                                <option key={t} value={t}>
-                                    {t}
-                                </option>
-                            ))}
-                        </select>
-
-                        <ChevronDown
-                            size={16}
-                            className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--qresto-muted)]"
-                        />
-                    </div>
-                </div>
+                <label className="flex w-full items-center gap-3 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] px-4 py-3 text-sm font-semibold text-[var(--qresto-text)] transition focus-within:border-[var(--qresto-primary)] focus-within:ring-4 focus-within:ring-orange-500/10 md:w-[360px]">
+                    <Search size={19} className="shrink-0 text-[var(--qresto-primary)]" />
+                    <input
+                        type="search"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Masa ara"
+                        className="min-w-0 flex-1 bg-transparent font-bold outline-none placeholder:text-[var(--qresto-muted)]"
+                    />
+                </label>
             </div>
 
             <div className="border-b border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-6 py-4">
@@ -413,9 +417,7 @@ export default function KitchenOrderList({
             ) : null}
 
             <div
-                className={`grid gap-4 bg-[var(--qresto-bg)]/35 p-4 ${
-                    showSelectedDetail ? "xl:grid-cols-[minmax(0,1fr)_390px]" : ""
-                }`}
+                className="grid gap-4 bg-[var(--qresto-bg)]/35 p-4"
             >
             <ul className="space-y-3">
                 {visible.map((order) => {
@@ -434,24 +436,20 @@ export default function KitchenOrderList({
                     return (
                         <li
                             key={order.id}
-                            className={`overflow-hidden rounded-2xl border bg-[var(--qresto-surface)] shadow-[0_8px_22px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.07)] ${
-                                selected
-                                    ? "border-orange-500/35 ring-4 ring-orange-500/10"
-                                    : "border-[var(--qresto-border)]"
+                            className={`overflow-hidden rounded-2xl border border-l-4 bg-[var(--qresto-surface)] shadow-[0_8px_22px_rgba(15,23,42,0.045)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_30px_rgba(15,23,42,0.08)] ${
+                                expanded || selected
+                                    ? "border-orange-500/35 border-l-[var(--qresto-primary)] ring-4 ring-orange-500/10"
+                                    : "border-[var(--qresto-border)] border-l-[var(--qresto-primary)]/70"
                             }`}
                         >
                             <div
-                                className={`grid gap-3 px-3 py-3 md:px-4 ${
-                                    showSelectedDetail ? "cursor-pointer" : ""
-                                } ${
+                                className={`grid cursor-pointer gap-3 bg-gradient-to-r from-orange-500/[0.035] via-transparent to-transparent px-3 py-3 md:px-4 ${
                                     showActions
-                                        ? "lg:grid-cols-[auto_minmax(150px,0.9fr)_minmax(220px,1.3fr)_110px_95px_115px_auto] lg:items-center"
-                                        : "lg:grid-cols-[auto_minmax(150px,0.9fr)_minmax(220px,1.4fr)_110px_95px_115px] lg:items-center"
+                                        ? "lg:grid-cols-[auto_minmax(150px,0.9fr)_minmax(220px,1.3fr)_110px_95px_115px_auto_auto] lg:items-center"
+                                        : "lg:grid-cols-[auto_minmax(150px,0.9fr)_minmax(220px,1.4fr)_110px_95px_115px_auto] lg:items-center"
                                 }`}
                                 onClick={() => {
-                                    if (showSelectedDetail) {
-                                        selectRow(order.id);
-                                    }
+                                    toggleRow(order.id);
                                 }}
                             >
                                 <ProductImageThumb
@@ -469,6 +467,15 @@ export default function KitchenOrderList({
                                     <p className="mt-0.5 truncate text-xs font-bold text-[var(--qresto-muted)]">
                                         #{order.orderNo || order.id}
                                     </p>
+
+                                    <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-bold text-[var(--qresto-muted)]">
+                                        <span className="rounded-full bg-[var(--qresto-bg)] px-2 py-0.5 ring-1 ring-[var(--qresto-border)]">
+                                            Masa
+                                        </span>
+                                        <span className="rounded-full bg-[var(--qresto-bg)] px-2 py-0.5 ring-1 ring-[var(--qresto-border)]">
+                                            {itemCountLabel(order)}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div className="min-w-0">
@@ -544,9 +551,24 @@ export default function KitchenOrderList({
                                         </button>
                                     </div>
                                 ) : null}
+
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        toggleRow(order.id);
+                                    }}
+                                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] text-[var(--qresto-muted)] transition hover:border-[var(--qresto-primary)] hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)]"
+                                    aria-label={expanded ? "Detayı kapat" : "Detayı aç"}
+                                >
+                                    <ChevronDown
+                                        size={18}
+                                        className={`transition-transform ${expanded ? "rotate-180" : ""}`}
+                                    />
+                                </button>
                             </div>
 
-                            {false && expanded ? (
+                            {!showSelectedDetail && expanded ? (
                                 <div className="border-t border-[var(--qresto-border)] bg-[var(--qresto-bg)]/70 px-4 py-4 md:px-6">
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                         <p className="text-xs font-black uppercase tracking-wide text-[var(--qresto-primary)]">
@@ -594,7 +616,7 @@ export default function KitchenOrderList({
                                                         </div>
 
                                                         {line.note ? (
-                                                            <p className="mt-2 rounded-xl bg-[var(--qresto-bg)] px-3 py-2 text-xs font-semibold text-[var(--qresto-muted)]">
+                                                            <p className="mt-2 rounded-xl bg-sky-500/10 px-3 py-2 text-xs font-black text-sky-950 ring-1 ring-sky-500/25 dark:text-sky-200">
                                                                 Not: {line.note}
                                                             </p>
                                                         ) : null}
@@ -616,25 +638,6 @@ export default function KitchenOrderList({
                                         ))}
                                     </ul>
 
-                                    <div className="mt-4 grid gap-2 border-t border-[var(--qresto-border)] pt-4 text-sm md:grid-cols-2">
-                                        <div className="rounded-2xl bg-[var(--qresto-surface)] px-4 py-3">
-                                            <p className="text-xs font-bold text-[var(--qresto-muted)]">
-                                                Ara toplam
-                                            </p>
-                                            <p className="mt-1 font-black text-[var(--qresto-text)]">
-                                                {safeMoney(order.subtotalAmount)}
-                                            </p>
-                                        </div>
-
-                                        <div className="rounded-2xl bg-[var(--qresto-surface)] px-4 py-3">
-                                            <p className="text-xs font-bold text-[var(--qresto-muted)]">
-                                                Genel toplam
-                                            </p>
-                                            <p className="mt-1 font-black text-[var(--qresto-primary)]">
-                                                {safeMoney(order.totalAmount)}
-                                            </p>
-                                        </div>
-                                    </div>
                                 </div>
                             ) : null}
                         </li>
@@ -642,18 +645,29 @@ export default function KitchenOrderList({
                 })}
             </ul>
 
-            {showSelectedDetail ? (
-            <aside className="sticky top-28 h-fit rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-4 shadow-[0_12px_28px_rgba(15,23,42,0.06)]">
+            {showSelectedDetail && selectedOrder ? (
+            <div
+                className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 p-4"
+                onClick={() => setExpandedId(null)}
+            >
+            <aside
+                className="max-h-[calc(100vh-2rem)] w-full max-w-xl overflow-y-auto rounded-3xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-4 shadow-2xl"
+                onClick={(event) => event.stopPropagation()}
+            >
                 <div className="flex items-center justify-between gap-3">
                     <h3 className="text-lg font-black text-[var(--qresto-text)]">
                         Seçili Sipariş Detayı
                     </h3>
-                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--qresto-bg)] text-[var(--qresto-muted)]">
-                        <ClipboardList size={18} />
-                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setExpandedId(null)}
+                        className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--qresto-bg)] text-[var(--qresto-muted)] transition hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)]"
+                        aria-label="Detayı kapat"
+                    >
+                        <XCircle size={18} />
+                    </button>
                 </div>
 
-                {selectedOrder ? (
                     <div className="mt-4 space-y-4">
                         {(() => {
                             const cfg = statusBadgeConfig(selectedOrder.status);
@@ -811,13 +825,10 @@ export default function KitchenOrderList({
                             );
                         })()}
                     </div>
-                ) : (
-                    <p className="mt-4 rounded-2xl bg-[var(--qresto-bg)] px-4 py-8 text-center text-sm font-bold text-[var(--qresto-muted)]">
-                        Detay görüntülemek için bir sipariş seçin.
-                    </p>
-                )}
+                
 
             </aside>
+            </div>
             ) : null}
             </div>
 

@@ -3,6 +3,7 @@ import { Navigate, Route } from "react-router-dom";
 import KitchenLayout from "../../layout/KitchenLayout/KitchenLayout";
 import KitchenDashboardPage from "../../pages/kitchen/KitchenDashboardPage";
 import KitchenOrdersPage from "../../pages/kitchen/KitchenOrdersPage";
+import KitchenCompletedOrdersPage from "../../pages/kitchen/KitchenCompletedOrdersPage";
 import KitchenCancelledOrdersPage from "../../pages/kitchen/KitchenCancelledOrdersPage";
 
 export const kitchenRoutes = (
@@ -10,6 +11,7 @@ export const kitchenRoutes = (
         <Route index element={<Navigate to="/app/kitchen/dashboard" replace />} />
         <Route path="dashboard" element={<KitchenDashboardPage />} />
         <Route path="orders" element={<KitchenOrdersPage />} />
+        <Route path="completed-orders" element={<KitchenCompletedOrdersPage />} />
         <Route path="cancelled-orders" element={<KitchenCancelledOrdersPage />} />
     </Route>
 );
