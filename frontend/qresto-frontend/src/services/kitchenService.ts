@@ -1,12 +1,13 @@
 import axios from "axios";
 import orderApi from "./orderService";
+import { getValidAccessToken } from "../auth/authToken";
 
 const kitchenApi = axios.create({
     baseURL: "http://localhost:7076/api",
 });
 
-kitchenApi.interceptors.request.use((config) => {
-    const token = localStorage.getItem("accessToken") || localStorage.getItem("token");
+kitchenApi.interceptors.request.use(async (config) => {
+    const token = await getValidAccessToken();
 
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;

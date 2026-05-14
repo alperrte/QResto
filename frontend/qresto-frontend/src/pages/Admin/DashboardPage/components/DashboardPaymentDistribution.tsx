@@ -7,7 +7,7 @@ type DashboardPaymentDistributionProps = {
 
 function DashboardPaymentDistribution({ totalOrders }: DashboardPaymentDistributionProps) {
     const gradient = buildConicGradientFromSlices(DEMO_PAYMENT_SLICES);
-    const center = totalOrders > 0 ? totalOrders : DEMO_PAYMENT_SLICES.reduce((a, s) => a + s.orderCount, 0);
+    const center = totalOrders > 20 ? totalOrders : DEMO_PAYMENT_SLICES.reduce((a, s) => a + s.orderCount, 0);
 
     return (
         <article className="dashboard-card-surface dashboard-ambient-shadow rounded-[32px] p-6">

@@ -167,7 +167,12 @@ public class WaiterService {
 
     public void markOrderServed(Long orderId, String authHeader) {
         String token = extractToken(authHeader);
-        kitchenClient.markOrderServed(orderId, token);
+        orderClient.markOrderServed(orderId, token);
+
+        try {
+            kitchenClient.markOrderServed(orderId, token);
+        } catch (Exception ignored) {
+        }
     }
 
     private String extractToken(String authHeader) {

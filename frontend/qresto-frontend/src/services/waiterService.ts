@@ -1,57 +1,9 @@
 import axios from "axios";
-import { refreshTokenRequest } from "../auth/authService";
-import { authStorage } from "../auth/authStorage";
+import { getAuthHeader } from "../auth/authToken";
 
 export const WAITER_API_URL = "http://localhost:7074";
 const QR_API_URL =
     import.meta.env.VITE_QR_SERVICE_URL || "http://localhost:7072/api";
-
-let refreshPromise: Promise<string | null> | null = null;
-
-function getTokenExpMs(token: string | null) {
-    if (!token) return 0;
-
-    try {
-        const payload = JSON.parse(atob(token.split(".")[1])) as { exp?: number };
-        return payload.exp ? payload.exp * 1000 : 0;
-    } catch {
-        return 0;
-    }
-}
-
-async function getValidAccessToken() {
-    const token =
-        authStorage.getAccessToken() ||
-        localStorage.getItem("token") ||
-        localStorage.getItem("accessToken");
-
-    const expMs = getTokenExpMs(token);
-    const shouldRefresh = token && expMs > 0 && expMs - Date.now() < 90_000;
-
-    if (!shouldRefresh) return token;
-
-    if (!refreshPromise) {
-        refreshPromise = refreshTokenRequest(authStorage.getRefreshToken() || "")
-            .then((response) => {
-                authStorage.setTokens(response);
-                return response.accessToken;
-            })
-            .catch(() => token)
-            .finally(() => {
-                refreshPromise = null;
-            });
-    }
-
-    return refreshPromise;
-}
-
-async function getAuthHeader() {
-    const token = await getValidAccessToken();
-
-    return {
-        Authorization: token ? `Bearer ${token}` : "",
-    };
-}
 
 export type TableCallType = "WAITER_CALL" | "BILL_REQUEST" | "HELP_REQUEST";
 export type TableCallStatus = "ACTIVE" | "RESOLVED" | "CANCELLED";
