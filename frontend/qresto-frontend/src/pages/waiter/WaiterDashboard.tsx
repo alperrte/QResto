@@ -44,11 +44,12 @@ import {
     type TableCallType,
     type TableSessionResponse,
 } from "../../services/waiterService";
-import { getRecentCompletedOrders } from "../../services/orderService";
+import { getAdminCancelledOrders, getRecentCompletedOrders } from "../../services/orderService";
 import type { OrderResponse } from "../../types/cartTypes";
 
 type TableVisualStatus = "occupied" | "ordered" | "bill" | "waiter" | "empty";
 type WaiterView = "dashboard" | "tables" | "orders" | "calls" | "payments";
+type TableStatusCounts = Record<TableVisualStatus, number>;
 
 const viewMeta: Record<WaiterView, { title: string; subtitle: string }> = {
     dashboard: {
@@ -139,7 +140,21 @@ function ensureArray<T>(value: unknown): T[] {
 }
 
 function normalizeOrderStatus(status?: string) {
-    return (status || "UNKNOWN").toUpperCase();
+    const normalized = (status || "UNKNOWN").toUpperCase();
+    switch (normalized) {
+        case "YENI":
+            return "RECEIVED";
+        case "HAZIRLANIYOR":
+            return "PREPARING";
+        case "HAZIR":
+            return "READY";
+        case "SERVIS_EDILDI":
+            return "SERVED";
+        case "IPTAL_EDILDI":
+            return "CANCELLED";
+        default:
+            return normalized;
+    }
 }
 
 function isOrderArchived(status?: string) {
@@ -156,6 +171,10 @@ function isPaymentPending(status?: string) {
     return normalizeOrderStatus(status) === "PAYMENT_PENDING";
 }
 
+function isTableOrderIndicator(status?: string) {
+    return ["RECEIVED", "PREPARING", "READY", "PAYMENT_PENDING"].includes(normalizeOrderStatus(status));
+}
+
 function mergeKitchenOrderRow(
     existing: KitchenOrderResponse | undefined,
     incoming: KitchenOrderResponse
@@ -166,6 +185,18 @@ function mergeKitchenOrderRow(
         existing?.tableSessionId != null
     ) {
         merged.tableSessionId = existing.tableSessionId;
+    }
+    if ((incoming.tableId === undefined || incoming.tableId === null) && existing?.tableId != null) {
+        merged.tableId = existing.tableId;
+    }
+    if ((incoming.tableNumber === undefined || incoming.tableNumber === null) && existing?.tableNumber != null) {
+        merged.tableNumber = existing.tableNumber;
+    }
+    if (!incoming.orderNumber && existing?.orderNumber) {
+        merged.orderNumber = existing.orderNumber;
+    }
+    if ((incoming.totalAmount === undefined || incoming.totalAmount === null) && existing?.totalAmount != null) {
+        merged.totalAmount = existing.totalAmount;
     }
     return merged;
 }
@@ -376,6 +407,7 @@ const [
     activeOrdersResult,
     readyOrdersResult,
     cancelledOrdersResult,
+    adminCancelledOrdersResult,
     completedRecentResult,
 ] = await Promise.allSettled([
     getAllCalls(),
@@ -383,6 +415,7 @@ const [
     getActiveOrders(),
     getReadyOrders(),
     getCancelledOrders(),
+    getAdminCancelledOrders(),
     getRecentCompletedOrders(40),
 ]);
 
@@ -426,16 +459,22 @@ const [
                     ? ensureArray<OrderResponse>(completedRecentResult.value).map(orderResponseToKitchenRow)
                     : [];
 
+            const adminCancelledRows =
+                adminCancelledOrdersResult.status === "fulfilled"
+                    ? ensureArray<OrderResponse>(adminCancelledOrdersResult.value).map(orderResponseToKitchenRow)
+                    : [];
+
            const fetched = [
-    ...(activeOrdersResult.status === "fulfilled"
-        ? ensureArray<KitchenOrderResponse>(activeOrdersResult.value)
-        : []),
     ...(readyOrdersResult.status === "fulfilled"
         ? ensureArray<KitchenOrderResponse>(readyOrdersResult.value)
         : []),
     ...(cancelledOrdersResult.status === "fulfilled"
         ? ensureArray<KitchenOrderResponse>(cancelledOrdersResult.value)
         : []),
+    ...(activeOrdersResult.status === "fulfilled"
+        ? ensureArray<KitchenOrderResponse>(activeOrdersResult.value)
+        : []),
+    ...adminCancelledRows,
     ...completedRecentRows,
 ];
 
@@ -468,6 +507,7 @@ const [
                 activeOrdersResult.status === "fulfilled" ||
                 readyOrdersResult.status === "fulfilled" ||
                 cancelledOrdersResult.status === "fulfilled" ||
+                adminCancelledOrdersResult.status === "fulfilled" ||
                 completedRecentResult.status === "fulfilled"
             ) {
                 setOrders((prev) => {
@@ -734,6 +774,18 @@ const [
         () => orders.filter((order) => !isOrderArchived(order.status)),
         [orders]
     );
+    const kitchenPipelineOrders = useMemo(
+        () =>
+            orders
+                .filter((order) => ["PREPARING", "READY"].includes(normalizeOrderStatus(order.status)))
+                .sort((a, b) => {
+                    const aReady = normalizeOrderStatus(a.status) === "READY";
+                    const bReady = normalizeOrderStatus(b.status) === "READY";
+                    if (aReady !== bReady) return aReady ? -1 : 1;
+                    return getDateTimeMs(a.createdAt || a.updatedAt) - getDateTimeMs(b.createdAt || b.updatedAt);
+                }),
+        [orders]
+    );
     const archivedOrders = useMemo(
         () => orders.filter((order) => isOrderArchived(order.status)),
         [orders]
@@ -764,7 +816,7 @@ const [
     const activeOrderByTableId = useMemo(() => {
         const map = new Map<number, KitchenOrderResponse>();
         activeOrders.forEach((order) => {
-            if (order.tableId) map.set(order.tableId, order);
+            if (order.tableId && isTableOrderIndicator(order.status)) map.set(order.tableId, order);
         });
         return map;
     }, [activeOrders]);
@@ -784,6 +836,19 @@ const [
         year: "numeric",
     });
     const sidebarLogo = isDark ? darkLogo : lightLogo;
+
+    useEffect(() => {
+        const previousBodyOverflow = document.body.style.overflow;
+        const previousHtmlOverflow = document.documentElement.style.overflow;
+
+        document.body.style.overflow = "hidden";
+        document.documentElement.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.overflow = previousBodyOverflow;
+            document.documentElement.style.overflow = previousHtmlOverflow;
+        };
+    }, []);
 
     function toggleTheme() {
         const next = !isDark;
@@ -840,6 +905,30 @@ const [
         if (activeSession || isHeld || tableCalls.length > 0) return "occupied";
         return "empty";
     }
+
+    const tableStatusCounts = useMemo<TableStatusCounts>(() => {
+        const counts: TableStatusCounts = {
+            occupied: 0,
+            ordered: 0,
+            bill: 0,
+            waiter: 0,
+            empty: 0,
+        };
+
+        tables.forEach((table) => {
+            counts[getTableStatus(table)] += 1;
+        });
+
+        return counts;
+    }, [
+        activeCallByTableId,
+        activeOrderByTableId,
+        activeTableSessionByTableId,
+        heldTableTimestamps,
+        orderDetails,
+        orders,
+        tables,
+    ]);
 
     function getProductSummary(order: KitchenOrderResponse) {
         const detail = orderDetails[order.orderId];
@@ -909,6 +998,13 @@ const [
         try {
             setOrderActionLoadingId(orderId);
             await markOrderServed(orderId);
+            setOrders((prev) =>
+                prev.map((order) =>
+                    order.orderId === orderId
+                        ? { ...order, status: "SERVED", updatedAt: new Date().toISOString() }
+                        : order
+                )
+            );
             await loadDashboard();
             return true;
         } catch (err) {
@@ -931,7 +1027,7 @@ const [
     }
 
     return (
-        <div className="flex min-h-screen bg-[var(--qresto-bg)] text-[var(--qresto-text)]">
+        <div className="flex h-screen overflow-hidden bg-[var(--qresto-bg)] text-[var(--qresto-text)]">
             <aside className="sticky left-0 top-0 hidden h-screen w-[250px] shrink-0 flex-col bg-[var(--qresto-sidebar)] lg:flex">
                 <div className="flex h-[92px] w-[250px] shrink-0 items-center justify-center overflow-hidden border-b border-[var(--qresto-border-strong)] bg-[var(--qresto-sidebar)]">
                     <img
@@ -942,7 +1038,7 @@ const [
                     />
                 </div>
 
-                <nav className="flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-6">
+                <nav className="qresto-panel-scroll flex flex-1 flex-col gap-2 overflow-y-auto px-4 py-6">
                     <Link
                         to="/app/waiter/dashboard"
                         className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition-all duration-200 ${
@@ -980,7 +1076,7 @@ const [
                 </div>
             </aside>
 
-            <main className="min-w-0 flex-1">
+            <main className="flex h-screen min-w-0 flex-1 flex-col overflow-hidden">
                 <header className="sticky top-0 z-30 flex h-[92px] items-center justify-between border-b border-[var(--qresto-border-strong)] bg-[var(--qresto-surface)] px-5 shadow-[0_1px_10px_rgba(15,23,42,0.06)] md:px-7">
                     <div>
                         <h1 className="text-3xl font-bold text-[var(--qresto-text)]">{viewMeta[currentView].title}</h1>
@@ -1007,7 +1103,13 @@ const [
                     </div>
                 </header>
 
-                <div className="p-4 md:p-6">
+                <div
+                    className={
+                        currentView === "dashboard"
+                            ? "qresto-panel-scroll h-[calc(100vh-92px)] overflow-y-auto p-4 md:p-6"
+                            : "qresto-panel-scroll h-[calc(100vh-92px)] overflow-y-auto p-4 md:p-6"
+                    }
+                >
                     {error ? (
                         <div className="mb-5 flex items-center gap-3 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 py-3 text-sm">
                             <TriangleAlert size={18} className="text-[var(--qresto-primary)]" />
@@ -1019,6 +1121,9 @@ const [
                         <div className="space-y-5">
                             {currentView === "tables" ? (
                                 <DashboardCard title="Masalar" count={tables.length}>
+                                    <div className="mb-4 flex flex-wrap justify-end gap-4 text-xs font-bold text-[var(--qresto-muted)]">
+                                        <TableStatusLegend counts={tableStatusCounts} />
+                                    </div>
                                     {initialLoading ? <LoadingBox text="Masalar yükleniyor..." /> : null}
                                     {!initialLoading && tables.length === 0 ? <EmptyBox text="Henüz masa bulunamadı." /> : null}
                                     <TableCardsGrid
@@ -1103,14 +1208,12 @@ const [
                             ) : null}
                         </div>
                     ) : (
+                    <div className="min-h-full space-y-5">
                     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
                         <div className="space-y-5">
-                            <section id="tables" className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-sm">
-                                <SectionTitle title="Masalar">
-                                    <LegendDot color={tableStatusMeta.ordered.color} label="Sipariş Verildi" />
-                                    <LegendDot color={tableStatusMeta.bill.color} label="Hesap İstendi" />
-                                    <LegendDot color={tableStatusMeta.waiter.color} label="Garson Çağırdı" />
-                                    <LegendDot color={tableStatusMeta.empty.color} label="Boş" />
+                            <section id="tables" className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-4 shadow-sm">
+                                <SectionTitle title="Masalar" count={tables.length}>
+                                    <TableStatusLegend counts={tableStatusCounts} />
                                 </SectionTitle>
 
                                 {initialLoading ? <LoadingBox text="Masalar yükleniyor..." /> : null}
@@ -1124,12 +1227,14 @@ const [
                                 />
                             </section>
 
-                            <section id="orders" className="grid grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)]">
+                            <section id="orders" className="grid items-stretch grid-cols-1 gap-5 2xl:grid-cols-[minmax(0,1.45fr)_minmax(320px,0.75fr)]">
                                 <DashboardCard
                                     title="Aktif Siparişler"
                                     actionLabel="Tümünü Gör"
                                     actionTo="/app/waiter/orders"
                                     count={activeOrders.length}
+                                    className="h-full"
+                                    bodyClassName="qresto-panel-scroll h-[185px] overflow-y-auto pr-1"
                                 >
                                     <OrdersTable
                                         orders={activeOrders}
@@ -1148,58 +1253,49 @@ const [
                                     actionLabel="Tümünü Gör"
                                     actionTo="/app/waiter/orders"
                                     count={archivedOrders.length}
+                                    className="h-full"
+                                    bodyClassName="qresto-panel-scroll h-[185px] overflow-y-auto pr-1"
                                 >
                                     <RecentOrdersList
-                                        orders={archivedOrders.slice(0, 6)}
+                                        orders={archivedOrders.slice(0, 5)}
                                         getProductSummary={getProductSummary}
                                         getTableDisplayName={getTableDisplayName}
                                         onOpenDetail={handleOpenOrderDetail}
                                     />
                                 </DashboardCard>
                             </section>
+
+                            <DashboardCard title="Mutfak Sipariş Akışı" count={kitchenPipelineOrders.length} bodyClassName="qresto-panel-scroll qresto-panel-scroll-x h-[118px] overflow-x-auto overflow-y-hidden pb-2">
+                                <KitchenPipelineOrderCards
+                                    orders={kitchenPipelineOrders}
+                                    loading={initialLoading}
+                                    getProductSummary={getProductSummary}
+                                    getTableDisplayName={getTableDisplayName}
+                                    orderActionLoadingId={orderActionLoadingId}
+                                    onOpenDetail={handleOpenOrderDetail}
+                                    onMarkServed={handleMarkOrderServed}
+                                />
+                            </DashboardCard>
                         </div>
 
                         <aside className="space-y-5">
-                            <DashboardCard id="calls" title="Garson Çağrıları" actionLabel="Tümünü Gör" actionTo="/app/waiter/calls" count={activeCalls.length}>
+                            <DashboardCard id="calls" title="Garson Çağrıları" actionLabel="Tümünü Gör" actionTo="/app/waiter/calls" count={activeCalls.length} bodyClassName="qresto-panel-scroll h-[500px] overflow-y-scroll pr-1">
                                 <CallsList
-                                    calls={activeCalls.slice(0, 5)}
+                                    calls={activeCalls}
                                     actionLoadingId={actionLoadingId}
                                     getTableDisplayName={getTableDisplayName}
                                     onOpenDetail={setSelectedCall}
                                     onAskResolve={setConfirmResolveCall}
                                 />
                             </DashboardCard>
-
-                            <DashboardCard id="payments" title="Ödeme Durumları" actionLabel="Tümünü Gör" actionTo="/app/waiter/payments" count={paymentRows.length}>
+                            <DashboardCard id="payments" title="Ödeme Durumları" actionLabel="Tümünü Gör" actionTo="/app/waiter/payments" count={paymentRows.length} bodyClassName="qresto-panel-scroll h-[190px] overflow-y-scroll pr-1">
                                 <PaymentStatusList
-                                    rows={paymentRows.slice(0, 6)}
+                                    rows={paymentRows}
                                     getTableDisplayName={getTableDisplayName}
                                 />
                             </DashboardCard>
-
-                            <DashboardCard title="Geçmiş Çağrılar" actionLabel="Tümünü Gör" actionTo="/app/waiter/calls" count={archivedCalls.length}>
-                                <ArchivedCallsList
-                                    calls={archivedCalls.slice(0, 5)}
-                                    getTableDisplayName={getTableDisplayName}
-                                    onOpenDetail={setSelectedCall}
-                                />
-                            </DashboardCard>
-
-                            <div className="grid grid-cols-1 gap-4">
-                                <SummaryCard
-                                    icon={<WalletCards size={24} />}
-                                    title="Toplam Ciro"
-                                    value={formatMoney(paidTotal)}
-                                    tone="green"
-                                />
-                                <SummaryCard
-                                    icon={<CreditCard size={24} />}
-                                    title="Bekleyen Ödeme"
-                                    value={String(pendingPaymentCount)}
-                                    tone="orange"
-                                />
-                            </div>
                         </aside>
+                    </div>
                     </div>
                     )}
                 </div>
@@ -1289,10 +1385,17 @@ function SidebarJump({
     );
 }
 
-function SectionTitle({ title, children }: { title: string; children?: ReactNode }) {
+function SectionTitle({ title, count, children }: { title: string; count?: number; children?: ReactNode }) {
     return (
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <h2 className="text-lg font-black">{title}</h2>
+            <div className="flex items-center gap-2">
+                <h2 className="text-lg font-black">{title}</h2>
+                {typeof count === "number" ? (
+                    <span className="rounded-full bg-[var(--qresto-hover)] px-2.5 py-1 text-xs font-black text-[var(--qresto-primary)]">
+                        {count}
+                    </span>
+                ) : null}
+            </div>
             {children ? (
                 <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-[var(--qresto-muted)]">
                     {children}
@@ -1308,6 +1411,8 @@ function DashboardCard({
     actionLabel,
     actionTo,
     count,
+    className = "",
+    bodyClassName = "",
     children,
 }: {
     id?: string;
@@ -1315,10 +1420,12 @@ function DashboardCard({
     actionLabel?: string;
     actionTo?: string;
     count?: number;
+    className?: string;
+    bodyClassName?: string;
     children: ReactNode;
 }) {
     return (
-        <section id={id} className="rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-sm">
+        <section id={id} className={`rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] p-5 shadow-sm ${className}`}>
             <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                     <h2 className="text-lg font-black">{title}</h2>
@@ -1336,7 +1443,7 @@ function DashboardCard({
                     <span className="text-xs font-black text-[#2f80ed]">{actionLabel}</span>
                 ) : null}
             </div>
-            {children}
+            <div className={bodyClassName}>{children}</div>
         </section>
     );
 }
@@ -1352,9 +1459,21 @@ function TableCardsGrid({
     activeCallByTableId: Map<number, TableCallResponse[]>;
     onOpenCallConfirm: (call: TableCallResponse) => void;
 }) {
+    const pageSize = 12;
+    const [page, setPage] = useState(0);
+    const pageCount = Math.max(1, Math.ceil(tables.length / pageSize));
+    const paginated = tables.slice(page * pageSize, page * pageSize + pageSize);
+
+    useEffect(() => {
+        if (page >= pageCount) {
+            setPage(pageCount - 1);
+        }
+    }, [page, pageCount]);
+
     return (
-        <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-            {tables.map((table) => {
+        <div className="mt-4">
+            <div key={page} className="qresto-table-page-fade grid min-h-[197px] grid-cols-2 grid-rows-6 gap-2.5 sm:grid-rows-3 md:grid-cols-4 md:grid-rows-3 2xl:grid-cols-6 2xl:grid-rows-2">
+            {paginated.map((table) => {
                 const status = getTableStatus(table);
                 const meta = tableStatusMeta[status];
                 const tableCalls = activeCallByTableId.get(table.id) || [];
@@ -1368,31 +1487,31 @@ function TableCardsGrid({
                     <button
                         key={table.id}
                         type="button"
-                        disabled={!actionableCall}
+                        aria-disabled={!actionableCall}
                         onClick={() => {
                             if (actionableCall) {
                                 onOpenCallConfirm(actionableCall);
                             }
                         }}
-                        className={`relative min-h-[150px] rounded-xl border p-4 text-left shadow-sm transition ${
+                        className={`relative min-h-[92px] rounded-lg border p-2.5 text-left shadow-sm transition ${
                             actionableCall
                                 ? "cursor-pointer hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--qresto-primary)] focus:ring-offset-2"
-                                : "cursor-default"
+                                : "cursor-default focus:outline-none"
                         }`}
                         style={{ borderColor: meta.border, background: meta.bg }}
                     >
-                        <div className="absolute right-3 top-3 flex gap-1.5">
+                        <div className="absolute right-2 top-2 flex gap-1">
                             {hasWaiterCall ? <AlertBubble color="#7c4dff" icon={<Bell size={14} />} /> : null}
                             {hasBillCall ? <AlertBubble color="#2f80ed" icon={<ReceiptText size={14} />} /> : null}
                         </div>
 
-                        <h2 className="text-lg font-black text-[#111827]">{table.name}</h2>
-                        <p className="mt-1 text-sm font-semibold text-[#475569]">
+                        <h2 className="pr-10 text-sm font-black text-[#111827]">{table.name}</h2>
+                        <p className="mt-0.5 text-xs font-semibold text-[#475569]">
                             {table.capacity || "-"} Kişilik
                         </p>
 
                         <div
-                            className={`mt-6 flex items-center gap-3 font-black ${
+                            className={`mt-3 flex items-center gap-1.5 text-xs font-black ${
                                 status === "waiter" || status === "bill" ? "qresto-alert-bounce" : ""
                             }`}
                             style={{ color: meta.color }}
@@ -1403,6 +1522,33 @@ function TableCardsGrid({
                     </button>
                 );
             })}
+            </div>
+
+            {pageCount > 1 ? (
+                <div className="mt-3 flex items-center justify-end gap-2">
+                    <span className="text-xs font-black text-[var(--qresto-muted)]">
+                        {page + 1} / {pageCount}
+                    </span>
+                    <button
+                        type="button"
+                        onClick={() => setPage((current) => Math.max(0, current - 1))}
+                        disabled={page === 0}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--qresto-border)] text-[var(--qresto-text)] transition hover:bg-[var(--qresto-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Önceki masa sayfası"
+                    >
+                        <ChevronRight size={16} className="rotate-180" />
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+                        disabled={page === pageCount - 1}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--qresto-border)] text-[var(--qresto-text)] transition hover:bg-[var(--qresto-hover)] disabled:cursor-not-allowed disabled:opacity-40"
+                        aria-label="Sonraki masa sayfası"
+                    >
+                        <ChevronRight size={16} />
+                    </button>
+                </div>
+            ) : null}
         </div>
     );
 }
@@ -1430,7 +1576,7 @@ function OrdersTable({
     if (loading) return <LoadingBox text="Siparişler yükleniyor..." />;
     if (orders.length === 0) return <EmptyBox text="Aktif sipariş yok." />;
 
-    const visibleOrders = limit ? orders.slice(0, 7) : orders;
+    const visibleOrders = limit ? orders.slice(0, 4) : orders;
 
     return (
         <div className="w-full overflow-hidden">
@@ -1439,9 +1585,9 @@ function OrdersTable({
                     <tr>
                         <th className="w-[18%] px-2 py-3">Masa</th>
                         <th className="w-[34%] px-2 py-3">Ürünler</th>
-                        <th className="w-[18%] px-2 py-3">Durum</th>
-                        <th className="w-[18%] px-2 py-3">Sipariş Saati</th>
-                        <th className="w-[12%] px-2 py-3" />
+                        <th className="w-[16%] px-2 py-3">Durum</th>
+                        <th className="w-[20%] px-2 py-3 text-right">Sipariş Saati</th>
+                        <th className="w-[10%] px-2 py-3" />
                     </tr>
                 </thead>
                 <tbody>
@@ -1471,7 +1617,7 @@ function OrdersTable({
                             <td className="px-2 py-3">
                                 <StatusPill status={order.status} />
                             </td>
-                            <td className="px-2 py-3 text-xs font-black text-[var(--qresto-muted)]">
+                            <td className="px-2 py-3 text-right text-xs font-black text-[var(--qresto-muted)]">
                                 {formatDateTime(order.createdAt)}
                             </td>
                             <td className="px-2 py-3 pr-6">
@@ -1504,6 +1650,95 @@ function OrdersTable({
     );
 }
 
+function KitchenPipelineOrderCards({
+    orders,
+    loading,
+    getProductSummary,
+    getTableDisplayName,
+    orderActionLoadingId,
+    onOpenDetail,
+    onMarkServed,
+}: {
+    orders: KitchenOrderResponse[];
+    loading: boolean;
+    getProductSummary: (order: KitchenOrderResponse) => string;
+    getTableDisplayName: (tableId?: number, tableNumber?: number) => string;
+    orderActionLoadingId: number | null;
+    onOpenDetail: (order: KitchenOrderResponse) => void;
+    onMarkServed: (orderId: number) => void;
+}) {
+    if (loading) return <LoadingBox text="Mutfak siparişleri yükleniyor..." />;
+    if (orders.length === 0) return <EmptyBox text="Hazırlanan veya hazır sipariş yok." />;
+
+    return (
+        <div className="flex w-max min-w-full gap-3">
+            {orders.map((order) => {
+                const ready = normalizeOrderStatus(order.status) === "READY";
+
+                return (
+                    <article
+                        key={order.orderId}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => onOpenDetail(order)}
+                        onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault();
+                                onOpenDetail(order);
+                            }
+                        }}
+                        className={`flex h-[92px] w-[286px] shrink-0 cursor-pointer flex-col rounded-lg border p-3 text-left transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[var(--qresto-primary)]/30 ${
+                            ready
+                                ? "border-emerald-200 bg-emerald-50"
+                                : "border-orange-200 bg-orange-50"
+                        }`}
+                    >
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                            <div className="min-w-0">
+                                <p className="text-sm font-black leading-none text-[#111827]">
+                                    {getTableDisplayName(order.tableId, order.tableNumber)}
+                                </p>
+                                <p className="mt-1 line-clamp-1 text-xs font-semibold text-[#475569]">
+                                    {getProductSummary(order)}
+                                </p>
+                            </div>
+                            <StatusPill status={order.status} />
+                        </div>
+
+                        <div className="mt-auto grid grid-cols-[minmax(0,1fr)_112px] items-end gap-3 pt-2">
+                            <span className="min-w-0 truncate pb-2 text-xs font-black text-[#64748b]">
+                                {formatRelativeTime(order.updatedAt || order.createdAt)}
+                            </span>
+                            {ready ? (
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        onMarkServed(order.orderId);
+                                    }}
+                                    disabled={orderActionLoadingId === order.orderId}
+                                    className="inline-flex h-8 w-[112px] items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[var(--qresto-primary)] px-3 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                    {orderActionLoadingId === order.orderId ? (
+                                        <Loader2 size={16} className="animate-spin" />
+                                    ) : (
+                                        <CheckCircle2 size={16} />
+                                    )}
+                                    Servis
+                                </button>
+                            ) : (
+                                <span className="inline-flex h-8 w-[112px] items-center justify-center whitespace-nowrap rounded-lg bg-orange-500 px-3 text-xs font-black text-white">
+                                    Hazırlanıyor
+                                </span>
+                            )}
+                        </div>
+                    </article>
+                );
+            })}
+        </div>
+    );
+}
+
 function RecentOrdersList({
     orders,
     getProductSummary,
@@ -1524,18 +1759,23 @@ function RecentOrdersList({
                     key={order.orderId}
                     type="button"
                     onClick={() => onOpenDetail(order)}
-                    className="group flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-2 py-3 text-left text-[var(--qresto-text)] transition hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)]"
+                    className="group flex w-full cursor-pointer items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-[var(--qresto-text)] transition hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)]"
                 >
                     <span className="min-w-0">
-                        <span className="flex items-center gap-2 text-sm font-black transition group-hover:text-[var(--qresto-primary)]">
-                            <ShoppingCart size={17} className="text-[#ff7a1a]" />
+                        <span className="flex items-center gap-2 text-xs font-black transition group-hover:text-[var(--qresto-primary)]">
+                            <ShoppingCart size={15} className="text-[#ff7a1a]" />
                             {getTableDisplayName(order.tableId, order.tableNumber)}
                         </span>
-                        <span className="mt-1 block truncate text-xs font-semibold text-[var(--qresto-muted)]">
-                            {getProductSummary(order)}
+                        <span className="mt-1 flex min-w-0 flex-wrap items-center gap-1.5 text-[11px] font-semibold text-[var(--qresto-muted)]">
+                            <StatusPill status={order.status} />
+                            <span className="truncate">
+                                {normalizeOrderStatus(order.status) === "CANCELLED"
+                                    ? "Sipariş iptal edildi"
+                                    : getProductSummary(order)}
+                            </span>
                         </span>
                     </span>
-                    <span className="shrink-0 text-xs font-black text-[var(--qresto-muted)]">
+                    <span className="shrink-0 text-[11px] font-black text-[var(--qresto-muted)]">
                         {formatRelativeTime(order.updatedAt || order.createdAt)}
                     </span>
                 </button>
@@ -1560,7 +1800,7 @@ function CallsList({
     if (calls.length === 0) return <EmptyBox text="Aktif çağrı bulunmuyor." />;
 
     return (
-        <div className="space-y-3">
+        <div className="space-y-3.5">
             {calls.map((call) => {
                 const isBill = call.callType === "BILL_REQUEST";
                 const color = isBill ? "#2f80ed" : "#7c4dff";
@@ -1577,23 +1817,23 @@ function CallsList({
                                 onOpenDetail(call);
                             }
                         }}
-                        className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-2 py-2 text-left transition hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--qresto-primary)]/30 ${
+                        className={`flex min-h-[74px] w-full cursor-pointer items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left transition hover:bg-[var(--qresto-hover)] hover:text-[var(--qresto-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--qresto-primary)]/30 ${
                             actionLoadingId === call.id ? "opacity-60" : ""
                         }`}
                     >
                         <span className="flex min-w-0 items-center gap-3">
-                            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full" style={{ background: `${color}18`, color }}>
-                                {actionLoadingId === call.id ? <Loader2 size={18} className="animate-spin" /> : <Bell size={19} />}
+                            <span className="flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-full" style={{ background: `${color}18`, color }}>
+                                {actionLoadingId === call.id ? <Loader2 size={19} className="animate-spin" /> : <Bell size={21} />}
                             </span>
                             <span className="min-w-0">
-                                <strong className="block text-sm">{getTableDisplayName(call.tableId, call.tableNumber)}</strong>
-                                <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--qresto-muted)]">
+                                <strong className="block truncate whitespace-nowrap text-[15px]">{getTableDisplayName(call.tableId, call.tableNumber)}</strong>
+                                <span className="mt-0.5 block truncate text-[13px] font-semibold text-[var(--qresto-muted)]">
                                     {getCallTypeLabel(call.callType)}
                                 </span>
                             </span>
                         </span>
-                        <span className="flex shrink-0 items-center gap-2">
-                            <span className="text-xs font-black text-red-500">{formatRelativeTime(call.createdAt)}</span>
+                        <span className="flex shrink-0 flex-col items-end gap-1.5">
+                            <span className="whitespace-nowrap text-xs font-black text-red-500">{formatRelativeTime(call.createdAt)}</span>
                             <span
                                 role="button"
                                 tabIndex={0}
@@ -1608,7 +1848,7 @@ function CallsList({
                                         onAskResolve(call);
                                     }
                                 }}
-                                className="cursor-pointer rounded-lg bg-[var(--qresto-primary)] px-3 py-1.5 text-xs font-black text-white"
+                                className="flex h-8 cursor-pointer items-center rounded-lg bg-[var(--qresto-primary)] px-3.5 text-[13px] font-black text-white"
                             >
                     {getCallActionLabel(call)}
                             </span>
@@ -1822,11 +2062,11 @@ function ConfirmResolveCallModal({
 function AlertBubble({ color, icon }: { color: string; icon: ReactNode }) {
     return (
         <span
-            className="qresto-alert-ring qresto-alert-shake relative flex h-8 w-8 items-center justify-center rounded-full text-white shadow-lg"
+            className="qresto-alert-ring qresto-alert-shake relative flex h-6 w-6 items-center justify-center rounded-full text-white shadow-lg"
             style={{ background: color }}
         >
             {icon}
-            <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-white bg-red-500" />
+            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-red-500" />
         </span>
     );
 }
@@ -1871,11 +2111,31 @@ function SummaryCard({
     );
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
+function TableStatusLegend({ counts }: { counts: TableStatusCounts }) {
+    return (
+        <>
+            <LegendDot color={tableStatusMeta.occupied.color} label="Dolu" count={counts.occupied} />
+            <LegendDot color={tableStatusMeta.ordered.color} label="Sipariş Verildi" count={counts.ordered} />
+            <LegendDot color={tableStatusMeta.bill.color} label="Hesap İstendi" count={counts.bill} />
+            <LegendDot color={tableStatusMeta.waiter.color} label="Garson Çağırdı" count={counts.waiter} />
+            <LegendDot color={tableStatusMeta.empty.color} label="Boş" count={counts.empty} />
+        </>
+    );
+}
+
+function LegendDot({ color, label, count }: { color: string; label: string; count?: number }) {
     return (
         <span className="inline-flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
             {label}
+            {typeof count === "number" ? (
+                <span
+                    className="inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[11px] font-black text-white"
+                    style={{ background: color }}
+                >
+                    {count}
+                </span>
+            ) : null}
         </span>
     );
 }
@@ -1923,8 +2183,9 @@ function OrderDetailModal({
         { label: "Sipariş Alındı", value: detail?.receivedAt || detail?.createdAt || order.createdAt },
         { label: "Hazırlanıyor", value: detail?.preparingAt },
         { label: "Hazır", value: detail?.readyAt },
-        { label: "Servis", value: detail?.servedAt },
+        { label: "Servis Edildi", value: detail?.servedAt },
         { label: "Ödeme", value: detail?.paymentPendingAt || detail?.paidAt || detail?.completedAt },
+        { label: "İptal Edildi", value: detail?.cancelledAt },
     ].filter((step) => step.value);
 
     return (
@@ -1955,7 +2216,7 @@ function OrderDetailModal({
                     </button>
                 </div>
 
-                <div className="min-h-0 flex-1 overflow-y-auto p-5">
+                <div className="qresto-panel-scroll min-h-0 flex-1 overflow-y-auto p-5">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
                     <InfoTile label="Oluşturulma" value={formatDateTime(detail?.createdAt || order.createdAt)} />
                     <InfoTile label="Güncellenme" value={formatDateTime(detail?.updatedAt || order.updatedAt)} />
@@ -1966,7 +2227,7 @@ function OrderDetailModal({
                 {timeline.length > 0 ? (
                     <div className="mt-4 rounded-2xl border border-[var(--qresto-border)] bg-[var(--qresto-bg)] p-4">
                         <h3 className="text-sm font-black text-[var(--qresto-text)]">Sipariş Akışı</h3>
-                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-6">
                             {timeline.map((step) => (
                                 <div key={step.label} className="rounded-xl bg-[var(--qresto-surface)] px-3 py-2">
                                     <p className="text-[11px] font-black uppercase text-[var(--qresto-primary)]">{step.label}</p>
@@ -2063,13 +2324,6 @@ function OrderItemCard({ item }: { item: OrderDetailResponse["items"][number] })
                         <DetailNote label="Çıkarılanlar" value={item.removedIngredients} />
                     ) : null}
 
-                    {item.cancelReason ? (
-                        <DetailNote label="İptal Nedeni" value={item.cancelReason} danger />
-                    ) : null}
-
-                    {item.cancelledAt ? (
-                        <DetailNote label="İptal Zamanı" value={formatDateTime(item.cancelledAt)} danger />
-                    ) : null}
                 </div>
 
         </article>

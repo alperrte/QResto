@@ -6,6 +6,7 @@ type WelcomeServiceModalProps = {
   modalType: ServiceModalType | null;
   step: ServiceModalStep;
   tableName: string | null;
+  errorMessage?: string | null;
   onClose: () => void;
   onConfirm: () => void;
 };
@@ -15,6 +16,7 @@ const WelcomeServiceModal = ({
   modalType,
   step,
   tableName,
+  errorMessage,
   onClose,
   onConfirm,
 }: WelcomeServiceModalProps) => {
@@ -51,6 +53,14 @@ const WelcomeServiceModal = ({
                 ? "Bu masa için garson çağrısı başlatılsın mı? Onaylıyor musunuz?"
                 : "Bu masa için hesap talebi gönderilsin mi? Onaylıyor musunuz?"}
             </p>
+            {errorMessage ? (
+              <div
+                className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700"
+                role="alert"
+              >
+                {errorMessage}
+              </div>
+            ) : null}
             <div className="flex justify-end gap-2">
               <button
                 type="button"

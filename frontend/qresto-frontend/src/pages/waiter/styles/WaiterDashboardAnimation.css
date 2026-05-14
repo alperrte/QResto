@@ -40,6 +40,17 @@
     }
 }
 
+@keyframes qresto-table-page-fade {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .qresto-alert-shake {
     animation: qresto-shake 0.65s ease-in-out infinite;
 }
@@ -50,6 +61,10 @@
 
 .qresto-alert-ring {
     position: relative;
+}
+
+.qresto-table-page-fade {
+    animation: qresto-table-page-fade 180ms ease-out;
 }
 
 .qresto-alert-ring::after {
