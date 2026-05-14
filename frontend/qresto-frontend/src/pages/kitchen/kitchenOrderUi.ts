@@ -141,9 +141,9 @@ export function statusBadgeConfig(status: OrderResponse["status"]): {
             return {
                 label: "YENİ",
                 className:
-                    "bg-orange-500/15 text-orange-700 ring-1 ring-orange-500/25 dark:text-orange-300",
+                    "bg-orange-500 text-white shadow-sm shadow-orange-500/20 ring-1 ring-orange-600/20",
                 Icon: ShoppingCart,
-                iconWrap: "bg-orange-500/15 text-orange-700 dark:text-orange-300",
+                iconWrap: "bg-orange-500 text-white shadow-sm shadow-orange-500/20",
             };
 
         case "PREPARING":
@@ -237,8 +237,7 @@ export function sortKitchenOrdersForKitchenView(
 export function filterOrdersForKitchenView(
     orders: OrderResponse[],
     tab: KitchenTab,
-    tableName: string | "all",
-    _dateKey?: string
+    tableName: string | "all"
 ): OrderResponse[] {
     return sortKitchenOrdersForKitchenView(orders.filter((o) => {
         if (tableName !== "all" && o.tableName !== tableName) {
@@ -250,7 +249,7 @@ export function filterOrdersForKitchenView(
         }
 
         if (tab === "received") {
-            return o.status === "RECEIVED";
+            return o.status === "RECEIVED" || o.status === "PREPARING";
         }
 
         if (tab === "preparing") {
@@ -269,21 +268,8 @@ export function filterOrdersForKitchenView(
     }));
 }
 
-export function uniqueTableNames(orders: OrderResponse[]): string[] {
-    const set = new Set<string>();
-
-    for (const o of orders) {
-        if (o.tableName) {
-            set.add(o.tableName);
-        }
-    }
-
-    return [...set].sort((a, b) => a.localeCompare(b, "tr"));
-}
-
 export function countByStatus(
-    orders: OrderResponse[],
-    _dateKey?: string
+    orders: OrderResponse[]
 ): {
     received: number;
     preparing: number;
@@ -313,13 +299,4 @@ export function countByStatus(
         ready,
         cancelledToday,
     };
-}
-
-export function todayIsoDate(): string {
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-
-    return `${y}-${m}-${day}`;
 }

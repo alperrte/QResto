@@ -1,5 +1,6 @@
 import axios from "axios";
 import orderApi from "./orderService";
+import type { OrderResponse } from "../types/cartTypes";
 import { getValidAccessToken } from "../auth/authToken";
 
 const kitchenApi = axios.create({
@@ -16,9 +17,44 @@ kitchenApi.interceptors.request.use(async (config) => {
     return config;
 });
 
-export const getKitchenOrders = async () => {
-    const response = await orderApi.get("/orders/admin/today");
-    return response.data;
+export const getKitchenOrders = async (): Promise<OrderResponse[]> => {
+    const [activeResponse, cancelledResponse] = await Promise.all([
+        orderApi.get<OrderResponse[]>("/orders/admin/active"),
+        orderApi.get<OrderResponse[]>("/orders/admin/cancelled"),
+    ]);
+
+    const byId = new Map<number, OrderResponse>();
+
+    for (const order of activeResponse.data) {
+        byId.set(order.id, order);
+    }
+
+    for (const order of cancelledResponse.data) {
+        byId.set(order.id, order);
+    }
+
+    return [...byId.values()];
+};
+
+export const getKitchenCompletedOrders = async (): Promise<OrderResponse[]> => {
+    const [completedResponse, todayResponse] = await Promise.all([
+        orderApi.get<OrderResponse[]>("/orders/admin/completed"),
+        orderApi.get<OrderResponse[]>("/orders/admin/today"),
+    ]);
+
+    const byId = new Map<number, OrderResponse>();
+
+    for (const order of completedResponse.data) {
+        byId.set(order.id, order);
+    }
+
+    for (const order of todayResponse.data) {
+        if (order.status === "SERVED") {
+            byId.set(order.id, order);
+        }
+    }
+
+    return [...byId.values()];
 };
 
 export const getKitchenOrderById = async (orderId: number) => {

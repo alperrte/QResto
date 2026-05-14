@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   ArchiveX,
+  BadgeCheck,
   ChevronDown,
   ChefHat,
   LayoutDashboard,
@@ -360,11 +361,22 @@ function MainSidebar() {
                 </NavLink>
 
                 <NavLink
-                    to="/app/kitchen/cancelled-orders"
+                    to="/app/kitchen/completed-orders"
                     className={({ isActive }) =>
                         `${navLinkClass({ isActive })} main-sidebar-nav-item`
                     }
                     style={staggerStyle(110)}
+                >
+                  <BadgeCheck size={19} />
+                  Tamamlanmış Siparişler
+                </NavLink>
+
+                <NavLink
+                    to="/app/kitchen/cancelled-orders"
+                    className={({ isActive }) =>
+                        `${navLinkClass({ isActive })} main-sidebar-nav-item`
+                    }
+                    style={staggerStyle(165)}
                 >
                   <ArchiveX size={19} />
                   İptal Edilen Siparişler

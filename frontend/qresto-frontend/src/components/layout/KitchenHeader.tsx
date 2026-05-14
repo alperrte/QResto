@@ -87,7 +87,6 @@ function KitchenHeader() {
                     <div className="hidden h-12 items-center gap-2 rounded-xl border border-[var(--qresto-border)] bg-[var(--qresto-surface)] px-4 text-sm font-black text-[var(--qresto-text)] shadow-sm sm:flex">
                         <CalendarDays size={18} className="text-[var(--qresto-muted)]" />
                         {currentDate}
-                        <ChevronDown size={15} className="text-[var(--qresto-muted)]" />
                     </div>
 
                     <div className="relative">
