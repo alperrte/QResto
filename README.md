@@ -7,6 +7,9 @@
 QResto, restoranlar için geliştirilmiş **QR tabanlı dijital sipariş ve yönetim platformudur**.  
 Müşteriler masalarına özel QR kodları okutarak menüye erişebilir, sipariş verebilir, sipariş sürecini takip edebilir, garson çağırabilir ve ödeme işlemlerini dijital olarak tamamlayabilir.
 
+**All rights reserved.**  
+Unauthorized copying, distribution, modification, deployment or use of this project is strictly prohibited.
+
 ---
 
 ## ✨ Proje Özeti
@@ -129,3 +132,11 @@ QResto servis yapısı aşağıdaki ana servislerden oluşur:
 
 ![QResto Progress](assets/in-progress.png)
 
+---
+
+## 📌 License
+
+This project is not open-source.
+
+All rights reserved by the QResto contributors.  
+No permission is granted to use, copy, modify, distribute, publish, deploy or present this project without explicit written approval from the project contributors.
